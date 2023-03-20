@@ -1,0 +1,292 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include"QMessageBox"
+#include"loginui.h"
+#include<QLabel>
+#include<QDebug>
+#include<QHostInfo>
+#include"tabfactory.h"
+#include"qjsoncmd.h"
+#include"rmmanage.h"
+#include"employeemanageui.h"
+#include"dbmanagerui.h"
+#include"modinitui.h"
+REGISTER_TAB(RMManageUI);
+REGISTER_TAB(EmployeeManageUI);
+REGISTER_TAB(DBManagerUI);
+void MainWindow::doTabwidgetMapping()
+{
+
+}
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow),
+      isLogined(false)
+{
+    ui->setupUi(this);
+    _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
+    QLabel* label=new QLabel("请等待……",&_waitDlg);
+    connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
+        DoConnect();
+        if(isLogined) DoLogin();//已经登录过了，断线后重新登录。（否则就是在登录界面等待登录，不要再重走这个步骤）；目前这个设置不完善，待优化
+    });
+    connect(&_clientSocket,&CClient::netMsg,this,&MainWindow::onNestMsg,Qt::BlockingQueuedConnection);//第五个参数很重要，否则当服务器连续发送消息时不能及时处理，只重复处理到最后一条。
+    connect(&_clientSocket,&CClient::sendingData,this,[&](){
+        _waitDlg.exec();
+    });
+    DoConnect();
+    DoLogin();
+    isLogined=true;
+    netMsg_Init msg;
+    _clientSocket.SendData(&msg);
+}
+
+MainWindow::~MainWindow()
+{
+    qDebug()<<"~MainWindow()";
+  //  _clientSocket.Close();
+    delete ui;
+}
+
+void MainWindow::DoConnect()
+{
+    QHostInfo info = QHostInfo::fromName("mud.tpddns.cn");
+    if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),5555)==SOCKET_ERROR){
+        int r=QMessageBox::warning(nullptr,"","无法连接服务器","重新连接","退出");
+        switch (r) {
+            case 0:
+            DoConnect();
+            break;
+        case 1:
+            exit(0);
+            break;
+        }
+    }
+
+}
+
+void MainWindow::DoLogin()
+{
+    LoginUI loginUI;
+    connect(&loginUI,&LoginUI::login,this,[&](const QString& id, const QString& password){
+        netmsg_Login msgLogin;
+        memcpy(msgLogin.userName,id.toUtf8().data(),32);
+        memcpy(msgLogin.PassWord,password.toUtf8().data(),33);
+        _clientSocket.SendData(&msgLogin);
+    });
+    connect(this,&MainWindow::loginResult,&loginUI, &LoginUI::onLoginResult);
+    loginUI.exec();
+}
+
+void MainWindow::sendData(const QJsonObject &json)
+{
+    _clientSocket.SendData(json);
+}
+
+
+
+void MainWindow::onNestMsg(netmsg_DataHeader *header)
+{
+    if(_waitDlg.isModal())_waitDlg.accept();
+    switch (header->cmd) {
+    case CMD_S2C_HEART:
+    {
+
+    }
+        break;
+    case CMD_LOGIN_RESULT:
+    {
+        netmsg_LoginR* lr=(netmsg_LoginR*)header;
+        emit loginResult(lr->result);
+
+    }
+        break;
+    case CMD_JSON_CMD:
+    {
+        QJsonObject js=CELLReadStream(header).getJsonData();
+        onJsonCMD(js);
+
+    }
+        break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::onJsonCMD(const QJsonObject &json)
+{
+    int cmd=json.value("cmd").toInt();
+  //  qDebug()<<"cmd="<<json;
+    switch (cmd) {
+    case JC_DO_SQL:
+    {
+      //  qDebug()<<json;
+        QSqlReturnMsg jsCmd(json);
+        QString tabText=jsCmd.tytle();
+        TabWidgetBase*w= getTabWidget(tabText);
+        if(w) w->onSqlReturn(jsCmd);//返回信息的处理交由各窗口处理。
+        else {
+            if(jsCmd.error()){
+                QMessageBox::warning(this,"",jsCmd.result().toString());
+            }
+            else QMessageBox::information(this,"","操作成功");
+        }
+//        bool r=json.value("result").toBool();
+//        switch(json.value("sql_type").toInt()){
+//            case SQL_ADD_RM:{
+//                if(r) QMessageBox::information(this,"","添加标准物质信息成功!");
+//                else QMessageBox::information(this,"添加失败",json.value("sql_info").toString());
+//            }
+//            break;
+//            case SQL_QUERY_RM:
+//           {
+//                bool r=json.value("result").toBool();
+//               if(!r){
+//                    QMessageBox::information(this,"查询失败",json.value("sql_info").toString());
+//                    return;
+//                }
+//                RMManageUI* rmUI=((RMManageUI*)getTabWidget(RMManageUI::tabText()));
+//               if(!rmUI){
+//                    qDebug()<<"error on find rmUI";
+//                    return;
+//               }
+//              rmUI ->setData( json.value("sql_info").toArray());
+//            }
+//                break;
+//            case SQL_GET_TABLES:
+//            {
+
+//            }
+//            break;
+//        }
+
+
+    }
+        break;
+    case JC_WORKFLOW:
+    {
+
+    }
+        break;
+    case JC_NOTICE:
+    {
+        NoticeCMD cmd(json);
+        int type=cmd.type();
+        switch(type){
+        case NT_WORKFLOW://流程待办
+        {
+
+            ProcessNoticeCMD cmd(json);
+            ui->listWidget->addTodo(cmd);
+        }
+            break;
+        }
+    }
+        break;
+//    case CMD_LOGOUT:
+//    {
+//        int r=QMessageBox::warning(this,"", json.value("data").toString(),"重新登录","退出");
+//        if(r==0){
+//            DoLogin();
+//        }
+//        else exit(0);
+//    }
+//        break;
+//    case JC_QUERY_RM:
+//    {
+//        bool r=json.value("result").toBool();
+//        if(!r){
+//            QMessageBox::information(this,"查询失败",json.value("reason").toString());
+//            return;
+//        }
+//        RMManageUI* rmUI=((RMManageUI*)getTabWidget(RMManageUI::tabText()));
+//        if(!rmUI){
+//            qDebug()<<"error on find rmUI";
+//            return;
+//        }
+//        rmUI ->setData( json.value("data").toArray());
+//    }
+        break;
+    default:
+        break;
+    }
+}
+
+
+void MainWindow::onOpenTab()
+{
+
+    QPushButton* bt=static_cast<QPushButton*>(sender()) ;
+    if(!bt) return;
+    QString text=bt->text();
+    for(int i=0;i<ui->tabWidget->count();i++){//检查相应的窗口是否已经被打开
+        if(ui->tabWidget->tabText(i)==text){
+            ui->tabWidget->setCurrentIndex(i);
+            return;
+        }
+    }
+    TabWidgetBase *tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
+    if(!tab) {
+        qDebug()<<"无法创建窗体："<<text;
+    }
+    connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
+    ui->tabWidget->addTab(tab,text);
+    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);    
+    tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
+}
+
+TabWidgetBase *MainWindow::getTabWidget(const QString &widgetText) const
+{
+    for(int i=0;i<ui->tabWidget->count();i++){
+        if(ui->tabWidget->tabText(i)==widgetText) return static_cast<TabWidgetBase *>( ui->tabWidget->widget(i));
+    }
+    return nullptr;
+}
+
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index)
+{
+    if(index<1) return;
+    QWidget* w=ui->tabWidget->widget(index);
+    delete w;
+   // ui->tabWidget->removeTab(index);
+}
+
+void MainWindow::on_btEmployeeManage_clicked()
+{
+
+}
+
+void MainWindow::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
+{
+    ProcessNoticeCMD cmd=ui->listWidget->model()->data(ui->listWidget->currentIndex(),Qt::UserRole).toJsonObject();
+    TabWidgetBase* tab=getTabWidget(cmd.tabText());
+    if(!tab){
+        qDebug()<<"error to find widget"<<cmd.tabText();
+        return;
+    }
+    tab->dealProcess(cmd);
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    qDebug()<<TabFactory::tabClasses();
+}
+
+void MainWindow::on_btModInit_clicked()
+{
+    ModInitUI m;
+    m.setTabsText(TabFactory::tabClasses());
+    connect(&m,&ModInitUI::tabsToInit,this,[&](const QString& tabText){
+        TabWidgetBase *tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(tabText));
+        if(!tab) {
+            qDebug()<<"无法创建窗体："<<tabText;
+            return;
+        }
+        connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
+        tab->initMod();
+        delete tab;
+    });
+    m.exec();
+}

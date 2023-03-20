@@ -1,0 +1,12 @@
+#ifndef DBMANAGERUI_GLOBAL_H
+#define DBMANAGERUI_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(DBMANAGERUI_LIBRARY)
+#  define DBMANAGERUI_EXPORT Q_DECL_EXPORT
+#else
+#  define DBMANAGERUI_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // DBMANAGERUI_GLOBAL_H

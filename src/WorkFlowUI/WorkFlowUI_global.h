@@ -1,0 +1,12 @@
+#ifndef WORKFLOWUI_GLOBAL_H
+#define WORKFLOWUI_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(WORKFLOWUI_LIBRARY)
+#  define WORKFLOWUI_EXPORT Q_DECL_EXPORT
+#else
+#  define WORKFLOWUI_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // WORKFLOWUI_GLOBAL_H
