@@ -32,7 +32,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>451</height>
+         <height>442</height>
         </rect>
        </property>
        <attribute name="label">
@@ -43,6 +43,13 @@
          <widget class="QPushButton" name="btRMManage">
           <property name="text">
            <string>标准物质管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btTaskSheet">
+          <property name="text">
+           <string>任务单管理</string>
           </property>
          </widget>
         </item>
@@ -67,7 +74,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>451</height>
+         <height>442</height>
         </rect>
        </property>
        <attribute name="label">
@@ -102,7 +109,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>451</height>
+         <height>442</height>
         </rect>
        </property>
        <attribute name="label">
@@ -113,6 +120,13 @@
          <widget class="QPushButton" name="btEmployeeManage">
           <property name="text">
            <string>人员管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btLabCapability">
+          <property name="text">
+           <string>检测能力管理</string>
           </property>
          </widget>
         </item>
@@ -160,7 +174,7 @@
        <enum>Qt::TabFocus</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="tabsClosable">
        <bool>true</bool>
@@ -190,7 +204,7 @@
      <x>0</x>
      <y>0</y>
      <width>631</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -200,6 +214,7 @@
     <addaction name="separator"/>
     <addaction name="actionlogin"/>
     <addaction name="action_2"/>
+    <addaction name="actionInitMod"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -224,6 +239,11 @@
   <action name="action_2">
    <property name="text">
     <string>退出</string>
+   </property>
+  </action>
+  <action name="actionInitMod">
+   <property name="text">
+    <string>初始化模块</string>
    </property>
   </action>
  </widget>
@@ -275,8 +295,8 @@
    <slot>onOpenTab()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>103</x>
-     <y>156</y>
+     <x>119</x>
+     <y>213</y>
     </hint>
     <hint type="destinationlabel">
      <x>634</x>

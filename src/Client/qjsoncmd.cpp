@@ -4,12 +4,11 @@ QJsonCmd::QJsonCmd()
 
 }
 
-QSqlCmd::QSqlCmd(const QString &sql, int flag, const QString &tytle, int queryPage)
+QSqlCmd::QSqlCmd(const QString &sql, int flag, int queryPage)
 {
     _cmd["cmd"]=JC_DO_SQL;
     _cmd["sql"]=sql;
     _cmd["flag"]=flag;
-    _cmd["tytle"]=tytle;
     _cmd["queryPage"]=queryPage;
 }
 

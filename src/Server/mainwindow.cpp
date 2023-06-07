@@ -2,11 +2,26 @@
 #include "ui_mainwindow.h"
 #include<QDebug>
 #include"cuser.h"
+#include<QTimer>
+#include"cdatabasemanage.h"
+#include<QSqlQuery>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    QTimer *timer = new QTimer(this);
+    timer->start(600000);
+    connect(timer, &QTimer::timeout, this, [&]() {
+        QSqlQuery query(DB.database());
+        if (query.exec("SELECT 1")) {
+            // 查询语句执行成功
+            qDebug()<<"保持连接中……";
+        } else {
+            // 查询语句执行失败，输出错误信息
+            qWarning() << "MainWindow: Failed to keep connection. Error:" << query.lastError().text();
+        }
+    });
 }
 
 MainWindow::~MainWindow()

@@ -74,7 +74,7 @@ void CServer::onJsonCMD(CELLClient *pClient, QJsonObject &json)
         break;
     case JC_WORKFLOW:
     {
-        _wfManager.onJsonCmd(json, pClient->getUser()->name())
+//        _wfManager.onJsonCmd(json, pClient->getUser()->name())
 
 /*        NewWorkFlowCMD wfCmd(json);
 

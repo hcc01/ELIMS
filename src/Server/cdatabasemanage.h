@@ -9,6 +9,7 @@
 #include"../Client/qjsoncmd.h"
 
 #define ITEMS_PER_PAGE 10
+#define DB CDatabaseManage::Instance()
 class CDatabaseManage
 {
 public:

@@ -24,13 +24,15 @@ public:
 signals:
     void Connected();
     void loginResult(int result);
+private:
+    TabWidgetBase *getTabWidget(const QString& widgetText)const;
 
 private slots:
     void sendData(const QJsonObject& json);
     void onNestMsg(netmsg_DataHeader* header);
     void onJsonCMD( const QJsonObject& json);
-    void onOpenTab();//导航栏的按纽统一使用这个槽，对应的TAB窗体必须有静态的tabText函数用于返回按纽名称（同时也是页的名称），并且需要使用tabFactory注册
-    TabWidgetBase *getTabWidget(const QString& widgetText)const;
+    void onOpenTab();//导航栏打开按纽的响应函数
+
     void on_tabWidget_tabCloseRequested(int index);
 
     void on_btEmployeeManage_clicked();
@@ -40,6 +42,8 @@ private slots:
     void on_pushButton_clicked();
 
     void on_btModInit_clicked();
+
+    void on_actionInitMod_triggered();
 
 private:
     Ui::MainWindow *ui;    

@@ -41,16 +41,14 @@ public:
     }
 };
 
-#define REGISTER_TAB(class_name) \
-    class class_name##Register { \
-    public: \
-    static  void* NewInstance(QWidget*parent=nullptr) \
-    {  return  new class_name( parent);  } \
-    private: \
-    static Register reg_; \
-    }; \
-    Register class_name##Register::reg_(class_name::tabText(), class_name##Register::NewInstance)
-
+//#define REGISTER_TAB(class_name) \
+//    class class_name##Register { \
+//    public: \
+//    static  void* NewInstance(QWidget*parent=nullptr) \
+//    {  return  new class_name( parent);  } \
+//    private: \
+//    static Register reg_; \
+//    }; \
 
 
 

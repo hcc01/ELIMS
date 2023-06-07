@@ -10,6 +10,7 @@ void CDatabaseManage::connectDb()
 {
     _db=QSqlDatabase::addDatabase("QMYSQL","elims");
     _db.setConnectOptions("MYSQL_OPT_RECONNECT=1");
+
     _db.setHostName("127.0.0.1");
     _db.setUserName("root");
     _db.setPassword("spring01");
@@ -35,6 +36,7 @@ void CDatabaseManage::connectDb()
             qDebug()<<"query error:"<<query.lastError().text();
         }
     }
+
 }
 
 QJsonObject CDatabaseManage::getRMHead()
@@ -137,7 +139,7 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
     QJsonArray row;
     for(int i=0;i<record.count();i++){
         QString name=record.fieldName(i);
-        doTranslate(name);
+//        doTranslate(name);
         row.append(name);
 
     }
@@ -157,9 +159,9 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
 //    if(pages>=1){
 //        if(page>=pages) page=pages-1;
 //    }
-    query.seek(start-1);
+//    query.seek(start-1);
     while(query.next()){
-        if(query.at()>end) break;
+//        if(query.at()>end) break;
         QJsonArray row;
         for(int i=0;i<columns;i++) row.append(query.value(i).toString());
         table.append(row);

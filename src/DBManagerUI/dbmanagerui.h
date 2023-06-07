@@ -23,11 +23,13 @@ public:
     explicit DBManagerUI(QWidget *parent = nullptr);
     ~DBManagerUI();
 
+    void showEvent(QShowEvent *event)override;
     static QString tabText(){
         return "数据库管理";
     }
     void onSqlReturn(const QSqlReturnMsg& jsCmd);
     void dealProcess(const ProcessNoticeCMD& cmd) override{};
+
     bool initMod()override;
 private slots:
     void on_comboBox_currentTextChanged(const QString &arg1);

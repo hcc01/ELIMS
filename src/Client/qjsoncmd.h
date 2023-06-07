@@ -5,6 +5,8 @@
 #include<QJsonArray>
 
 #include"../../depends/MessageHeader.h"
+class QSqlReturnMsg;
+using DealFuc = std::function<void(const QSqlReturnMsg&)>;
 class QJsonCmd
 {
 public:
@@ -136,14 +138,15 @@ private:
 };
 
 
-class QSqlCmd{//数据库查询的sql命令包
+class QSqlCmd{//用于各个模块的数据库查询的sql命令包
 public:
-    QSqlCmd(const QString &sql/*操作语句*/, int flag/*操作类型标识，模块自定义*/, const QString& tytle/*模块窗体标识*/,int queryPage=0);
+    QSqlCmd(const QString &sql/*操作语句*/, int flag/*操作类型标识，模块自定义*/,int queryPage=0);
     QSqlCmd(const QJsonObject& json);
     QSqlCmd(const QSqlCmd &sqlCmd);   
     void setSql(const QString& sql){ _cmd["sql"]=sql;}
     void setFlag(int flag){ _cmd["flag"]=flag;}
     void setPage(int page){_cmd["queryPage"]=page;}
+    void setTabTitle(const QString&tytle){_cmd["tytle"]=tytle;}//模块窗体标识，在mainWindow的onOpenTab中进行标识，用于服务器识别操作窗口。
     QString tytle()const;
     QString sql() const;
     int flag() const;

@@ -11,9 +11,18 @@
 #include"employeemanageui.h"
 #include"dbmanagerui.h"
 #include"modinitui.h"
-REGISTER_TAB(RMManageUI);
-REGISTER_TAB(EmployeeManageUI);
-REGISTER_TAB(DBManagerUI);
+#include"tasksheetui.h"
+#include"labcapabilitiesmanagerui.h"
+//REGISTER_TAB(RMManageUI);
+//REGISTER_TAB(EmployeeManageUI);
+//REGISTER_TAB(DBManagerUI);
+/* 去掉了原先的REGISTER_TAB宏，这个操作不明朗，后续在增加模块时还要涉及其它地方的不明朗操作。
+ * 使用宏来增加模块ADD_MODUEL(模块UI类，打开按钮），按钮放在导航栏中即可，不需要任何设置。注意按钮的文本就是区别模块的标识，不可重复。
+ * 模块是一个设计好的以TabWidgetBase为基类的窗口类，在MainWindow的Tab页中显示出来。
+ */
+#define ADD_MODULE(module,linkButton) \
+    TabFactory::Register(linkButton->text(), static_cast<CREATE_FUNC>([](QWidget *parent) -> void * { return new module(parent); })); \
+    connect(linkButton, &QPushButton::clicked, this, &MainWindow::onOpenTab);
 void MainWindow::doTabwidgetMapping()
 {
 
@@ -25,6 +34,11 @@ MainWindow::MainWindow(QWidget *parent)
       isLogined(false)
 {
     ui->setupUi(this);
+    ADD_MODULE(RMManageUI,ui->btRMManage);
+    ADD_MODULE(EmployeeManageUI,ui->btEmployeeManage);
+    ADD_MODULE(DBManagerUI,ui->btDBManage);
+    ADD_MODULE(TaskSheetUI,ui->btTaskSheet);
+    ADD_MODULE(LabCapabilitiesManagerUI,ui->btLabCapability);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
@@ -33,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(&_clientSocket,&CClient::netMsg,this,&MainWindow::onNestMsg,Qt::BlockingQueuedConnection);//第五个参数很重要，否则当服务器连续发送消息时不能及时处理，只重复处理到最后一条。
     connect(&_clientSocket,&CClient::sendingData,this,[&](){
-        _waitDlg.exec();
+//        _waitDlg.exec();
     });
     DoConnect();
     DoLogin();
@@ -51,7 +65,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::DoConnect()
 {
-    QHostInfo info = QHostInfo::fromName("mud.tpddns.cn");
+    QHostInfo info = QHostInfo::fromName("127.0.0.1");
     if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),5555)==SOCKET_ERROR){
         int r=QMessageBox::warning(nullptr,"","无法连接服务器","重新连接","退出");
         switch (r) {
@@ -121,7 +135,6 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
     switch (cmd) {
     case JC_DO_SQL:
     {
-      //  qDebug()<<json;
         QSqlReturnMsg jsCmd(json);
         QString tabText=jsCmd.tytle();
         TabWidgetBase*w= getTabWidget(tabText);
@@ -213,7 +226,6 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
     }
 }
 
-
 void MainWindow::onOpenTab()
 {
 
@@ -229,11 +241,16 @@ void MainWindow::onOpenTab()
     TabWidgetBase *tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
     if(!tab) {
         qDebug()<<"无法创建窗体："<<text;
+        return;
     }
-    connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
+    connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
+        QJsonObject j=sqlCmd;
+        j["tytle"]=text;//标识下处理窗口
+        sendData(j);
+    });
     ui->tabWidget->addTab(tab,text);
     ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);    
-    tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
+   // tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
 }
 
 TabWidgetBase *MainWindow::getTabWidget(const QString &widgetText) const
@@ -284,9 +301,22 @@ void MainWindow::on_btModInit_clicked()
             qDebug()<<"无法创建窗体："<<tabText;
             return;
         }
-        connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
+//        connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
+        connect(tab,&TabWidgetBase::sendData,this,[&](const QJsonObject&sqlCmd){
+            QJsonObject j=sqlCmd;
+            j["tytle"]=tabText;//标识下处理窗口
+            sendData(j);
+        });
         tab->initMod();
-        delete tab;
+//        delete tab;
+        tab->hide();
     });
     m.exec();
 }
+
+void MainWindow::on_actionInitMod_triggered()
+{
+    TabWidgetBase*tab=(TabWidgetBase*)ui->tabWidget->currentWidget();
+    tab->initMod();
+}
+

@@ -29,6 +29,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     modinitui.cpp \
+    mycombobox.cpp \
     processmanager.cpp \
     qdoubleedit.cpp \
     qjsoncmd.cpp \
@@ -58,6 +59,7 @@ HEADERS += \
     loginui.h \
     mainwindow.h \
     modinitui.h \
+    mycombobox.h \
     processmanager.h \
     qdoubleedit.h \
     qjsoncmd.h \
@@ -109,3 +111,20 @@ else:unix: LIBS += -L$$PWD/../../lib/ -lDBManagerUI
 
 INCLUDEPATH += $$PWD/../dbmanagerui
 DEPENDPATH += $$PWD/../dbmanagerui
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lTaskSheetManager
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lTaskSheetManagerd
+else:unix: LIBS += -L$$PWD/../../lib/ -lTaskSheetManager
+
+INCLUDEPATH += $$PWD/../tasksheetmanager
+DEPENDPATH += $$PWD/../tasksheetmanager
+
+RESOURCES += \
+    res.qrc
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lLabCapabilitiesManager
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lLabCapabilitiesManagerd
+else:unix: LIBS += -L$$PWD/../../lib/ -lLabCapabilitiesManager
+
+INCLUDEPATH += $$PWD/../labcapabilitiesmanager
+DEPENDPATH += $$PWD/../labcapabilitiesmanager
