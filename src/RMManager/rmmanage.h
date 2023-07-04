@@ -29,7 +29,7 @@ public:
     static QString tabText(){
         return "标准物质管理";
     }
-    bool initMod() override;//模块初始化，当新增该模块时，需要建表等操作。
+    void initMod() override;//模块初始化，当新增该模块时，需要建表等操作。
     void doAddRM(const QJsonObject& dbINfo);
     void setData(const QJsonArray &data);
     void onSqlReturn(const QSqlReturnMsg& jsCmd) override;

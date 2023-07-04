@@ -22,7 +22,7 @@ public:
     void onSqlReturn(const QSqlReturnMsg& jsCmd)override;
     void initCMD()override;
     void dealProcess(const ProcessNoticeCMD&)override{};//处理流程事件
-    bool initMod() override;
+    void initMod() override;
 private:
     Ui::EmployeeManageUI *ui;
 };

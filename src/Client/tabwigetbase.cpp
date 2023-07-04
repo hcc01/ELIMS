@@ -24,7 +24,12 @@ void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
 //    }
 //    else{
 //       qDebug()<<"error: wrong sqlFlag."<<flag;
-//    }
+    //    }
+}
+
+void TabWidgetBase::dealProcess(const ProcessNoticeCMD &)
+{
+
 }
 
 

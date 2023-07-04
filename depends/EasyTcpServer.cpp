@@ -6,6 +6,7 @@ EasyTcpServer::EasyTcpServer()
     _recvCount = 0;
     _msgCount = 0;
     _clientCount = 0;
+    CELLLog::Instance().setLogPath("serverLog.txt","w");
 }
 
 EasyTcpServer::~EasyTcpServer()

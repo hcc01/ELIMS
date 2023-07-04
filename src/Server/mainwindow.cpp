@@ -5,6 +5,7 @@
 #include<QTimer>
 #include"cdatabasemanage.h"
 #include<QSqlQuery>
+#include"staticdatamanager.h"
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -63,3 +64,10 @@ void MainWindow::on_btCheckClients_clicked()
 
 
 }
+
+void MainWindow::on_staticDataBtn_clicked()
+{
+    StaticDataManager *w=new StaticDataManager(this);
+    w->show();
+}
+

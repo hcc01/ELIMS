@@ -21,8 +21,8 @@ public:
     explicit TabWidgetBase(QWidget *parent = nullptr);
     virtual ~TabWidgetBase(){}
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
-    virtual void dealProcess(const ProcessNoticeCMD&)=0;//处理流程事件
-    virtual bool initMod()=0;//新增模块时初始化操作，建表等。
+    virtual void dealProcess(const ProcessNoticeCMD&);//处理流程事件
+    virtual void initMod()=0;//新增模块时初始化操作，建表等。
     //virtual void initCMD()=0;//用于窗口建立后给服务器发送初始化命令。设为纯虚是因为不知道为什么子类如果不写这个函数，调用就会奔溃！
     virtual void initCMD(){}//这个没用了，先保留着。
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0);

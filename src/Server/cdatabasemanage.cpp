@@ -156,17 +156,23 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
         pages=1;
         end=rows;
     }
-//    if(pages>=1){
-//        if(page>=pages) page=pages-1;
+    if(pages>=1){
+        if(page>pages) page=pages-1;
+    }
+    query.seek(start-1);
+//    for(int i=0;i<10&&query.next();i++){
+//        QJsonArray row;
+//        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
+//        table.append(row);
 //    }
-//    query.seek(start-1);
-    while(query.next()){
-//        if(query.at()>end) break;
+    do{
+        if(query.at()>=end) break;
         QJsonArray row;
         for(int i=0;i<columns;i++) row.append(query.value(i).toString());
         table.append(row);
 
     }
+    while(query.next());
     return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,pages);
 }
 

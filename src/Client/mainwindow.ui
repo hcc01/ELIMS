@@ -32,7 +32,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>442</height>
+         <height>446</height>
         </rect>
        </property>
        <attribute name="label">
@@ -74,7 +74,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>442</height>
+         <height>446</height>
         </rect>
        </property>
        <attribute name="label">
@@ -109,7 +109,7 @@
          <x>0</x>
          <y>0</y>
          <width>177</width>
-         <height>442</height>
+         <height>446</height>
         </rect>
        </property>
        <attribute name="label">
@@ -141,6 +141,13 @@
          <widget class="QPushButton" name="btModInit">
           <property name="text">
            <string>模块初始化</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="standardsManagerBtn">
+          <property name="text">
+           <string>标准管理</string>
           </property>
          </widget>
         </item>
@@ -204,7 +211,7 @@
      <x>0</x>
      <y>0</y>
      <width>631</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

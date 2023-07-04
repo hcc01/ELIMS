@@ -13,6 +13,8 @@
 #include"modinitui.h"
 #include"tasksheetui.h"
 #include"labcapabilitiesmanagerui.h"
+#include"standardsmanager.h"
+#include<QTimer>
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -39,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(DBManagerUI,ui->btDBManage);
     ADD_MODULE(TaskSheetUI,ui->btTaskSheet);
     ADD_MODULE(LabCapabilitiesManagerUI,ui->btLabCapability);
+    ADD_MODULE(StandardsManager,ui->standardsManagerBtn);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
@@ -54,6 +57,12 @@ MainWindow::MainWindow(QWidget *parent)
     isLogined=true;
     netMsg_Init msg;
     _clientSocket.SendData(&msg);
+//    QTimer *timer = new QTimer(this);
+//    connect(timer, &QTimer::timeout, this, [this](){
+//        netmsg_c2s_Heart heart;
+//        _clientSocket.SendData(&heart);
+//    });
+//    timer->start(10000);
 }
 
 MainWindow::~MainWindow()
@@ -65,7 +74,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::DoConnect()
 {
-    QHostInfo info = QHostInfo::fromName("127.0.0.1");
+//    QHostInfo info = QHostInfo::fromName("127.0.0.1");
+    QHostInfo info = QHostInfo::fromName("mud.tpddns.cn");
     if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),5555)==SOCKET_ERROR){
         int r=QMessageBox::warning(nullptr,"","无法连接服务器","重新连接","退出");
         switch (r) {
@@ -140,6 +150,7 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
         TabWidgetBase*w= getTabWidget(tabText);
         if(w) w->onSqlReturn(jsCmd);//返回信息的处理交由各窗口处理。
         else {
+            qDebug()<<"result:"<<jsCmd.result();
             if(jsCmd.error()){
                 QMessageBox::warning(this,"",jsCmd.result().toString());
             }

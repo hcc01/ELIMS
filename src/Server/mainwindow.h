@@ -21,6 +21,8 @@ private slots:
 
     void on_btCheckClients_clicked();
 
+    void on_staticDataBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     CServer _server;

@@ -30,7 +30,7 @@ public:
     void onSqlReturn(const QSqlReturnMsg& jsCmd);
     void dealProcess(const ProcessNoticeCMD& cmd) override{};
 
-    bool initMod()override;
+    void initMod()override;
 private slots:
     void on_comboBox_currentTextChanged(const QString &arg1);
 
@@ -47,6 +47,8 @@ private:
 private:
     Ui::DBManagerUI *ui;
     CTableModel _model;
+    QSqlCmd _sqlCmd;
+    int _totalPage;
 };
 
 #endif // DBMANAGERUI_H

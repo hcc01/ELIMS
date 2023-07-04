@@ -1,5 +1,4 @@
 #include"EasyTcpClient.h"
-
 EasyTcpClient::EasyTcpClient()
 {
     _isConnect = false;
@@ -128,7 +127,7 @@ void EasyTcpClient::OnRun()
                 break;;
             }
         }
-        if(_heartBeatTime.getElapsedSecond()>25){//向服务器发送心跳包
+        if(_heartBeatTime.getElapsedSecond()>100){//向服务器发送心跳包
             _heartBeatTime.update();
             netmsg_c2s_Heart heart;
             _pClient->SendData(&heart);

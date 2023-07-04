@@ -25,6 +25,8 @@ SOURCES += \
     cclient.cpp \
     ctablemodel.cpp \
     cuser.cpp \
+    implementingstandardeditor.cpp \
+    itemsselectdlg.cpp \
     loginui.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -32,8 +34,14 @@ SOURCES += \
     mycombobox.cpp \
     processmanager.cpp \
     qdoubleedit.cpp \
+    qexcel.cpp \
     qjsoncmd.cpp \
-    tabwigetbase.cpp
+    qmeasurementunit.cpp \
+    standardsmanager.cpp \
+    tabwigetbase.cpp \
+    testitemmanager.cpp \
+    uniteditbox.cpp \
+    unitsc.cpp
 
 HEADERS += \
 ../../depends/CELL.h \
@@ -53,9 +61,12 @@ HEADERS += \
 ../../depends/INetEvent.h \
 ../../depends/MessageHeader.h \
 ../../depends/user.h \
+    QExcel.h \
     cclient.h \
     ctablemodel.h \
     cuser.h \
+    implementingstandardeditor.h \
+    itemsselectdlg.h \
     loginui.h \
     mainwindow.h \
     modinitui.h \
@@ -63,13 +74,22 @@ HEADERS += \
     processmanager.h \
     qdoubleedit.h \
     qjsoncmd.h \
+    qmeasurementunit.h \
+    standardsmanager.h \
     tabfactory.h \
-    tabwigetbase.h
+    tabwigetbase.h \
+    testitemmanager.h \
+    uniteditbox.h \
+    unitsc.h
 
 FORMS += \
+    implementingstandardeditor.ui \
+    itemsselectdlg.ui \
     loginui.ui \
     mainwindow.ui \
-    modinitui.ui
+    modinitui.ui \
+    standardsmanager.ui \
+    testitemmanager.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

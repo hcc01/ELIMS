@@ -12,7 +12,7 @@ public:
         CELLStream(char* pData, int nSize, bool bDelete = false);
 
 
-	CELLStream(int nSize = 1024)
+    CELLStream(int nSize = 1024)
 	{
 		_nSize = nSize;
 		_pBuff = new char[_nSize];
@@ -208,7 +208,7 @@ public:
 			push(nLen);
 			return true;
 		}
-		CELLLog::Info("error, CELLStream::WriteArray failed.");
+        CELLLog::Info("error, CELLStream::WriteArray failed,nLen:%d.",nLen);
 		return false;
 	}
 

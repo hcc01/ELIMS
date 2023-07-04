@@ -4,7 +4,8 @@
 #include<QDebug>
 DBManagerUI::DBManagerUI(QWidget *parent) :
     TabWidgetBase(parent),
-    ui(new Ui::DBManagerUI)
+    ui(new Ui::DBManagerUI),
+    _sqlCmd(QJsonObject())
 {
     ui->setupUi(this);
 
@@ -40,6 +41,7 @@ void DBManagerUI::onSqlReturn(const QSqlReturnMsg &jsCmd)//sqlreturn一个table(
     {
         QJsonArray a=jsCmd.result().toJsonArray();
         qDebug()<<"BManagerUI::onSqlReturn: result="<<a;
+        ui->comboBox->clear();
         for(int i=1;i<a.size();i++){
             ui->comboBox->addItem(a[i].toArray().at(0).toString());
         }
@@ -67,14 +69,14 @@ void DBManagerUI::onSqlReturn(const QSqlReturnMsg &jsCmd)//sqlreturn一个table(
 
 }
 
-bool DBManagerUI::initMod()
+void DBManagerUI::initMod()
 {
-    return true;
+    return;
 }
 
 void DBManagerUI::on_comboBox_currentTextChanged(const QString &arg1)
 {
-    QSqlCmd jsCmd(QString("select * from %1").arg(arg1),1);
+    QSqlCmd jsCmd(QString("select * from %1").arg(arg1),CHANGE_TABLE,1);
     //_sqlCmd=jsCmd;//保存下当前的查询命令
     ui->pageCtrWidet->setCmd(jsCmd);
     sendData(jsCmd.jsCmd());
@@ -102,26 +104,26 @@ void DBManagerUI::on_lineEdit_returnPressed()
 
 void DBManagerUI::on_bt_PageUP_clicked()
 {
-//    if(!_totalPage) return;
-//    if(_sqlCmd.queryPage()<=1) return;
-//    _sqlCmd.setPage(_sqlCmd.queryPage()-1);
-//    sendData(_sqlCmd.jsCmd());
+    if(!_totalPage) return;
+    if(_sqlCmd.queryPage()<=1) return;
+    _sqlCmd.setPage(_sqlCmd.queryPage()-1);
+    sendData(_sqlCmd.jsCmd());
 }
 
 void DBManagerUI::on_bt_PageDown_clicked()
 {
-//    if(!_totalPage) return;
-//    if(_sqlCmd.queryPage()+1==_totalPage) return;
-//    _sqlCmd.setPage(_sqlCmd.queryPage()+1);
-//    qDebug()<<_sqlCmd.jsCmd();
-//    sendData(_sqlCmd.jsCmd());
+    if(!_totalPage) return;
+    if(_sqlCmd.queryPage()+1==_totalPage) return;
+    _sqlCmd.setPage(_sqlCmd.queryPage()+1);
+    qDebug()<<_sqlCmd.jsCmd();
+    sendData(_sqlCmd.jsCmd());
 }
 
 void DBManagerUI::on_comboBox_editTextChanged(const QString &arg1)
 {
 
-    QSqlCmd jsCmd(QString("select * from %1").arg(arg1),CHANGE_TABLE);
-    //_sqlCmd=jsCmd;//保存下当前的查询命令
+    QSqlCmd jsCmd(QString("select * from %1").arg(arg1),CHANGE_TABLE,1);
+    _sqlCmd=jsCmd;//保存下当前的查询命令
     ui->pageCtrWidet->setCmd(jsCmd);
     sendData(jsCmd.jsCmd());
     qDebug()<<arg1;

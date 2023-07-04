@@ -20,6 +20,7 @@ SOURCES += \
     ../../depends/EasyTcpServer.cpp \
     ../../depends/server.cpp \
     ../../depends/user.cpp \
+    ../Client/qexcel.cpp \
     ../Client/qjsoncmd.cpp \
     cdatabasemanage.cpp \
     cfileserver.cpp \
@@ -28,7 +29,8 @@ SOURCES += \
     cuser.cpp \
     main.cpp \
     mainwindow.cpp \
-    processmanager.cpp
+    processmanager.cpp \
+    staticdatamanager.cpp
 
 HEADERS += \
     ../../depends/CELL.h \
@@ -48,6 +50,7 @@ HEADERS += \
     ../../depends/INetEvent.h \
     ../../depends/MessageHeader.h \
     ../../depends/user.h \
+    ../Client/QExcel.h \
     ../Client/qjsoncmd.h \
     cdatabasemanage.h \
     cfileserver.h \
@@ -56,10 +59,12 @@ HEADERS += \
     cuser.h \
     enums.h \
     mainwindow.h \
-    processmanager.h
+    processmanager.h \
+    staticdatamanager.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    staticdatamanager.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

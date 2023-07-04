@@ -8,7 +8,7 @@
 #include<QJsonObject>
 #include<QJsonDocument>
 //客户端心跳检测死亡计时时间
-#define CLIENT_HREAT_DEAD_TIME 60000
+#define CLIENT_HREAT_DEAD_TIME 600000
 //在间隔指定时间后
 //把发送缓冲区内缓存的消息数据发送给客户端
 #define CLIENT_SEND_BUFF_TIME 200
@@ -115,6 +115,7 @@ public:
 		if (_dtHeart >= CLIENT_HREAT_DEAD_TIME)
 		{
 			CELLLog::Info("checkHeart dead:s=%d,time=%ld\n",_sockfd, _dtHeart);
+            qDebug()<<QString("checkHeart dead:s=%1,time=%2\n").arg(_sockfd).arg( _dtHeart);
 			return true;
 		}
 		return false;

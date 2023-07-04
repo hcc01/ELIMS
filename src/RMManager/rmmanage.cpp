@@ -52,7 +52,7 @@ RMManageUI::~RMManageUI()
     delete ui;
 }
 
-bool RMManageUI::initMod()
+void RMManageUI::initMod()
 {
     //创建标准物质信息表
     QString sql="drop table if exists rm_info ; "
@@ -65,7 +65,7 @@ bool RMManageUI::initMod()
 "solvent varchar(12), validity date,"
 " store_pos varchar(16), add_date date not null,"
 "amount tinyint not null, remarks varchar(100))";
-    QSqlCmd cmd(sql,NORETURN,this->tabText());
+    QSqlCmd cmd(sql,NORETURN);
     emit sendData(cmd.jsCmd());
 }
 
@@ -148,7 +148,7 @@ void RMManageUI::dealProcess(const ProcessNoticeCMD &cmd)
     _rmCheck.append("申请日期："+cmd.createTime());
     //QString sql=QString("select content from wf_instance left join wf_action_record where id=%1").arg(cmd.recordID());
     QString sql="select * from wf_instance ";
-    QSqlCmd sqlCMD(sql,GET_CONTENT,this->tabText());
+    QSqlCmd sqlCMD(sql,GET_CONTENT);
     sendData(sqlCMD.jsCmd());
 }
 
@@ -236,6 +236,6 @@ void RMManageUI::on_btDoQuery_clicked()
             if(i<n-1) sql+=" and ";
         }
     }
-    QSqlCmd jsCmd(sql,QUERY_RM,RMManageUI::tabText());
+    QSqlCmd jsCmd(sql,QUERY_RM);
     sendData(jsCmd.jsCmd());
 }

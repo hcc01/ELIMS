@@ -31,7 +31,7 @@ bool CELLBuffer::push(const char *pData, int nLen)
                 return true;
         }
         else {
-                qDebug()<<"需要写入的数据大于可用空间";
+                qDebug()<<"需要写入的数据大于可用空间"<<nLen;
                 ++_fullCount;
         }
 
