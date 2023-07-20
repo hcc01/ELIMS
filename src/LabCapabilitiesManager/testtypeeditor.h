@@ -16,7 +16,7 @@ public:
     ~TestTypeEditor();
     void init();
 signals:
-    void doSql(const QString&,DealFuc f=nullptr,int p=0);
+    void doSql(const QString&,DealFuc f=nullptr,int p=0,const QJsonArray&values={});
 private slots:
     void on_addBtn_clicked();
 
@@ -29,6 +29,8 @@ private slots:
     void on_testTypeAddBtn_clicked();
 
     void on_testTypeBox_currentIndexChanged(int index);
+
+    void on_testTypeModifyBtn_clicked();
 
 private:
     Ui::TestTypeEditor *ui;

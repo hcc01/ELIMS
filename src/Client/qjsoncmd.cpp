@@ -43,6 +43,17 @@ int QSqlCmd::queryPage() const
     return _cmd.value("queryPage").toInt();;
 }
 
+void QSqlCmd::bindValue(const QJsonArray &values)
+{
+    _cmd["bindValue"]=values;
+    _cmd["bindMod"]=true;
+}
+
+QJsonArray QSqlCmd::getBindValues() const
+{
+    return _cmd.value("bindValue").toArray();
+}
+
 QJsonObject QSqlCmd::jsCmd() const
 {
     return _cmd;

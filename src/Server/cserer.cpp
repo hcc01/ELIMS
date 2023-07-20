@@ -28,6 +28,7 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
 {
     EasyTcpServer::OnNetMsg(pServer,pClient,header);
     auto cmd=header->cmd;
+    if(cmd!=CMD_LOGIN&&!pClient->isLogined()) return;
     switch(cmd){
         case CMD_LOGIN:
         {
@@ -38,6 +39,7 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
         break;
         case CMD_C2S_HEART:
         {
+
             pClient->resetDTHeart();
             netmsg_s2c_Heart ret;
             pClient->SendData(&ret);

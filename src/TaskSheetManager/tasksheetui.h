@@ -14,6 +14,10 @@ class TASKSHEETMANAGER_EXPORT TaskSheetUI : public TabWidgetBase
 
 public:
     explicit TaskSheetUI(QWidget *parent = nullptr);
+    enum TaskStatus{
+
+    };
+
     ~TaskSheetUI();
     //基类纯虚函数的实现start
 //    virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);//处理数据库操作返回的信息

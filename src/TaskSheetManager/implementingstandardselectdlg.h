@@ -17,7 +17,7 @@ public:
     void init();
 
 signals:
-    void doSql(const QString&sql,DealFuc f,int p=0);
+    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
     void selectDone(const QStringList&selectParameters,const QList<int>&selectParameterIDs,const QString&standardName,int limitStandardID);
 private slots:
     void on_OkBtn_clicked();

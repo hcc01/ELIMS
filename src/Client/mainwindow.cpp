@@ -33,7 +33,8 @@ void MainWindow::doTabwidgetMapping()
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow),
-      isLogined(false)
+      isLogined(false),
+    m_user(nullptr)
 {
     ui->setupUi(this);
     ADD_MODULE(RMManageUI,ui->btRMManage);
@@ -70,6 +71,7 @@ MainWindow::~MainWindow()
     qDebug()<<"~MainWindow()";
   //  _clientSocket.Close();
     delete ui;
+    delete m_user;
 }
 
 void MainWindow::DoConnect()
@@ -123,6 +125,12 @@ void MainWindow::onNestMsg(netmsg_DataHeader *header)
     {
         netmsg_LoginR* lr=(netmsg_LoginR*)header;
         emit loginResult(lr->result);
+        if(!m_user){
+            m_user=new CUser(lr->name,lr->position);
+        }
+        else{
+            m_user->reset(lr->name,lr->position);
+        }
 
     }
         break;
@@ -254,6 +262,7 @@ void MainWindow::onOpenTab()
         qDebug()<<"无法创建窗体："<<text;
         return;
     }
+    tab->setUser(m_user);
     connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
         QJsonObject j=sqlCmd;
         j["tytle"]=text;//标识下处理窗口

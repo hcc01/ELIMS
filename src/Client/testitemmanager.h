@@ -17,7 +17,7 @@ public:
     void init();
     void reset();
 signals:
-    void doSql(const QString&sql,DealFuc f,int p=0);
+    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
 private slots:
     void on_OKBtn_clicked();
 

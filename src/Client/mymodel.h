@@ -19,10 +19,17 @@ public:
     void append(const QVector<QVariant>&);
     bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
     void removeAll();
+    Qt::ItemFlags flags(const QModelIndex& index) const override;
+    void setEditableColumn(int colunm);//设置可编辑的列
+    void setReatedData(const QModelIndex&mapToCell, const QModelIndex& mapSourseCell, const QHash<QString, QVariant> &mapData);
+    void setRelatedData(int row, int column, int sourseRow, int sourseColumn, QHash<QString, QVariant> relatedData);
 signals:
 private:
     QVector<QVector<QVariant>> m_data;
     QStringList m_header;
+    QList<int>m_editableColumns;
+    QHash<QModelIndex,QHash<QString,QVariant>> m_relatedData;
+    QHash<QModelIndex,QModelIndex>m_relateions;//用于数据关联，主要用于可选数据（检测方法选择时），当前的单元格数据与指定的单元格数据相关，相关性用HASH对应。
 };
 
 #endif // MYMODEL_H

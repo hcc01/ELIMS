@@ -54,7 +54,22 @@ void MyTableView::clear()
     m_model->removeAll();
 }
 
+bool MyTableView::setData(int row, int colunm, const QVariant &value, int role)
+{
+    return m_model->setData(row,colunm,value,role);
+}
+
 int MyTableView::selectedRow() const
 {
     return selectedIndexes().first().row();
+}
+
+void MyTableView::setEditableColumn(int colunm)
+{
+    m_model->setEditableColumn(colunm);
+}
+
+void MyTableView::setMappingCell(int row, int column, int relatedToRow, int relatedTocolumn, QHash<QString, QVariant> relatedData)
+{
+    m_model->setRelatedData(row, column, relatedToRow,  relatedTocolumn, relatedData);
 }

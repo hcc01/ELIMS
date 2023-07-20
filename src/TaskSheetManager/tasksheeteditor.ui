@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1,0,1">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0,0,0,1">
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
@@ -25,7 +25,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_2"/>
+       <widget class="QLineEdit" name="contractEdit">
+        <property name="readOnly">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QLabel" name="label_22">
@@ -35,7 +39,43 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_6"/>
+       <widget class="QComboBox" name="salesRepresentativeBox"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_21">
+        <property name="text">
+         <string>报告用途：</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="reportPurposEdit">
+        <item>
+         <property name="text">
+          <string>企业自行监测</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>建设项目环评</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>建设项目验证</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>监督执法</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>其它</string>
+         </property>
+        </item>
+       </widget>
       </item>
      </layout>
     </item>
@@ -62,7 +102,10 @@
        <item row="0" column="3">
         <widget class="QLineEdit" name="clientAddrEdit">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -83,7 +126,10 @@
        <item row="1" column="3">
         <widget class="QLineEdit" name="clientContactsPhoneEdit">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -113,7 +159,10 @@
        <item row="2" column="3">
         <widget class="QLineEdit" name="inspectedPhoneEidt">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -125,12 +174,15 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_11"/>
+        <widget class="QLineEdit" name="projectNameEdit"/>
        </item>
        <item row="1" column="3">
         <widget class="QLineEdit" name="inspectedAddrEdit">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -180,7 +232,7 @@
         </widget>
        </item>
        <item row="3" column="3">
-        <widget class="QLineEdit" name="lineEdit_10"/>
+        <widget class="QLineEdit" name="projectAddrEdit"/>
        </item>
        <item row="2" column="1">
         <widget class="QComboBox" name="inspectedContactsBox">
@@ -234,7 +286,7 @@
         </widget>
        </item>
        <item row="1" column="5">
-        <widget class="QLineEdit" name="lineEdit_17"/>
+        <widget class="QLineEdit" name="otherRequirementsEdit"/>
        </item>
        <item row="0" column="0">
         <widget class="QLabel" name="label_12">
@@ -251,7 +303,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QSpinBox" name="spinBox">
+        <widget class="QSpinBox" name="reportPeriodBox">
          <property name="minimum">
           <number>1</number>
          </property>
@@ -261,7 +313,7 @@
         </widget>
        </item>
        <item row="0" column="3">
-        <widget class="QSpinBox" name="spinBox_2">
+        <widget class="QSpinBox" name="reportCopiesBox">
          <property name="minimum">
           <number>1</number>
          </property>
@@ -271,7 +323,7 @@
         </widget>
        </item>
        <item row="0" column="5">
-        <widget class="QComboBox" name="comboBox_3">
+        <widget class="QComboBox" name="sampleDisposalBox">
          <item>
           <property name="text">
            <string>由受托方处理</string>
@@ -285,24 +337,27 @@
         </widget>
        </item>
        <item row="1" column="3">
-        <widget class="QComboBox" name="comboBox_4">
-         <item>
-          <property name="text">
-           <string>允许分包</string>
-          </property>
-         </item>
+        <widget class="QComboBox" name="subpackageBox">
+         <property name="currentIndex">
+          <number>1</number>
+         </property>
          <item>
           <property name="text">
            <string>不可分包</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>允许分包</string>
+          </property>
+         </item>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QComboBox" name="comboBox_5">
+        <widget class="QComboBox" name="methodSourseBox">
          <item>
           <property name="text">
-           <string>由受托方确认</string>
+           <string>由实验室确认</string>
           </property>
          </item>
          <item>
@@ -332,14 +387,14 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QPushButton" name="pushButton_5">
+        <widget class="QPushButton" name="methodSelectBtn">
          <property name="text">
           <string>进入方法选择</string>
          </property>
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QPushButton" name="pushButton_4">
+        <widget class="QPushButton" name="saveBtn">
          <property name="text">
           <string>保存</string>
          </property>
@@ -498,14 +553,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MyComboBox</class>
-   <extends>QComboBox</extends>
-   <header>mycombobox.h</header>
-  </customwidget>
-  <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>
    <header location="global">mytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MyComboBox</class>
+   <extends>QComboBox</extends>
+   <header>mycombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

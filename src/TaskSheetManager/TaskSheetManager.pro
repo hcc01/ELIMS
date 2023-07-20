@@ -19,6 +19,7 @@ SOURCES += \
     clientmanagerdlg.cpp \
     clineteditor.cpp \
     implementingstandardselectdlg.cpp \
+    methodselectdlg.cpp \
     tasksheeteditor.cpp \
     tasksheetui.cpp \
     testinfoeditor.cpp
@@ -34,6 +35,7 @@ HEADERS += \
     clientmanagerdlg.h \
     clineteditor.h \
     implementingstandardselectdlg.h \
+    methodselectdlg.h \
     tasksheeteditor.h \
     tasksheetui.h \
     testinfoeditor.h
@@ -48,6 +50,7 @@ FORMS += \
     clientmanagerdlg.ui \
     clineteditor.ui \
     implementingstandardselectdlg.ui \
+    methodselectdlg.ui \
     tasksheeteditor.ui \
     tasksheetui.ui \
     testinfoeditor.ui

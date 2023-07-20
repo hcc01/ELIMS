@@ -18,6 +18,8 @@ public:
 private slots:
     void on_improtLimitStandardBtn_clicked();
 
+    void on_improtTestMethod_clicked();
+
 private:
     Ui::StaticDataManager *ui;
 };

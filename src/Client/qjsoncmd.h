@@ -151,6 +151,9 @@ public:
     QString sql() const;
     int flag() const;
     int queryPage()const;
+    bool useBindMod()const{return _cmd.value("bindMod").toBool();}
+    void bindValue(const QJsonArray &values);
+    QJsonArray getBindValues()const;
     QJsonObject jsCmd() const;
 private:
     QJsonObject _cmd;

@@ -27,6 +27,13 @@ CUser* CLoginManager::doLogin(CELLClient *pClient, const QString &name, const QS
     //QSqlRecord rcd=query.record();
     if(query.next()) {                              //密码验证成功
        lr.result=LOGIN_SUCCESSED;
+        const char *name = query.value("name").toByteArray();
+        size_t name_len = strlen(name);
+        char *name_copy = new char[name_len + 1];  // 为复制的字符数组分配内存
+        strcpy(name_copy, name);  // 复制字符数组
+        memcpy(lr.name, name_copy, name_len);  // 将复制的字符数组复制到 lr.name 所指向的内存区域中
+        lr.name[name_len] = '\0';  // 确保字符串以 null 结尾
+        delete[] name_copy;  // 释放为复制的字符数组分配的内存
        CUser* user=new CUser(query.value("id").toInt(),query.value("name").toString());
        if(_userMap.contains(user->id())) {
            CUser* oldUser=_userMap.value(user->id());

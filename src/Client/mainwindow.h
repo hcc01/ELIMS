@@ -7,9 +7,12 @@
 #include<QMap>
 #include"tabwigetbase.h"
 #include "processmanager.h"
+#include"cuser.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -51,6 +54,7 @@ private:
     QMap<QString,int*> _tabWidgetMap;
     bool isLogined;
     QDialog _waitDlg;
+    CUser* m_user;
 
 };
 #endif // MAINWINDOW_H

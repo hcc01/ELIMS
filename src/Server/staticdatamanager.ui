@@ -26,6 +26,19 @@
     <string>导入执行标准</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="improtTestMethod">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>90</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>导入检测方法</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

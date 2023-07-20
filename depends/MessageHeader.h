@@ -80,7 +80,9 @@ struct netmsg_LoginR : public netmsg_DataHeader
 		result = 0;
 	}
 	int result;
-	char data[92];
+    int position;
+    char name[32];
+
 };
 
 struct netmsg_Logout : public netmsg_DataHeader

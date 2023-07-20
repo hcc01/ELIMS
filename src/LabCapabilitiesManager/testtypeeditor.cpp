@@ -141,3 +141,21 @@ void TestTypeEditor::on_testTypeBox_currentIndexChanged(int index)
     });
 }
 
+
+void TestTypeEditor::on_testTypeModifyBtn_clicked()
+{
+    int index=ui->testTypeBox->currentIndex();
+    QString oldName=ui->testTypeBox->itemText(index);
+    QString newName=QInputDialog::getText(this,"请输入检测类型名称：","");
+    if(newName.isEmpty()) return;
+    QString sql=QString("UPDATE test_type SET testType='%1' where testType='%2';").arg(newName).arg(oldName);
+    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"error",msg.result().toString());
+            return;
+        }
+        QMessageBox::information(this,"","修改检测类型成功");
+        init();
+    });
+}
+

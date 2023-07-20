@@ -53,70 +53,131 @@ void TaskSheetUI::initMod()
         }
     });
 
-//    //任务单信息
-//    sql+="CREATE TABLE IF NOT EXISTS test_task_info("
-//           "taskNum varchar(32) primary key, "//任务单号
-//           "contactNum varchar(32), "//合同编号
-//           "clientID int"               //委托单位ID
-//           "inspectedEentityID int, "   //受检单位ID
-//           "inspectedProject  VARCHAR(255), "    //项目名称，
-//           "projectAdds  VARCHAR(255), "         //项目地址
-//           "taskStatus  VARCHAR(255), "          //任务状态（用于状态查询）
-//           "testPeriod int, "           //检测周期
-//           "sampleDisposal int, "           //留样约定
-//           "reprotCopies int, "          //报告份数
-//           "testMethodc int," //检测方法说明（来源)
-//            "subpackageDesc VARCHAR(255),"//分包说明
-//           "otherRequirements VARCHAR(255),"//其它要求
-//           "remarks VARCHAR(255),"//备注
-//           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
-//           "FOREIGN KEY (inspectedEentityID) REFERENCES client_info (id)"
-//           ");";
-//    //检测点位信息
-//    sql+="CREATE TABLE IF NOT EXISTS sampling_site_info("
-//           "id int AUTO_INCREMENT primary key, "
-//           "taskNum varchar(32) , "//任务单号
-//           "contactNum varchar(32), "//合同编号
-//           "planSamplingSiteName varchar(32), "               //计划采样点位名称
-//           "testTimes int, "   //检测次数
-//           "testDays int, "    //检测天数，
-//           "projectAdds  VARCHAR(255), "         //项目地址
-//           "taskStatus  VARCHAR(255), "          //任务状态（用于状态查询）
-//           "inletTo int, "           //如果是进口，此处保存对应的出口点位ID
-//           "remarks VARCHAR(255),"//备注
-//           //以上是合同评审时需要确认的信息（任务单下单时填写的信息）
-//           //以下是现场采样时需要确认或记录的信息
-//           "samplingSiteName varchar(32), "               //现场采样点位名称
-//           "samplingPhoto1 BLOB,"
-//           "samplingPhoto2 BLOB,"
-//           "samplingPhoto3 BLOB,"
-//           "samplingPhoto4 BLOB,"
-//           "samplingPhoto5 BLOB,"//每个点位可以保存5张现场照片
-//           "samplingSiteInfo JSON,"//每个点位的采样记录信息
-//           "FOREIGN KEY (taskNum) REFERENCES test_task_info (taskNum), "
-//           ");";
-//    //点位检测项目信息
-//    sql+="CREATE TABLE IF NOT EXISTS analyte_info("
-//           "id  int AUTO_INCREMENT primary key, "//任务单号
-//           "samplingSiteID int, "//合同编号
-//           "clientID int"               //委托单位ID
-//           "inspectedEentityID int, "   //受检单位ID
-//           "inspectedProject  VARCHAR(255), "    //项目名称，
-//           "projectAdds  VARCHAR(255), "         //项目地址
-//           "taskStatus  VARCHAR(255), "          //任务状态（用于状态查询）
-//           "testPeriod int, "           //检测周期
-//           "sampleDisposal int, "           //留样约定
-//           "reprotCopies int, "          //报告份数
-//           "testMethodc int," //检测方法说明（来源)
-//           "subpackageDesc VARCHAR(255),"//分包说明
-//           "otherRequirements VARCHAR(255),"//其它要求
-//           "remarks VARCHAR(255),"//备注
-//           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
-//           "FOREIGN KEY (inspectedEentityID) REFERENCES client_info (id)"
-//           ");";
+    //客户历史点位表
+    sql="CREATE TABLE IF NOT EXISTS inspected_site("
+          "id int AUTO_INCREMENT primary key, "
+          "clientID INT, "
+          "name varchar(64) NOT NULL, "
+          "testTypeID int, "
+          "coordinate varchar(32), "
+          "deleted TINYINT NOT NULL DEFAULT 0,"
+          "FOREIGN KEY (testTypeID) REFERENCES test_type (id),"
+          "FOREIGN KEY (clientID) REFERENCES client_info (id)); ";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
+            return;
+        }
+    });
+    //任务单信息
+    sql="CREATE TABLE IF NOT EXISTS test_task_info("
+           "id int AUTO_INCREMENT primary key, "
+           "taskNum varchar(32) unique not null, "//任务单号
+           "contractNum varchar(32), "//合同编号
+           "salesRepresentative int,"//业务员ID
+           "clientID int,"               //委托单位ID
+           "clientName VARCHAR(255),"
+           "clientAddr VARCHAR(255),"
+           "clientContact varchar(32), "
+           "clientPhone varchar(32),"
+           "inspectedEentityID int, "   //受检单位ID
+           "inspectedEentityName VARCHAR(255),"
+           "inspectedEentityContact VARCHAR(32),"
+           "inspectedEentityPhone VARCHAR(32),"
+           "inspectedProject  VARCHAR(255), "    //项目名称，
+           "projectAddr  VARCHAR(255), "         //项目地址
+           "reportPurpos varchar(32),"
+           "reportPeriod int, "           //检测周期
+           "sampleDisposal varchar(32), "           //留样约定
+           "reprotCopies int, "          //报告份数
+           "methodSource int," //检测方法说明（来源)
+            "subpackage TINYINT NOT NULL DEFAULT 1,"//是否允许分包说明
+           "otherRequirements VARCHAR(255),"//其它要求
+           "remarks VARCHAR(255),"//备注
+           "taskStatus  int, "          //任务状态（用于状态查询）
+           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
+           "FOREIGN KEY (inspectedEentityID) REFERENCES client_info (id)"
+           ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"test_task_info error",msg.result().toString());
+            return;
+        }
+    });
+    //任务单状态表，记录任务单的各个环节
+    sql="CREATE TABLE IF NOT EXISTS task_status("
+          "id int AUTO_INCREMENT primary key, "
+          "taskSheetID int not null,"//任务单ID
+           "taskStatus  int, "          //任务状态
+          "operator VARCHAR(10), "//操作人员
+          "operateTime datetime, "//操作时间
+          "operateComment VARCHAR(255), "    //操作说明，
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id) "
+          //           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"site_monitoring_info error",msg.result().toString());
+            return;
+        }
+    });
+
+    //点位监测项目信息
+    sql="CREATE TABLE IF NOT EXISTS site_monitoring_info("
+           "id int AUTO_INCREMENT primary key, "
+           "taskSheetID int not null,"//任务单ID
+           "testTypeID int not null , "//检测类型ID
+           "samplingSiteName varchar(32), "//采样点位名称
+           "samplingFrequency int not null default 1, "//监测频次
+           "samplingPeriod int not null default 1, "    //监测周期，
+           "limitValueID int, "         //限值ID
+           "remark  VARCHAR(255), "          //备注
+           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+           "FOREIGN KEY (testTypeID) REFERENCES test_type (id) "
+//           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
+           ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"site_monitoring_info error",msg.result().toString());
+            return;
+        }
+    });
+
+
+    //方法评审表
+    sql="CREATE TABLE IF NOT EXISTS task_methods("
+           "id int AUTO_INCREMENT primary key, "//
+           "monitoringInfoID int not null, "//监测信息ID
+           "taskSheetID int not null,"//任务单ID
+           "testTypeID int not null , "//检测类型ID
+           "parameterID int not null, "               //检测参数ID
+           "parameterName VARCHAR(16) not null, "   //检测参数名称
+           "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
+           "testMethodName  VARCHAR(100), "         //检测方法名称
+           "fieldTesting  TINYINT NOT NULL DEFAULT 0, "          //是否现场测试
+           "sampleGroup VARCHAR(32), "           //样品组
+           "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
+           "subpackageDesc VARCHAR(255),"//分包说明
+           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+           "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
+           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
+           "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+           ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"task_methods error",msg.result().toString());
+            return;
+        }
+    });
+    //任务单自动编号计数表
+    sql="CREATE TABLE IF NOT EXISTS tasknumber("
+           "taskdate varchar(10) primary key, "//
+           "taskcount int not null "//
+           ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"tasknumber error",msg.result().toString());
             return;
         }
         QMessageBox::information(this,"","初始化完成");
@@ -126,7 +187,7 @@ void TaskSheetUI::initMod()
 void TaskSheetUI::on_newSheetBtn_clicked()
 {
     TaskSheetEditor* sheet=new TaskSheetEditor(this);
-    connect(sheet,&TaskSheetEditor::doSql,this,&TaskSheetUI::doSqlQuery);
+//    connect(sheet,&TaskSheetEditor::doSql,this,&TaskSheetUI::doSqlQuery);
     sheet->show();
     sheet->init();
 }

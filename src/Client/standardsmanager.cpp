@@ -21,64 +21,7 @@ StandardsManager::~StandardsManager()
 
 void StandardsManager::initMod()
 {
-    //检测参数表
-    QString sql=  "CREATE TABLE detection_parameters ("
-                  "id INT NOT NULL AUTO_INCREMENT,"
-                  "testFieldID int,"
-                  " parameter_name VARCHAR(255) NOT NULL,"
-                  "uniqueMark VARCHAR(255),"
-                  "alias VARCHAR(255),"
-                  "abbreviation VARCHAR(50),"
-                  "subparameter VARCHAR(255),"
-                  "PRIMARY KEY (id),"
-                  " UNIQUE KEY unique_parameter_name(testFieldID,parameter_name,uniqueMark),"
-                  " FOREIGN KEY (testFieldID) REFERENCES test_field(id) "
-                  ");";
-    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(this,"error",msg.result().toString());
-            return;
-        }
-    });
-    //执行标准表
-    sql=  "CREATE TABLE implementing_standards ("
-                  "id INT NOT NULL AUTO_INCREMENT,"
-                  "standardName VARCHAR(255)  NOT NULL,"
-                  " standardNum VARCHAR(32) NOT NULL,"
-                  "tableName VARCHAR(255) NOT NULL,"
-                  "testFieldID int NOT NULL,"
-                  "classNum VARCHAR(32) NOT NULL,"
-                  "PRIMARY KEY (id),"
-          "deleted TINYINT NOT NULL DEFAULT 0, "
-                  " FOREIGN KEY (testTypeID) REFERENCES test_type(id),"
-          "UNIQUE INDEX (standardNum,tableName, classNum) "
-                  ");";
-    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(this,"error",msg.result().toString());
-            return;
-        }
-    });
-    //标准限值表
-    sql=  "CREATE TABLE standard_limits ("
-          "id INT NOT NULL AUTO_INCREMENT,"
-          "standardID int,"
-          "parameterName VARCHAR(32)  NOT NULL,"
-          " parameterID int,"
-          "trade VARCHAR(255) DEFAULT '',"
-          "higher double,"
-          "lower double,"
-          "unit varchar(16)  DEFAULT '',"
-          "PRIMARY KEY (id),"
-          " FOREIGN KEY (standardID) REFERENCES implementing_standards(id), "
-          " FOREIGN KEY (parameterID) REFERENCES detection_parameters(id) "
-          ");";
-    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(this,"error",msg.result().toString());
-            return;
-        }
-    });
+
 }
 
 void StandardsManager::on_editTestItemBtn_clicked()

@@ -130,7 +130,27 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
 {
     QSqlQuery query(_db);
     QString sql=sqlCmd.sql();
-    if(!query.exec(sql)){
+    if(sqlCmd.useBindMod()){//增加了使用格式化的查询模式，适用于大量操作，开启事务模式。
+        _db.transaction();
+        query.prepare(sql);
+        QJsonArray values=sqlCmd.getBindValues();
+        for (int i=0;i<values.count();i++) {
+            query.bindValue(i,values.at(i).toVariant());
+        }
+        if(!query.exec()){
+            _lastError=query.lastError().text();
+            _db.rollback();
+            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+        if(query.numRowsAffected() == 0) {
+            _lastError="0条成功。";
+            _db.rollback();
+            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+
+        _db.commit();
+    }
+    else if(!query.exec(sql)){
         _lastError=query.lastError().text();
         return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
     }
@@ -159,20 +179,31 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
     if(pages>=1){
         if(page>pages) page=pages-1;
     }
-    query.seek(start-1);
-//    for(int i=0;i<10&&query.next();i++){
+//    query.seek(start-1);
+////    for(int i=0;i<10&&query.next();i++){
+////        QJsonArray row;
+////        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
+////        table.append(row);
+////    }
+//    do{
+//        if(query.at()>=end) break;
 //        QJsonArray row;
 //        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
 //        table.append(row);
-//    }
-    do{
-        if(query.at()>=end) break;
-        QJsonArray row;
-        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
-        table.append(row);
 
+//    }
+//    while(query.next());
+
+    query.seek(start-2);
+
+    // 逐行获取查询结果，并将数据添加到 JSON 数组中
+    while (query.next() && query.at() < end) {
+        QJsonArray row;
+        for (int i = 0; i < columns; i++) {
+            row.append(query.value(i).toString());
+        }
+        table.append(row);
     }
-    while(query.next());
     return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,pages);
 }
 

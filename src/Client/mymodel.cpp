@@ -44,6 +44,10 @@ bool MyModel::setData(const QModelIndex &index, const QVariant &value, int role)
     if (index.isValid() && role == Qt::EditRole) {
         m_data[index.row()][index.column()] = value;
         emit dataChanged(index, index, { role });
+        if(m_relatedData.contains(index)){
+            QModelIndex i=m_relateions.value(index);
+            setData(i,m_relatedData.value(index).value(value.toString()),role);
+        }
         return true;
     }
 
@@ -104,4 +108,31 @@ void MyModel::removeAll()
     beginRemoveRows(QModelIndex(), 0,  m_data.size()-1);
     m_data.clear();
     endRemoveRows();
+}
+
+Qt::ItemFlags MyModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags flags = QAbstractItemModel::flags(index);
+    if (m_editableColumns.indexOf(index.column())>=0) {
+           flags |= Qt::ItemIsEditable;
+    }
+    return flags;
+}
+
+void MyModel::setEditableColumn(int colunm)
+{
+    m_editableColumns.append(colunm);
+}
+
+void MyModel::setReatedData(const QModelIndex &mapToCell, const QModelIndex &mapSourseCell, const QHash<QString, QVariant> &mapData)
+{
+    m_relateions.insert(mapSourseCell,mapToCell);
+    m_relatedData.insert(mapSourseCell,mapData);
+}
+
+void MyModel::setRelatedData(int row, int column, int relatedToRow, int relatedTocolumn, QHash<QString, QVariant> relatedData)
+{
+     QModelIndex index = createIndex(row, column);
+    QModelIndex relatedIndex=createIndex(relatedToRow, relatedTocolumn);
+     setReatedData(index,relatedIndex,relatedData);
 }

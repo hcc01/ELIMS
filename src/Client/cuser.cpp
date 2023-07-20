@@ -1,7 +1,8 @@
 #include "cuser.h"
 
-CUser::CUser(QObject *parent) : QObject(parent),
-    _authority(0)
+CUser::CUser(QString name, int position) :
+    m_name(name),
+    m_position(position)
 {
 
 }
