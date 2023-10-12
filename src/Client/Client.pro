@@ -32,6 +32,7 @@ SOURCES += \
     mainwindow.cpp \
     modinitui.cpp \
     mycombobox.cpp \
+    persnaldatamanagerui.cpp \
     processmanager.cpp \
     qdoubleedit.cpp \
     qexcel.cpp \
@@ -65,12 +66,14 @@ HEADERS += \
     cclient.h \
     ctablemodel.h \
     cuser.h \
+    global.h \
     implementingstandardeditor.h \
     itemsselectdlg.h \
     loginui.h \
     mainwindow.h \
     modinitui.h \
     mycombobox.h \
+    persnaldatamanagerui.h \
     processmanager.h \
     qdoubleedit.h \
     qjsoncmd.h \
@@ -88,6 +91,7 @@ FORMS += \
     loginui.ui \
     mainwindow.ui \
     modinitui.ui \
+    persnaldatamanagerui.ui \
     standardsmanager.ui \
     testitemmanager.ui
 

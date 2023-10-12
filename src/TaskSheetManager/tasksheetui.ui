@@ -13,103 +13,107 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="newSheetBtn">
-       <property name="text">
-        <string>新任务单</string>
-       </property>
-      </widget>
+  <layout class="QGridLayout" name="gridLayout_2">
+   <item row="0" column="0">
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QPushButton" name="newSheetBtn">
+         <property name="text">
+          <string>新任务单</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox">
+         <item>
+          <property name="text">
+           <string>导入</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>新建</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
      </item>
-     <item>
-      <widget class="QComboBox" name="comboBox">
+     <item row="1" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <property name="text">
-         <string>导入</string>
-        </property>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>查找：</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>新建</string>
-        </property>
+        <widget class="QLineEdit" name="lineEdit"/>
        </item>
-      </widget>
+       <item>
+        <widget class="QComboBox" name="comboBox_3">
+         <item>
+          <property name="text">
+           <string>按任务单号</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>按委托单位</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>按受检单位</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>按项目名称</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>过滤：</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_2">
+         <item>
+          <property name="text">
+           <string>待处理</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>未完成</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>已完成</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>全部</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="2" column="0">
+      <widget class="MyTableView" name="tableView"/>
      </item>
     </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>查找：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="lineEdit"/>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_3">
-       <item>
-        <property name="text">
-         <string>按任务单号</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按委托单位</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按受检单位</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按项目名称</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>过滤：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_2">
-       <item>
-        <property name="text">
-         <string>待处理</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>未完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>已完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>全部</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="MyTableView" name="tableView"/>
    </item>
   </layout>
  </widget>
@@ -117,7 +121,7 @@
   <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>
-   <header location="global">mytableview.h</header>
+   <header>mytableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

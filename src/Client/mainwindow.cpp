@@ -14,6 +14,7 @@
 #include"tasksheetui.h"
 #include"labcapabilitiesmanagerui.h"
 #include"standardsmanager.h"
+#include"persnaldatamanagerui.h"
 #include<QTimer>
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
@@ -43,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(TaskSheetUI,ui->btTaskSheet);
     ADD_MODULE(LabCapabilitiesManagerUI,ui->btLabCapability);
     ADD_MODULE(StandardsManager,ui->standardsManagerBtn);
+    ADD_MODULE(PersnalDataManagerUI,ui->btPersonalInfo);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
@@ -50,20 +52,33 @@ MainWindow::MainWindow(QWidget *parent)
         if(isLogined) DoLogin();//已经登录过了，断线后重新登录。（否则就是在登录界面等待登录，不要再重走这个步骤）；目前这个设置不完善，待优化
     });
     connect(&_clientSocket,&CClient::netMsg,this,&MainWindow::onNestMsg,Qt::BlockingQueuedConnection);//第五个参数很重要，否则当服务器连续发送消息时不能及时处理，只重复处理到最后一条。
-    connect(&_clientSocket,&CClient::sendingData,this,[&](){
+//    connect(&_clientSocket,&CClient::sendingData,this,[&](const QString&data){
+//        qDebug()<<"sendingData"<<data;
 //        _waitDlg.exec();
-    });
+//    });
     DoConnect();
     DoLogin();
     isLogined=true;
-    netMsg_Init msg;
-    _clientSocket.SendData(&msg);
-//    QTimer *timer = new QTimer(this);
-//    connect(timer, &QTimer::timeout, this, [this](){
-//        netmsg_c2s_Heart heart;
-//        _clientSocket.SendData(&heart);
-//    });
-//    timer->start(10000);
+//    netMsg_Init msg;
+//    _clientSocket.SendData(&msg);
+    QList<QAction*> skinActions = ui->skinMenu->actions();
+    for(auto a:skinActions){
+        if(a->isChecked()) qDebug() << "Action text: " << a->text();
+        connect(a,&QAction::triggered,this,&MainWindow::onSkinChanged);
+    }
+    //根据权限过滤模块
+    if(m_user->name()!="admin") for(int i=0;i<ui->toolBox->count();i++){
+        for(auto w:ui->toolBox->widget(i)->findChildren<QWidget*>()){
+            w->setVisible(false);
+        }
+    }
+    ui->btPersonalInfo->show();qDebug()<<m_user->position();
+    if(m_user->position()&(CUser::ReportWriter|CUser::LabManager|LabSupervisor)){
+        ui->btTaskSheet->show();
+    }
+    if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
+        ui->btEmployeeManage->show();
+    }
 }
 
 MainWindow::~MainWindow()
@@ -114,7 +129,10 @@ void MainWindow::sendData(const QJsonObject &json)
 
 void MainWindow::onNestMsg(netmsg_DataHeader *header)
 {
-    if(_waitDlg.isModal())_waitDlg.accept();
+    if(_waitDlg.isModal()){
+        qDebug()<<"_waitDlg.isModal()";
+        _waitDlg.accept();
+    }
     switch (header->cmd) {
     case CMD_S2C_HEART:
     {
@@ -131,6 +149,7 @@ void MainWindow::onNestMsg(netmsg_DataHeader *header)
         else{
             m_user->reset(lr->name,lr->position);
         }
+        setWindowTitle(QString("%1 -厦门市政南方海洋检测有限公司").arg(lr->name));
 
     }
         break;
@@ -158,7 +177,6 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
         TabWidgetBase*w= getTabWidget(tabText);
         if(w) w->onSqlReturn(jsCmd);//返回信息的处理交由各窗口处理。
         else {
-            qDebug()<<"result:"<<jsCmd.result();
             if(jsCmd.error()){
                 QMessageBox::warning(this,"",jsCmd.result().toString());
             }
@@ -269,8 +287,8 @@ void MainWindow::onOpenTab()
         sendData(j);
     });
     ui->tabWidget->addTab(tab,text);
-    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);    
-   // tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
+    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
+    tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
 }
 
 TabWidgetBase *MainWindow::getTabWidget(const QString &widgetText) const
@@ -338,5 +356,22 @@ void MainWindow::on_actionInitMod_triggered()
 {
     TabWidgetBase*tab=(TabWidgetBase*)ui->tabWidget->currentWidget();
     tab->initMod();
+}
+
+
+void MainWindow::onSkinChanged()
+{
+    QAction *action = qobject_cast<QAction*>(sender());
+    qDebug()<<action->text();
+    if(!action->isChecked()) {
+        action->setChecked(true);
+        return;
+    }
+    QList<QAction*> skinActions = ui->skinMenu->actions();
+    for(auto a:skinActions){
+        if(a->isChecked()&&a!=action) a->setChecked(false);
+    }
+    emit changeSkin(skinActions.indexOf(action));
+    qDebug()<<skinActions.indexOf(action);
 }
 

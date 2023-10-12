@@ -51,6 +51,7 @@ HEADERS += \
     ../../depends/MessageHeader.h \
     ../../depends/user.h \
     ../Client/QExcel.h \
+    ../Client/global.h \
     ../Client/qjsoncmd.h \
     cdatabasemanage.h \
     cfileserver.h \

@@ -21,6 +21,7 @@ public:
     ~TaskSheetEditor();
     void init();
     void doSave();
+    void load(const QString& taskNum);
 signals:
 //    void doSql(const QString& sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
 private slots:
@@ -48,6 +49,10 @@ private slots:
 
     void on_saveBtn_clicked();
 
+    void on_exportBtn_clicked();
+
+    void on_clientContactsBox_currentTextChanged(const QString &arg1);
+
 private:
     Ui::TaskSheetEditor *ui;
     QMap<QString,ClientInfo>m_clients;//保存客户列表，用以通过客户名索引客户ID和地址，省得一直查询数据库。
@@ -57,11 +62,14 @@ private:
     int m_taskSheetID;//如果有保存，则保存下数据库中的任务单ID，用以更改。
     bool m_bTasksheetModified;//任务基本信息被修改，只需要更新任务单表。
     bool m_bTestInfoModified;//检测信息更改，则需要删除方法评审和和检测信息表，重新处理。
+    int m_status;//保存下任务单状态，避免不必要的查询。
     //以下是需要保存的数据
     int m_inspectedEentityID;//受检单位ID
-    QString m_taskNum;
+    QString m_taskNum;//保存任务单号，在做方法选择时需要提供任务单号
     int m_taskID;
-    QList<TestInfo*>m_testInfo;
+    QList<TestInfo*>m_testInfo;//监测信息列表，保存到数据库时和显示在窗口时使用
+    bool editable;
+    QVector<QVector<QVariant>> m_mthds;//方法表，与方法界面的表头匹配
 
 };
 

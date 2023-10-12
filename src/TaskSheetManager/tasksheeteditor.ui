@@ -143,7 +143,7 @@
        <item row="1" column="1">
         <widget class="QComboBox" name="clientContactsBox">
          <property name="editable">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -400,6 +400,13 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="3">
+        <widget class="QPushButton" name="exportBtn">
+         <property name="text">
+          <string>导出EXCEL</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -555,7 +562,7 @@
   <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>
-   <header location="global">mytableview.h</header>
+   <header>mytableview.h</header>
   </customwidget>
   <customwidget>
    <class>MyComboBox</class>

@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,9">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,9,0">
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
@@ -28,6 +28,13 @@
      </item>
      <item>
       <widget class="QComboBox" name="comboBox"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="exportToExcelBtn">
+       <property name="text">
+        <string>导出EXCEL</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

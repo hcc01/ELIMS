@@ -8,6 +8,8 @@ LoginUI::LoginUI(QWidget *parent) :
     ui(new Ui::LoginUI)
 {
     ui->setupUi(this);
+//    setWindowFlags(Qt::FramelessWindowHint | Qt::Tool);
+    setWindowTitle("请登录:");
 }
 
 LoginUI::~LoginUI()

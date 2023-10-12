@@ -1,4 +1,4 @@
-QT += widgets
+QT += widgets axcontainer
 
 TEMPLATE = lib
 DEFINES += TASKSHEETMANAGER_LIBRARY
@@ -14,6 +14,7 @@ SOURCES += \
     ../Client/mycombobox.cpp \
     ../Client/mymodel.cpp \
     ../Client/mytableview.cpp \
+    ../Client/qexcel.cpp \
     ../Client/qjsoncmd.cpp \
     ../Client/tabwigetbase.cpp \
     clientmanagerdlg.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     ../Client/mycombobox.h \
     ../Client/mymodel.h \
     ../Client/mytableview.h \
+    ../Client/qexcel.h \
     ../Client/qjsoncmd.h \
     ../Client/tabwigetbase.h \
     TaskSheetManager_global.h \

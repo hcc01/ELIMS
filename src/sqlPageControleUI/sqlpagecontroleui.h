@@ -17,9 +17,9 @@ public:
     explicit SqlPageControleUI(QWidget* parent=nullptr);
     void setTotalPage(int totalPage);
     void setCurrentPage(int page);
-    void setCmd(const QSqlCmd& cmd){_sqlCmd=cmd;}
+    void setSql(const QString& sql,int p){m_sql=sql;m_currentPage=p;}
 signals:
-    void pageChanged(const QJsonObject&);
+    void pageChanged(const QString&,int);
 private slots:
 
     void on_btNext_clicked();
@@ -31,7 +31,8 @@ private slots:
 private:
     Ui::SqlPageControleUI* ui;
     int _totalPage;
-    QSqlCmd _sqlCmd;
+    QString m_sql;
+    int m_currentPage;
     QIntValidator _vali;
 };
 

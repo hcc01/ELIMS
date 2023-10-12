@@ -134,6 +134,7 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
         _db.transaction();
         query.prepare(sql);
         QJsonArray values=sqlCmd.getBindValues();
+        qDebug()<<"bindValues:"<<values;
         for (int i=0;i<values.count();i++) {
             query.bindValue(i,values.at(i).toVariant());
         }
@@ -142,11 +143,11 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
             _db.rollback();
             return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
         }
-        if(query.numRowsAffected() == 0) {
-            _lastError="0条成功。";
-            _db.rollback();
-            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
-        }
+//        if(query.numRowsAffected() == 0) {
+//            _lastError="0条成功。";
+//            _db.rollback();
+//            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+//        }
 
         _db.commit();
     }

@@ -14,19 +14,19 @@ public:
     {
 
         int r=EasyTcpClient::SendData(header);
-        if(r!=SOCKET_ERROR) emit sendingData();
+        if(r!=SOCKET_ERROR) emit sendingData("header");
         return r;
     }
     int SendData(const QJsonObject& json)
     {
         int r=EasyTcpClient::SendData(json);
-        if(r!=SOCKET_ERROR) emit sendingData();
+        if(r!=SOCKET_ERROR) emit sendingData(QJsonDocument(json).toJson());
         return r;
     }
 
 signals:
     void netMsg(netmsg_DataHeader* header);
-    void sendingData();//主要是控制命令量，发一个命令后等服务器回应后才能执行下一次指令。
+    void sendingData(const QString&);//主要是控制命令量，发一个命令后等服务器回应后才能执行下一次指令。
     void onConnectError(const char* error);
 
 };

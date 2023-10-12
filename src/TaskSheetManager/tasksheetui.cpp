@@ -2,11 +2,28 @@
 #include "ui_tasksheetui.h"
 #include"tasksheeteditor.h"
 #include<QMessageBox>
+#include<qexcel.h>
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::TaskSheetUI)
 {
     ui->setupUi(this);
+    ui->tableView->addContextAction("编辑",[this](){
+        QString taskNum;
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+        taskNum=ui->tableView->value(row,0).toString();
+        TaskSheetEditor* sheet=new TaskSheetEditor(this,this);
+        sheet->init();
+        sheet->load(taskNum);
+        sheet->show();
+    });
+//    ui->tableView->addContextAction("导出EXCEL",[this](){
+//        QString taskNum;
+//        int row=ui->tableView->selectedRow();
+//        if(row<0) return;
+//        taskNum=ui->tableView->value(row,0).toString();
+//    });
 }
 
 TaskSheetUI::~TaskSheetUI()
@@ -94,8 +111,10 @@ void TaskSheetUI::initMod()
             "subpackage TINYINT NOT NULL DEFAULT 1,"//是否允许分包说明
            "otherRequirements VARCHAR(255),"//其它要求
            "remarks VARCHAR(255),"//备注
-           "taskStatus  int, "          //任务状态（用于状态查询）
-           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
+           "taskStatus  int, "          //任务状态（enum, 用于状态查询）
+           "creator  varchar(32),"//创建人
+          "createDate datetime, "//创建时间
+          "FOREIGN KEY (clientID) REFERENCES client_info (id), "
            "FOREIGN KEY (inspectedEentityID) REFERENCES client_info (id)"
            ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
@@ -127,7 +146,9 @@ void TaskSheetUI::initMod()
            "id int AUTO_INCREMENT primary key, "
            "taskSheetID int not null,"//任务单ID
            "testTypeID int not null , "//检测类型ID
-           "samplingSiteName varchar(32), "//采样点位名称
+           "testType varchar(32), "
+          "sampleType varchar(32), "
+          "samplingSiteName varchar(32), "//采样点位名称
            "samplingFrequency int not null default 1, "//监测频次
            "samplingPeriod int not null default 1, "    //监测周期，
            "limitValueID int, "         //限值ID
@@ -158,6 +179,7 @@ void TaskSheetUI::initMod()
            "sampleGroup VARCHAR(32), "           //样品组
            "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
            "subpackageDesc VARCHAR(255),"//分包说明
+            "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
            "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
            "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
            "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
@@ -183,6 +205,24 @@ void TaskSheetUI::initMod()
         QMessageBox::information(this,"","初始化完成");
     });
 }
+
+void TaskSheetUI::initCMD()
+{
+    ui->tableView->setHeader({"任务单号","录单员","业务员","委托单位","受检单位","项目名称","当前状态"});
+    QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
+    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
+                return;
+            }
+            QList<QVariant> r=msg.result().toList();
+            for(int i=1;i<r.count();i++){
+                QList<QVariant>row=r.at(i).toList();
+                ui->tableView->append(row);
+            }
+        },1);
+}
+
 
 void TaskSheetUI::on_newSheetBtn_clicked()
 {

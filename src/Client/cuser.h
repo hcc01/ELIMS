@@ -6,23 +6,29 @@ class CUser
 {
 public:
     explicit CUser(QString name,int position);
-    enum Position {
-        Position_Sampler = 1 << 0,   // 采样员
-        Position_Sampler_Supervisor = 1 << 1,   // 采样主管
-        Position_Sample_Manager = 1 << 2,   // 样品管理员
-        Position_Equipment_Manager = 1 << 3,   // 设备管理员
-        Position_Analyst = 1 << 4,   // 分析员
-        Position_Analysis_Supervisor = 1 << 5,   // 分析主管
-        Position_Report_Editor = 1 << 6,   // 报告编制员
-        Position_Report_Auditor = 1 << 7,   // 报告审核员
-        Position_Authorized_Signer = 1 << 8,   // 授权签字人
-        Position_Quality_Manager = 1 << 9,   // 质量负责人
-        Position_Technical_Manager = 1 << 10,   // 技术负责人
-        Position_Lab_Manager = 1 << 11,   // 实验室负责人
-        Position_Manager = 1 << 12,   // 经理
-        Position_Standard_Substance_Manager = 1 << 13,   // 标准物质管理员
-        Position_Supervisor = 1 << 14,   // 监督员
-        Position_Internal_Auditor = 1 << 15,   // 内审员
+    enum LabPosition {
+        None = 0,
+        Sampler = 1 << 0,  // 采样员
+        SamplerLeader = 1 << 1,  // 采样组长
+        OrganicAnalyst = 1 << 2,  // 有机分析员
+        OrganicLeader = 1 << 3,  // 有机组长
+        InorganicAnalyst = 1 << 4,  // 无机分析员
+        InorganicLeader = 1 << 5,  // 无机组长
+        PhysicalChemicalAnalyst = 1 << 6,  // 理化分析员
+        PhysicalChemicalLeader = 1 << 7,  // 理化组长
+        QualitySpecialist = 1 << 8,  // 质量专员
+        QualityManager = 1 << 9,  // 质量负责人
+        SampleAdministrator = 1 << 10,  // 样品管理员
+        EquipmentAdministrator = 1 << 11,  // 设备管理员
+        ConsumableAdministrator = 1 << 12,  // 耗材管理员
+        ReportWriter = 1 << 13,  // 报告编制员
+        ReportReviewer = 1 << 14,  // 报告审核员
+        AuthorizedSignatory = 1 << 15,  // 授权签字人
+        TechnicalManager = 1 << 16,  // 技术负责人
+        LabSupervisor = 1 << 17,  // 实验室主管
+        LabManager = 1 << 18,  // 实验室经理
+        salesRepresentative =1<<19,//业务代表
+
     };
     void reset(const QString&name,int position){m_name=name;m_position=position;}
     QString name()const{return m_name;}
@@ -31,6 +37,7 @@ signals:
 private:
     QString m_name;
     QString m_password;
+    QString m_phone;
     int _authority;
     int m_position;
 };

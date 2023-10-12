@@ -1,4 +1,4 @@
-QT += widgets
+QT += widgets axcontainer
 
 TEMPLATE = lib
 DEFINES += DBMANAGERUI_LIBRARY
@@ -11,11 +11,13 @@ CONFIG += c++11
 
 SOURCES += \
     ../Client/ctablemodel.cpp \
+    ../Client/qexcel.cpp \
     ../Client/qjsoncmd.cpp \
     ../Client/tabwigetbase.cpp \
     dbmanagerui.cpp
 
 HEADERS += \
+    ../Client/QExcel.h \
     ../Client/ctablemodel.h \
     ../Client/qjsoncmd.h \
     ../Client/tabwigetbase.h \
@@ -45,3 +47,4 @@ else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 
 INCLUDEPATH += $$PWD/../../include
 DEPENDPATH += $$PWD/../../include
+INCLUDEPATH += $$PWD/../Client

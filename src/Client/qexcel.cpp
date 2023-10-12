@@ -74,6 +74,19 @@ void QExcel::DisplayAlerts(bool v)
     _ExcelApp->setProperty("DisplayAlerts", v);
 }
 
+QAxObject *QExcel::newBook()
+{
+    if(!excelOpend) openExcel();
+    if(!excelOpend){
+        QMessageBox::information(nullptr,"error","无法打开EXCEL应用。");
+        return nullptr;
+    }
+    _ExcelApp->setProperty("Visible", true);
+    if(!_WorkBooks) _WorkBooks=_ExcelApp->querySubObject("WorkBooks");
+    _WorkBooks->dynamicCall("Add");
+    return _ExcelApp->querySubObject("ActiveWorkBook");
+}
+
 QAxObject* QExcel::Open(const QString &path, const QVariant &UpdateLinks, bool readOnly, const QString& password)
 {
     if(!excelOpend) openExcel();
@@ -88,6 +101,7 @@ QAxObject* QExcel::Open(const QString &path, const QVariant &UpdateLinks, bool r
     if (file.exists())
     {
         return _WorkBooks->querySubObject("Open(const QString &,const QVariant &, const QVariant& , const QVariant&,const QVariant&,const QVariant&)", dir.absolutePath(),UpdateLinks,readOnly,QVariant(),QVariant(),password);
+
     }
     else {
         _lastError="文件不存在："+dir.absolutePath();
@@ -181,7 +195,7 @@ QAxObject *QExcel::ActiveSheet(QAxObject *book)const
         return nullptr;
     }
     if(!book) {
-        book=_WorkBooks->querySubObject("ActiveWorkbook");
+        book=_ExcelApp->querySubObject("ActiveWorkbook");
         QAxObject* sheet=book->querySubObject("ActiveSheet");
         delete book;
         return sheet;
@@ -267,6 +281,13 @@ void QExcel::writeRange( const QVariant &v,const QString &rangeAdds, QAxObject *
     range->setProperty("Value",v);
     if(delFlag) delete sheet;
     delete range;
+}
+
+void QExcel::writeRow(int row, QAxObject *sheet, const QList<QVariant> &var) const
+{
+    for(int i=1;i<=var.count();i++) {
+        writeCell(row,i,sheet,var.at(i-1));
+    }
 }
 
 QAxObject *QExcel::getSelectRange(QAxObject *sheet) const
@@ -399,227 +420,227 @@ void QExcel::insertPic(QAxObject *sheet, QAxObject *range, const QString &picPat
     insertPic(sheet,picPath,range->dynamicCall("column()").toInt(),range->dynamicCall("row()").toInt(),left,top,width,height);
 }
 
-bool QExcel::toDbTable(QAxObject *sheet, const QSqlDatabase &db, QString tableName, int startColumn, int endColumn, bool isNewTable)
-{
-    if(!sheet){
-        _lastError = " WorkSheet not selected.";
-        return false;
-    }
-    qDebug()<<"处理表格："<<sheet->property("Name").toString();
-                                     if(tableName.isEmpty()) tableName=sheet->property("Name").toString();
-    if(tableName.isEmpty()){
-        _lastError = "table name is incorrect.";
-        return false;
-    }
-    QSqlQuery query(db);
-    QString sql;
-    //获取数据
-    qDebug()<<"读取EXCEL数据...";
-    int columns=-1;
+//bool QExcel::toDbTable(QAxObject *sheet, const QSqlDatabase &db, QString tableName, int startColumn, int endColumn, bool isNewTable)
+//{
+//    if(!sheet){
+//        _lastError = " WorkSheet not selected.";
+//        return false;
+//    }
+//    qDebug()<<"处理表格："<<sheet->property("Name").toString();
+//                                     if(tableName.isEmpty()) tableName=sheet->property("Name").toString();
+//    if(tableName.isEmpty()){
+//        _lastError = "table name is incorrect.";
+//        return false;
+//    }
+//    QSqlQuery query(db);
+//    QString sql;
+//    //获取数据
+//    qDebug()<<"读取EXCEL数据...";
+//    int columns=-1;
 
-    //***************处理表格范围********************************
-    QAxObject * usedrange = sheet->querySubObject("UsedRange");
-    QAxObject * Range = usedrange->querySubObject("Columns");
-    if(!endColumn) endColumn=Range->property("Count").toInt();
-    if(!startColumn) startColumn=Range->property("Column").toInt();
-    delete Range;
-    Range=usedrange->querySubObject("Rows(int)",1);
-    QVariantList v=Range->dynamicCall("Value2()").toList();
-    bool flag=false;
-    for(int i=0;i<endColumn;i++){
+//    //***************处理表格范围********************************
+//    QAxObject * usedrange = sheet->querySubObject("UsedRange");
+//    QAxObject * Range = usedrange->querySubObject("Columns");
+//    if(!endColumn) endColumn=Range->property("Count").toInt();
+//    if(!startColumn) startColumn=Range->property("Column").toInt();
+//    delete Range;
+//    Range=usedrange->querySubObject("Rows(int)",1);
+//    QVariantList v=Range->dynamicCall("Value2()").toList();
+//    bool flag=false;
+//    for(int i=0;i<endColumn;i++){
 
-        QString str=v[0].toList()[i].toString();
-        qDebug()<<str;
-        if(str.indexOf("|")>=0) {
-            startColumn=i+1;
-            flag=true;
-            break;
-        }
+//        QString str=v[0].toList()[i].toString();
+//        qDebug()<<str;
+//        if(str.indexOf("|")>=0) {
+//            startColumn=i+1;
+//            flag=true;
+//            break;
+//        }
 
-    }
-    if(!flag){
-        _lastError="数据错误，表头需要后接|注明数据类型。";
-        return false;
-    }
+//    }
+//    if(!flag){
+//        _lastError="数据错误，表头需要后接|注明数据类型。";
+//        return false;
+//    }
 
-    Range=usedrange->querySubObject("Columns(int)",startColumn);
-    int nRow=0;
-    v=Range->dynamicCall("Value2()").toList();
-    if(v.count()<=1){
-        _lastError=("空表。");
-        return false;
-    }
-    for(int i=1;i<v.count();i++){//第一列非空位置。（取excel用过的且非空的数据，防止大量空数据出现。）
-        if(!v[i].toList()[0].isValid()){
-            nRow=i;
-            break;
-        }
-    }
-    if(!nRow){
-        nRow=usedrange->querySubObject("End(int)",-4121)->property("Row").toInt();
-    }
-    QString str;
-    Range=sheet->querySubObject(("Cells(int,int)"),Range->property("Row").toInt(),startColumn);
-    str=Range->dynamicCall("Address(bool,bool)",false,false).toString();
-    delete Range;
-    str.append(":");
-    Range=sheet->querySubObject(("Cells(int,int)"),nRow,endColumn);
-    str.append(Range->dynamicCall("Address(bool,bool)",false,false).toString());
-    delete Range;
-    Range=nullptr;
-    delete usedrange;
-    usedrange=nullptr;
-    Range=sheet->querySubObject("Range(const QString&)",str);
-    //获取数据
-    QVariant value=Range->dynamicCall("Value2()");
-    QList<QVariant> Rows=value.toList();
-    QList<QVariant> head=Rows[0].toList();
-    delete Range;
-    Range=nullptr;
-    //***************表格数据处理完成***************
+//    Range=usedrange->querySubObject("Columns(int)",startColumn);
+//    int nRow=0;
+//    v=Range->dynamicCall("Value2()").toList();
+//    if(v.count()<=1){
+//        _lastError=("空表。");
+//        return false;
+//    }
+//    for(int i=1;i<v.count();i++){//第一列非空位置。（取excel用过的且非空的数据，防止大量空数据出现。）
+//        if(!v[i].toList()[0].isValid()){
+//            nRow=i;
+//            break;
+//        }
+//    }
+//    if(!nRow){
+//        nRow=usedrange->querySubObject("End(int)",-4121)->property("Row").toInt();
+//    }
+//    QString str;
+//    Range=sheet->querySubObject(("Cells(int,int)"),Range->property("Row").toInt(),startColumn);
+//    str=Range->dynamicCall("Address(bool,bool)",false,false).toString();
+//    delete Range;
+//    str.append(":");
+//    Range=sheet->querySubObject(("Cells(int,int)"),nRow,endColumn);
+//    str.append(Range->dynamicCall("Address(bool,bool)",false,false).toString());
+//    delete Range;
+//    Range=nullptr;
+//    delete usedrange;
+//    usedrange=nullptr;
+//    Range=sheet->querySubObject("Range(const QString&)",str);
+//    //获取数据
+//    QVariant value=Range->dynamicCall("Value2()");
+//    QList<QVariant> Rows=value.toList();
+//    QList<QVariant> head=Rows[0].toList();
+//    delete Range;
+//    Range=nullptr;
+//    //***************表格数据处理完成***************
 
-    //对数据进行检查,抬头不能为空
-    for(int i=0;i<head.size();i++){
-        if(!head[i].isValid()){
-            columns=i;
-            break;
-        }
-    }
-    if(!columns){
-        _lastError=("EXCEL表格格式有误");
-        return false;
-    }
-    if(columns==-1)columns=head.count();
-    //创建表
-    qDebug()<<"creating new table...";
-    if(isNewTable){
-        sql=QString("drop table '%1'").arg(tableName);
-        query.exec(sql);
-        sql=QString("create table '%1'(").arg(tableName);
-        for(int i=0;i<columns;i++){
-            auto k=head[i];
-            QString str=k.toString();
-            int p=str.indexOf("|");
-            if(p<0){
-                _lastError="数据错误，表头需要后接|注明数据类型。";
-                return false;
-            }
-            sql.append(QString("%1 %2").arg(str.left(p)).arg(str.mid(p+1)));
-            if(i<columns-1){
-                sql.append(",");
-            }
-            else sql.append(");");
-        }
-        if(!query.exec(sql)){
-            _lastError="sql error:"+sql+"\n"+query.lastError().text();
-            return false;
-        }
-        qDebug()<<"table create finish.";
-    }
-    //写入数据
-    query.exec(QString("alter table %1 convert to character set utf8;").arg(tableName));
-    qDebug()<<"start to write table...";
-    QSqlDatabase::database().transaction();//大量写入数据，要使用事务操作，避免频繁读写硬盘。
-    QString s1="(",s2="values(";
-    for(int i=0;i<columns;i++){
-        auto k=head[i];
-        QString str=k.toString();
-        str=str.left(str.indexOf("|"));
-        s1.append(str);
-        s2.append("?");
-        if(i<columns-1){
-            s1.append(",");
-            s2.append(",");
-        }
-        else {
-            s1.append(")");
-            s2.append(")");
-        }
-    }
-    sql=QString("insert into  %1 %2 %3").arg(tableName).arg(s1).arg(s2);
-    query.prepare(sql);
-    QList<QVariantList> binder;
-    QVariantList row1=Rows[1].toList();
-    for(int j=0;j<columns;j++){
-        QVariantList v;
-        v.append(row1[j]);
-        binder.append(v);
-    }
-    for(int i=2;i<Rows.count();i++){
-        QVariantList row=Rows[i].toList();
-        for(int j=0;j<columns;j++){
-            binder[j].append(row[j]);
-        }
-    }
-    qDebug()<<"binding value...";
-    for(int i=0;i<columns;i++){
-        query.addBindValue(binder[i]);
-    }
-    qDebug()<<"execBatch...";
-    if(!query.execBatch()){
-        _lastError= "写入错误:"+query.lastError().text();
-                                       return false;
-    }
-    QSqlDatabase::database().commit();
-    qDebug()<<"write data success.";
-    _lastError="";
-    return true;
+//    //对数据进行检查,抬头不能为空
+//    for(int i=0;i<head.size();i++){
+//        if(!head[i].isValid()){
+//            columns=i;
+//            break;
+//        }
+//    }
+//    if(!columns){
+//        _lastError=("EXCEL表格格式有误");
+//        return false;
+//    }
+//    if(columns==-1)columns=head.count();
+//    //创建表
+//    qDebug()<<"creating new table...";
+//    if(isNewTable){
+//        sql=QString("drop table '%1'").arg(tableName);
+//        query.exec(sql);
+//        sql=QString("create table '%1'(").arg(tableName);
+//        for(int i=0;i<columns;i++){
+//            auto k=head[i];
+//            QString str=k.toString();
+//            int p=str.indexOf("|");
+//            if(p<0){
+//                _lastError="数据错误，表头需要后接|注明数据类型。";
+//                return false;
+//            }
+//            sql.append(QString("%1 %2").arg(str.left(p)).arg(str.mid(p+1)));
+//            if(i<columns-1){
+//                sql.append(",");
+//            }
+//            else sql.append(");");
+//        }
+//        if(!query.exec(sql)){
+//            _lastError="sql error:"+sql+"\n"+query.lastError().text();
+//            return false;
+//        }
+//        qDebug()<<"table create finish.";
+//    }
+//    //写入数据
+//    query.exec(QString("alter table %1 convert to character set utf8;").arg(tableName));
+//    qDebug()<<"start to write table...";
+//    QSqlDatabase::database().transaction();//大量写入数据，要使用事务操作，避免频繁读写硬盘。
+//    QString s1="(",s2="values(";
+//    for(int i=0;i<columns;i++){
+//        auto k=head[i];
+//        QString str=k.toString();
+//        str=str.left(str.indexOf("|"));
+//        s1.append(str);
+//        s2.append("?");
+//        if(i<columns-1){
+//            s1.append(",");
+//            s2.append(",");
+//        }
+//        else {
+//            s1.append(")");
+//            s2.append(")");
+//        }
+//    }
+//    sql=QString("insert into  %1 %2 %3").arg(tableName).arg(s1).arg(s2);
+//    query.prepare(sql);
+//    QList<QVariantList> binder;
+//    QVariantList row1=Rows[1].toList();
+//    for(int j=0;j<columns;j++){
+//        QVariantList v;
+//        v.append(row1[j]);
+//        binder.append(v);
+//    }
+//    for(int i=2;i<Rows.count();i++){
+//        QVariantList row=Rows[i].toList();
+//        for(int j=0;j<columns;j++){
+//            binder[j].append(row[j]);
+//        }
+//    }
+//    qDebug()<<"binding value...";
+//    for(int i=0;i<columns;i++){
+//        query.addBindValue(binder[i]);
+//    }
+//    qDebug()<<"execBatch...";
+//    if(!query.execBatch()){
+//        _lastError= "写入错误:"+query.lastError().text();
+//                                       return false;
+//    }
+//    QSqlDatabase::database().commit();
+//    qDebug()<<"write data success.";
+//    _lastError="";
+//    return true;
 
-}
+//}
 
-bool QExcel::toDB(QAxObject *book, const QSqlDatabase &db, QString dbName)
-{
-    if(!book){
-        _lastError="book is null";
-        return false;
-    }
-    QAxObject *sheets=book->querySubObject("Sheets()");
-    int n=sheets->dynamicCall("Count()").toInt();
-    if(!n){
-        _lastError="book is empty";
-        return false;
-    }
-    if(dbName.isEmpty()){
-        dbName=book->dynamicCall("Name()").toString();
-        dbName=dbName.left(dbName.indexOf("."));
-    }
-    QAxObject *sheet;
-    for(int i=1;i<=n;i++){
-        sheet=sheets->querySubObject("Item(int)",i);
-        if(!toDbTable(sheet,db)){
-            return false;
-        }
-    }
-    return true;
-}
+//bool QExcel::toDB(QAxObject *book, const QSqlDatabase &db, QString dbName)
+//{
+//    if(!book){
+//        _lastError="book is null";
+//        return false;
+//    }
+//    QAxObject *sheets=book->querySubObject("Sheets()");
+//    int n=sheets->dynamicCall("Count()").toInt();
+//    if(!n){
+//        _lastError="book is empty";
+//        return false;
+//    }
+//    if(dbName.isEmpty()){
+//        dbName=book->dynamicCall("Name()").toString();
+//        dbName=dbName.left(dbName.indexOf("."));
+//    }
+//    QAxObject *sheet;
+//    for(int i=1;i<=n;i++){
+//        sheet=sheets->querySubObject("Item(int)",i);
+//        if(!toDbTable(sheet,db)){
+//            return false;
+//        }
+//    }
+//    return true;
+//}
 
-bool QExcel::toDB(QString excelFile, const QSqlDatabase &db, QString dbName)
-{
-    qDebug()<<excelFile;
-    QAxObject* book=_WorkBooks->querySubObject("Open(QString&)",excelFile);
-    if(!book){
-        qDebug()<<"无法打开EXCEL文件："<<excelFile;
-        return false;
-    }
-    QAxObject *sheets=book->querySubObject("Sheets()");
-    int n=sheets->dynamicCall("Count()").toInt();
-    if(!n){
-        _lastError="book is empty";
-        return false;
-    }
-    if(dbName.isEmpty()){
-        dbName=book->dynamicCall("Name()").toString();
-        dbName=dbName.left(dbName.indexOf("."));
-    }
-    QAxObject *sheet;
-    for(int i=1;i<=n;i++){
-        sheet=sheets->querySubObject("Item(int)",i);
-        if(!toDbTable(sheet,db)){
-            return false;
-        }
-    }
-    return true;
-}
+//bool QExcel::toDB(QString excelFile, const QSqlDatabase &db, QString dbName)
+//{
+//    qDebug()<<excelFile;
+//    QAxObject* book=_WorkBooks->querySubObject("Open(QString&)",excelFile);
+//    if(!book){
+//        qDebug()<<"无法打开EXCEL文件："<<excelFile;
+//        return false;
+//    }
+//    QAxObject *sheets=book->querySubObject("Sheets()");
+//    int n=sheets->dynamicCall("Count()").toInt();
+//    if(!n){
+//        _lastError="book is empty";
+//        return false;
+//    }
+//    if(dbName.isEmpty()){
+//        dbName=book->dynamicCall("Name()").toString();
+//        dbName=dbName.left(dbName.indexOf("."));
+//    }
+//    QAxObject *sheet;
+//    for(int i=1;i<=n;i++){
+//        sheet=sheets->querySubObject("Item(int)",i);
+//        if(!toDbTable(sheet,db)){
+//            return false;
+//        }
+//    }
+//    return true;
+//}
 
 void QExcel::onException(int code, QString source, QString desc, QString help)
 {

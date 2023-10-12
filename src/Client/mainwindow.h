@@ -27,6 +27,7 @@ public:
 signals:
     void Connected();
     void loginResult(int result);
+    void changeSkin(int);
 private:
     TabWidgetBase *getTabWidget(const QString& widgetText)const;
 
@@ -47,6 +48,8 @@ private slots:
     void on_btModInit_clicked();
 
     void on_actionInitMod_triggered();
+
+    void onSkinChanged();
 
 private:
     Ui::MainWindow *ui;    

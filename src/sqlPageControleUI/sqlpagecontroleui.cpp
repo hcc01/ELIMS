@@ -4,7 +4,7 @@
 SqlPageControleUI::SqlPageControleUI(QWidget *parent):
     QWidget(parent),
     ui(new Ui::SqlPageControleUI),
-    _sqlCmd(QJsonObject())
+    m_currentPage(1)
 {
     ui->setupUi(this);
     this->setVisible(false);
@@ -31,7 +31,7 @@ void SqlPageControleUI::setTotalPage(int totalPage)
 void SqlPageControleUI::setCurrentPage(int page)
 {
     if(page<0||page>_totalPage) return;
-    _sqlCmd.setPage(page);
+    m_currentPage=page;
     ui->currentPage->setText(QString::number(page));
 }
 
@@ -39,17 +39,17 @@ void SqlPageControleUI::setCurrentPage(int page)
 void SqlPageControleUI::on_btNext_clicked()
 {
     if(!_totalPage) return;
-    if(_sqlCmd.queryPage()+1 >_totalPage) return;
-    _sqlCmd.setPage(_sqlCmd.queryPage()+1);
-    emit pageChanged(_sqlCmd.jsCmd());
+    if(m_currentPage+1 >_totalPage) return;
+    m_currentPage++;
+    emit pageChanged(m_sql,m_currentPage);
 }
 
 void SqlPageControleUI::on_btPre_clicked()
 {
     if(!_totalPage) return;
-    if(_sqlCmd.queryPage()<=1) return;
-    _sqlCmd.setPage(_sqlCmd.queryPage()-1);
-    emit pageChanged(_sqlCmd.jsCmd());
+    if(m_currentPage<=1) return;
+    m_currentPage--;
+    emit pageChanged(m_sql,m_currentPage);
 }
 
 void SqlPageControleUI::on_btGo_clicked()
@@ -57,6 +57,6 @@ void SqlPageControleUI::on_btGo_clicked()
     if(ui->lineEdit->text().isEmpty()) return;
     int p=ui->lineEdit->text().toUInt();
     if(p>_totalPage) return;
-    _sqlCmd.setPage(p);
-    emit pageChanged(_sqlCmd.jsCmd());
+    m_currentPage=p;
+    emit pageChanged(m_sql,m_currentPage);
 }

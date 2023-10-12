@@ -17,16 +17,19 @@ CUser* CLoginManager::doLogin(CELLClient *pClient, const QString &name, const QS
        return nullptr;
     }
     QSqlQuery query(dbManager.database());
-    QString sql(QString("select * from sys_employee_login where name='%1' and password='%2'").arg(name).arg(passwd));
+    QString sql(QString("select * from sys_employee_login left join (select position ,name from users where name='%1') as B on sys_employee_login.name=B.name where sys_employee_login.name='%1' and sys_employee_login.password='%2' ").arg(name).arg(passwd));
     if(!query.exec(sql)){
         CELLLog::Info("Login error: %s",query.lastError().text());
         lr.result=DB_ERROR;
+        qDebug()<<query.lastError().text();
         pClient->SendData(&lr);
         return nullptr;
     }
     //QSqlRecord rcd=query.record();
     if(query.next()) {                              //密码验证成功
        lr.result=LOGIN_SUCCESSED;
+        lr.position=query.value("position").toInt();
+       qDebug()<<lr.position;
         const char *name = query.value("name").toByteArray();
         size_t name_len = strlen(name);
         char *name_copy = new char[name_len + 1];  // 为复制的字符数组分配内存

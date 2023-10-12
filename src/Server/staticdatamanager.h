@@ -20,6 +20,10 @@ private slots:
 
     void on_improtTestMethod_clicked();
 
+    void on_improtParameterBtn_clicked();
+
+    void on_parameterStdBtn_clicked();
+
 private:
     Ui::StaticDataManager *ui;
 };

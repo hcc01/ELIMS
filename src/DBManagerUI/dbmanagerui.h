@@ -27,11 +27,16 @@ public:
     static QString tabText(){
         return "数据库管理";
     }
-    void onSqlReturn(const QSqlReturnMsg& jsCmd);
+//    void onSqlReturn(const QSqlReturnMsg& jsCmd);
     void dealProcess(const ProcessNoticeCMD& cmd) override{};
 
     void initMod()override;
+    void showTable(const QSqlReturnMsg&msg);
+
+signals:
+    void sqlFinished();
 private slots:
+    void onPageChanged(const QString&sql,int p);
     void on_comboBox_currentTextChanged(const QString &arg1);
 
     void on_lineEdit_returnPressed();
@@ -41,6 +46,8 @@ private slots:
     void on_bt_PageDown_clicked();
 
     void on_comboBox_editTextChanged(const QString &arg1);
+
+    void on_exportToExcelBtn_clicked();
 
 private:
     void initCMD();

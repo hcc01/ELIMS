@@ -1,5 +1,6 @@
 #include "tabwigetbase.h"
 #include<QDialog>
+#include<QTimer>
 TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
 {
 
@@ -7,6 +8,7 @@ TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
 
 void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
 {
+
     int flag=jsCmd.flag();
     qDebug()<<jsCmd.jsCmd();
     qDebug()<<"flag"<<flag;
@@ -18,13 +20,7 @@ void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
     else {
         qDebug() << "error: empty function object for flag" << flag;
     }
-//    qDebug()<<m_fucMap.value(flag).target_type().name();;
-//    if(m_fucMap.value(flag)){
-//       m_fucMap.value(flag) (jsCmd);
-//    }
-//    else{
-//       qDebug()<<"error: wrong sqlFlag."<<flag;
-    //    }
+
 }
 
 void TabWidgetBase::dealProcess(const ProcessNoticeCMD &)
@@ -40,10 +36,15 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
     if(bindValues.count()){
         cmd.bindValue(bindValues);
     }
-    emit sendData(cmd.jsCmd());
     m_fucMap.insert(flag,f);//标识下处理结果返回的函数
     flag++;
+
+    emit sendData(cmd.jsCmd()); // 发射发送数据信号
+
+
+
 }
+
 
 SqlBaseClass::SqlBaseClass(TabWidgetBase *tab):
     m_tabWiget(tab)

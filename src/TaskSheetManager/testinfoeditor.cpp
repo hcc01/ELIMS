@@ -10,6 +10,7 @@ testInfoEditor::testInfoEditor(TestInfo *info, int inspectedEentityID, QWidget *
     m_inspectedEentityID(inspectedEentityID)
 {
     ui->setupUi(this);
+    ui->testItemEdit->setPlaceholderText("多个检测参数以“、”隔开");
 }
 
 testInfoEditor::~testInfoEditor()
@@ -37,10 +38,60 @@ void testInfoEditor::init()
 
 void testInfoEditor::on_testInofOkBtn_clicked()
 {
+        QStringList items=ui->testItemEdit->toPlainText().remove(' ').replace("，",",").replace("’","'").replace("（","(").replace("）",")").split("、");
+        if(!items.count()){
+            return;
+        }
+        m_monitoringParameterIDs.clear();
+        for(int i=0;i<items.count();i++){
+            auto item=items.at(i);
+            if(item.isEmpty()) continue;
+            QString sql;
+            QEventLoop loop;
+            connect(this, &testInfoEditor::doSqlFinished, &loop, &QEventLoop::quit);
+            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=%2) as A "
+                                  "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
+                                  "where parameterName='%1' or alias='%1';").arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+//            sql=QString("SELECT id from detection_parameters where testFieldID =%2 and (parameterName='%1' or alias='%1' or abbreviation='%1') ")
+//                      .arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+
+            bool error=false;
+            // 发送异步的数据库查询请求
+            doSql(sql,[this,item,i,items,&error](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(this,"查找输入项目时出错：",msg.result().toString());
+                    error=true;
+                    emit doSqlFinished();
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+                if(r.count()==1){
+                    QMessageBox::information(this,"项目错误",item+"不能被识别。");
+                    error=true;
+                    emit doSqlFinished();
+                    return;
+                }
+                m_monitoringParameterIDs.append(r.at(1).toList().at(0).toInt());
+                if(i==items.count()-1){//最后一个项目查询完成，如果没有出错，执行下面操作
+//                    ui->testItemEdit->clear();
+//                    ui->testItemEdit->append(items.join("、"));
+                    qDebug()<<"m_monitoringParameterIDs"<<m_monitoringParameterIDs;
+
+                }
+                emit doSqlFinished();
+            });
+            // 等待异步查询完成
+            loop.exec();
+            if(error) return;
+        }
+        qDebug()<<m_monitoringParameterIDs;
+    m_monitoringParameters=items;
+
     if(m_monitoringParameterIDs.isEmpty()){
         QMessageBox::information(this,"error","请选择检测项目！");
         return;
     }
+
     if(m_samplingSites.count()&&ui->samplingPosCountBox->value()!=m_samplingSites.count()){
         QMessageBox::information(this,"error","点位数量不对，请确认");
         return;
@@ -114,8 +165,8 @@ void testInfoEditor::on_testItemAddBtn_clicked()
         connect(&dlg,&ImplementingStandardSelectDlg::selectDone,this,[this](const QStringList items,const QList<int>&IDs,const QString&standardName,int limitStandardID){
             ui->testItemEdit->clear();
             ui->testItemEdit->append(items.join("、"));
-            m_monitoringParameters=items;
-            m_monitoringParameterIDs=IDs;
+//            m_monitoringParameters=items;
+//            m_monitoringParameterIDs=IDs;
             m_limitStandardID=limitStandardID;
             ui->standardNameEidt->setText(standardName);
         });
@@ -123,9 +174,61 @@ void testInfoEditor::on_testItemAddBtn_clicked()
         dlg.exec();
     }
     break;
-    case 3:
+    case 2:
     {
-        emit doSql(QString("select parameter_name,alias,abbreviation from detection_parameters where testFieldID=%1);").arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex())),[&](const QSqlReturnMsg&msg){
+//        QStringList items=QInputDialog::getText(this,"","请输入检测项目，以“、”隔开")
+//                                .remove(' ').replace("，",",").replace("’","'").replace("（","(").replace("）",")").split("、");
+//        if(!items.count()){
+//            return;
+//        }
+//        m_monitoringParameterIDs.clear();
+//        for(int i=0;i<items.count();i++){
+//            auto item=items.at(i);
+//            if(item.isEmpty()) continue;
+//            QString sql;
+//            QEventLoop loop;
+//            connect(this, &testInfoEditor::doSqlFinished, &loop, &QEventLoop::quit);
+//            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=%2) as A "
+//                                  "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
+//                                  "where parameterName='%1' or alias='%1';").arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+////            sql=QString("SELECT id from detection_parameters where testFieldID =%2 and (parameterName='%1' or alias='%1' or abbreviation='%1') ")
+////                      .arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+
+//            bool error=false;
+//            m_monitoringParameterIDs.clear();
+//            // 发送异步的数据库查询请求
+//            doSql(sql,[this,item,i,items,&error](const QSqlReturnMsg&msg){
+//                if(msg.error()){
+//                    QMessageBox::information(this,"查找输入项目时出错：",msg.result().toString());
+//                    error=true;
+//                    emit doSqlFinished();
+//                    return;
+//                }
+//                QList<QVariant>r=msg.result().toList();
+//                if(r.count()==1){
+//                    QMessageBox::information(this,"项目错误",item+"不能被识别。");
+//                    error=true;
+//                    emit doSqlFinished();
+//                    return;
+//                }
+//                m_monitoringParameterIDs.append(r.at(1).toList().at(0).toInt());
+//                if(i==items.count()-1){//最后一个项目查询完成，如果没有出错，执行下面操作
+//                    ui->testItemEdit->clear();
+//                    ui->testItemEdit->append(items.join("、"));
+//                }
+//                emit doSqlFinished();
+//            });
+//            // 等待异步查询完成
+//            loop.exec();
+//            if(error) return;
+//        }
+//        m_monitoringParameters=items;
+    }
+        break;
+    case 1:
+    {
+
+        emit doSql(QString("select parameterName,alias,abbreviation from detection_parameters where testFieldID=%1);").arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex())),[&](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(this,"error",msg.result().toString());
                 return;

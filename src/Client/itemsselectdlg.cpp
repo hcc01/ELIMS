@@ -1,3 +1,8 @@
+/*项目选择窗口
+ * 用于选择检测项目，
+ * 需要提供检测项目名称列表和对应的ID列表，返回所选择的ID
+ * 使用方法：Qlist<int> list=itemsSelectDlg::getSelectedItemsID(const QStringList &fromList, const QList<int> &IDList, QStringList& selectedList)
+ */
 #include "itemsselectdlg.h"
 #include "ui_itemsselectdlg.h"
 #include<QVBoxLayout>
@@ -11,7 +16,7 @@ itemsSelectDlg::itemsSelectDlg(const QStringList&items, const QList<int> &IDlist
 
     // 设置列表项
     QLineEdit*line_edit =new QLineEdit(this);
-    m_listWidget->setItems(items);
+    m_listWidget->setItems(items,IDlist);
 
 
     // 创建布局管理器，并将控件添加到布局中
@@ -47,6 +52,15 @@ QList<int> itemsSelectDlg::getSelectedItemsID(const QStringList &fromList, const
     dlg.exec();
     selectedList= dlg.m_selectedItems;
     return dlg.m_selectedIDs;
+}
+
+QString itemsSelectDlg::getSelectedItem(const QStringList &fromList)
+{
+    itemsSelectDlg dlg(fromList);
+    dlg.m_listWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    dlg.exec();
+    if(dlg.m_selectedItems.count()) return dlg.m_selectedItems.at(0);
+    return "";
 }
 
 void itemsSelectDlg::on_pushButton_clicked()

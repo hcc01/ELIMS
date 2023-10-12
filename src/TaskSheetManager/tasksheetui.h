@@ -23,7 +23,10 @@ public:
 //    virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);//处理数据库操作返回的信息
     virtual void dealProcess(const ProcessNoticeCMD&);//处理流程事件
     virtual void initMod();//新增模块时初始化操作，建表等。
+    void initCMD() override;
     //end
+
+private:
 
 private slots:
     void on_newSheetBtn_clicked();

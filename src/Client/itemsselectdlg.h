@@ -11,15 +11,15 @@ class FilteredListWidget : public QListWidget {
 public:
     FilteredListWidget(QWidget *parent = nullptr) : QListWidget(parent) {setSelectionMode(QAbstractItemView::MultiSelection);}
 
-    void setItems(const QStringList &items) {
+    void setItems(const QStringList &items,const QList<int>idList) {
         // 设置列表项，并保存原始列表项
 //        QListWidget::addItems(items);
         for(int i=0;i<items.count();i++){
             QListWidgetItem *item = new QListWidgetItem();
             item->setText(items.at(i));
-            item->setData(Qt::UserRole,i);
+            item->setData(Qt::UserRole,idList.at(i));
             addItem(item);
-            allItems.append({item->text(),i});
+            allItems.append({item->text(),idList.at(i)});
         }
 //        this->items = items;
 //        allItems = findItems("", Qt::MatchWildcard);
@@ -77,6 +77,7 @@ public:
     ~itemsSelectDlg();
     static QStringList getSelectedItems(const QStringList& list);
     static QList<int> getSelectedItemsID(const QStringList& fromList, const QList<int> &IDList, QStringList &selectedList);
+    static QString getSelectedItem(const QStringList& fromList);
 private slots:
     void on_pushButton_clicked();
 

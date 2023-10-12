@@ -23,8 +23,11 @@
         <height>16777215</height>
        </size>
       </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page_5">
        <property name="geometry">
@@ -82,7 +85,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QPushButton" name="btRMManage_2">
+         <widget class="QPushButton" name="btPersonalInfo">
           <property name="text">
            <string>资料修改</string>
           </property>
@@ -180,11 +183,17 @@
       <property name="focusPolicy">
        <enum>Qt::TabFocus</enum>
       </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="tabsClosable">
        <bool>true</bool>
+      </property>
+      <property name="tabBarAutoHide">
+       <bool>false</bool>
       </property>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
@@ -195,11 +204,6 @@
          <widget class="ProcessManager" name="listWidget"/>
         </item>
        </layout>
-      </widget>
-      <widget class="QWidget" name="tab_4">
-       <attribute name="title">
-        <string>页</string>
-       </attribute>
       </widget>
      </widget>
     </item>
@@ -229,7 +233,15 @@
     </property>
     <addaction name="action"/>
    </widget>
+   <widget class="QMenu" name="skinMenu">
+    <property name="title">
+     <string>皮肤</string>
+    </property>
+    <addaction name="skin1Action"/>
+    <addaction name="skin2Action"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="skinMenu"/>
    <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -251,6 +263,25 @@
   <action name="actionInitMod">
    <property name="text">
     <string>初始化模块</string>
+   </property>
+  </action>
+  <action name="skin1Action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>绿意</string>
+   </property>
+  </action>
+  <action name="skin2Action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>经典</string>
    </property>
   </action>
  </widget>
@@ -302,8 +333,8 @@
    <slot>onOpenTab()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>119</x>
-     <y>213</y>
+     <x>127</x>
+     <y>206</y>
     </hint>
     <hint type="destinationlabel">
      <x>634</x>

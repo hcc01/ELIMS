@@ -15,7 +15,7 @@ struct TestInfo{
     QString sampleType;//样品类型
     int testFieldID;//检测领域
     int testTypeID;//检测类型
-    int samplingSiteCount;//点位数量
+    int samplingSiteCount=1;//点位数量
     int samplingFrequency;//采样频次
     int samplingPeriod;//采样天数
     QStringList samplingSites;//采样点位
@@ -25,7 +25,7 @@ struct TestInfo{
     int limitStandardID;//限值ID
     QString remark;//备注
     QList<QVariant> infoList(){
-        return {sampleType,samplingSites,monitoringParameters.join("、"),QString("%1点*%2次*%3天").arg(samplingSiteCount).arg(samplingFrequency).arg(samplingPeriod),limitStandard,remark};
+        return {sampleType,samplingSites.join("、"),monitoringParameters.join("、"),QString("%1点*%2次*%3天").arg(samplingSiteCount).arg(samplingFrequency).arg(samplingPeriod),limitStandard,remark};
     }
 };
 
@@ -39,6 +39,7 @@ public:
     void init();
 signals:
     void doSql(const QString& sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
+    void doSqlFinished();
 private slots:
     void on_testInofOkBtn_clicked();
 

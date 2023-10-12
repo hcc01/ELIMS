@@ -1,10 +1,34 @@
 ﻿#include "mymodel.h"
+#include "qbrush.h"
+#include "qcolor.h"
 
 MyModel::MyModel(const QStringList &header, QObject *parent)
     : QAbstractTableModel{parent},
       m_header(header)
 {
 
+}
+
+void MyModel::setHeader(const QStringList &header)
+{
+    beginResetModel();
+    m_header=header;
+    endResetModel();
+}
+
+bool MyModel::setRawData(QList<QVariant> data)
+{
+    m_data.clear();
+    for (const QVariant& variant : data) {
+        // 检查当前QVariant是否可以转换为QVector<QVariant>
+        if (variant.canConvert<QVector<QVariant>>()) {
+            // 将QVariant转换为QVector<QVariant>并添加到vector中
+            QVector<QVariant> innerVector = variant.value<QVector<QVariant>>();
+            m_data.append(innerVector);
+        }
+        else return false;
+    }
+    return true;
 }
 
 
@@ -28,6 +52,18 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
         return m_data[index.row()][index.column()];
     }
+    else if (role == Qt::BackgroundRole) {// 检查该索引是否应该具有特定的背景色
+        // 如果是，则返回相应的QBrush对象
+        // 例如，使用一个名为m_backgroundColors的成员变量来保存单元格的背景色信息
+        if (m_backgroundColors.contains(index))
+        {
+            QColor color = m_backgroundColors.value(index);
+            return QBrush(color);
+        }
+    }
+    else if(role==Qt::UserRole){
+        return m_flags[index];
+    }
 
     return QVariant();
 }
@@ -38,10 +74,17 @@ QVariant MyModel::data(int row, int colunm, int role) const
     return data(index,role);
 }
 
+QVariant MyModel::data(int row, const QString &head) const
+{
+    int c=m_header.indexOf(head);
+    if(c<0) return QVariant();
+    return data(row,c);
+}
+
 bool MyModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-
-    if (index.isValid() && role == Qt::EditRole) {
+    if(!index.isValid() ) return false;
+    if (role == Qt::EditRole) {
         m_data[index.row()][index.column()] = value;
         emit dataChanged(index, index, { role });
         if(m_relatedData.contains(index)){
@@ -50,8 +93,18 @@ bool MyModel::setData(const QModelIndex &index, const QVariant &value, int role)
         }
         return true;
     }
+    else if(role==Qt::BackgroundRole){
+        // 设置单元格背景色
+        if (value.canConvert<QColor>()) {
+            m_backgroundColors[index] = value.value<QColor>();
+            emit dataChanged(index, index, { role, Qt::BackgroundRole });
+        }
+    }
+    else if(role==Qt::UserRole){
+        m_flags[index]=value;
+    }
 
-    return false;
+    return QAbstractTableModel::setData(index,value,role);
 }
 
 QVector<QVector<QVariant> > MyModel::getData() const

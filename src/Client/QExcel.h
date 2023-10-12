@@ -25,6 +25,7 @@ public:
     void SetVisible(bool v);
     void DisplayAlerts(bool v);
     //app operate fuc
+    QAxObject *newBook();
     QAxObject *Open(const QString& path, const QVariant &UpdateLinks=QVariant(), bool readOnly=false, const QString &password="");
     void Close();
     bool CloseBook(QAxObject *book);
@@ -48,6 +49,7 @@ public:
     QVariant cellValue(int row, int column, QAxObject *sheet) const;
     void writeCell(int row,int column,QAxObject *sheet,const QVariant& var) const;
     void writeRange(const QVariant&,const QString& rangeAdds="",QAxObject *sheet=nullptr)const;
+    void writeRow(int row, QAxObject *sheet, const QList<QVariant> &var) const;
     QAxObject *getSelectRange(QAxObject* sheet=nullptr)const;
     void writeCurrent(const QVariant& var) const;//在选定的单元格中写入数据
     QVariant readAll(QAxObject *sheet) const;
@@ -63,9 +65,9 @@ public:
 public:
     //以下进行数据库相关操作
     //将表格转到数据库，抬头需要注明数据类型，以|分割;第一列不能为空,example: name|varchar(16)。
-    bool toDbTable(QAxObject *sheet, const QSqlDatabase& db, QString tableName="",  int startColumn=0, int endColumn=0, bool isNewTable=true);//将当前一个表格复制到指定数据库
-    bool toDB(QAxObject*book,const QSqlDatabase& db, QString dbName="");//将当前全部表格复制到指定数据库
-    bool toDB(QString excelFile,const QSqlDatabase& db, QString dbName="");//将当前全部表格复制到指定数据库
+//    bool toDbTable(QAxObject *sheet, const QSqlDatabase& db, QString tableName="",  int startColumn=0, int endColumn=0, bool isNewTable=true);//将当前一个表格复制到指定数据库
+//    bool toDB(QAxObject*book,const QSqlDatabase& db, QString dbName="");//将当前全部表格复制到指定数据库
+//    bool toDB(QString excelFile,const QSqlDatabase& db, QString dbName="");//将当前全部表格复制到指定数据库
 public slots:
     void onException(int code,  QString source,   QString desc,   QString help);
 

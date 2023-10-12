@@ -5,6 +5,18 @@
 #include<QJsonArray>
 
 #include"../../depends/MessageHeader.h"
+
+namespace TASK {
+enum TaskStatus{
+
+};
+}
+
+
+
+
+
+
 class QSqlReturnMsg;
 using DealFuc = std::function<void(const QSqlReturnMsg&)>;
 class QJsonCmd
@@ -155,6 +167,7 @@ public:
     void bindValue(const QJsonArray &values);
     QJsonArray getBindValues()const;
     QJsonObject jsCmd() const;
+    void setCmd(QJsonObject cmd){_cmd=cmd;}
 private:
     QJsonObject _cmd;
 };

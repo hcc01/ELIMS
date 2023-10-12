@@ -21,6 +21,7 @@ public:
         else{
             editor->addItems(m_items);
         }
+
         editor->setCurrentIndex(0);
         return editor;
     }
@@ -51,15 +52,24 @@ class MethodSelectDlg : public QDialog
 public:
     explicit MethodSelectDlg(int taskID, QWidget *parent = nullptr);
     ~MethodSelectDlg();
+    void showMethods(const QVector<QVector<QVariant>>&table);
 signals:
     void doSql(const QString& sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
+    void doSqlFinished();
+    void methodSelected(const QVector<QVector<QVariant>>&);
 private slots:
     void on_pushButton_clicked();
+
+    void on_OkBtn_clicked();
 
 private:
     Ui::MethodSelectDlg *ui;
     int m_taskID;
     ComboBoxDelegate* m_methodBox;
+    QList<int>m_parameterIDs;
+    QList<int> m_testTypeIDs;
+    bool m_saving;
+    QVector<QVector<QVariant>> m_methodTable;
 };
 
 #endif // METHODSELECTDLG_H
