@@ -39,7 +39,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="salesRepresentativeBox"/>
+       <widget class="QComboBox" name="salesRepresentativeBox">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QLabel" name="label_21">
@@ -105,7 +109,7 @@
           <bool>true</bool>
          </property>
          <property name="readOnly">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -129,7 +133,7 @@
           <bool>true</bool>
          </property>
          <property name="readOnly">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -162,7 +166,7 @@
           <bool>true</bool>
          </property>
          <property name="readOnly">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -182,7 +186,7 @@
           <bool>true</bool>
          </property>
          <property name="readOnly">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -237,7 +241,7 @@
        <item row="2" column="1">
         <widget class="QComboBox" name="inspectedContactsBox">
          <property name="editable">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -380,7 +384,7 @@
         <widget class="MyTableView" name="testInfoTableView"/>
        </item>
        <item row="3" column="2">
-        <widget class="QPushButton" name="pushButton_6">
+        <widget class="QPushButton" name="submitBtn">
          <property name="text">
           <string>提交评审</string>
          </property>

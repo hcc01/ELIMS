@@ -152,3 +152,5 @@ else:unix: LIBS += -L$$PWD/../../lib/ -lLabCapabilitiesManager
 
 INCLUDEPATH += $$PWD/../labcapabilitiesmanager
 DEPENDPATH += $$PWD/../labcapabilitiesmanager
+
+RC_ICONS=logo.ico

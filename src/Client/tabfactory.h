@@ -3,7 +3,7 @@
 #include<QWidget>
 #include<QMap>
 #include"cclient.h"
-typedef  void * (*CREATE_FUNC)( QWidget* );
+typedef  void * (*CREATE_FUNC)( QWidget* ,const QString&tabName);
 class TabFactory//今后会不断有新功能新页面拓展，使用这个工厂方便统一添加和管理。
 {
 public:
@@ -15,7 +15,7 @@ public:
             return  0;
         else{
            CREATE_FUNC f= it.value();
-            return f(parent);  //func();
+            return f(parent,name);  //func();
         }
     }
 

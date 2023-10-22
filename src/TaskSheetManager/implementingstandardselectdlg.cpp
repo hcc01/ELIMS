@@ -20,7 +20,7 @@ void ImplementingStandardSelectDlg::init()
                        QMessageBox::information(this,"error",msg.result().toString());
                        return;
                    }
-                   QVector<QVariant> r=msg.result().toList();
+                   QList<QVariant> r=msg.result().toList();
                    qDebug()<<r;
                    ui->standardNameBox->clear();
                    QStringList standards;
@@ -66,7 +66,7 @@ void ImplementingStandardSelectDlg::on_standardNameBox_currentIndexChanged(int i
                        QMessageBox::information(this,"error",msg.result().toString());
                        return;
                    }
-                   QVector<QVariant> r=msg.result().toList();
+                   QList<QVariant> r=msg.result().toList();
                    ui->tableNameBox->clear();
                    for(int i=1;i<r.count();i++){
                        ui->tableNameBox->addItem(r.at(i).toList().at(0).toString());
@@ -89,7 +89,7 @@ void ImplementingStandardSelectDlg::on_tableNameBox_currentTextChanged(const QSt
                        QMessageBox::information(this,"error",msg.result().toString());
                        return;
                    }
-                   QVector<QVariant> r=msg.result().toList();
+                   QList<QVariant> r=msg.result().toList();
                    ui->classNumBox->clear();
                    m_standardIDs.clear();
                    for(int i=1;i<r.count();i++){
@@ -103,7 +103,7 @@ void ImplementingStandardSelectDlg::on_tableNameBox_currentTextChanged(const QSt
                                       QMessageBox::information(this,"error",msg.result().toString());
                                       return;
                                   }
-                                  QVector<QVariant> r=msg.result().toList();
+                                  QList<QVariant> r=msg.result().toList();
                                   ui->listWidget->clear();
                                   m_parameterIDs.clear();
                                   for(int i=1;i<r.count();i++){

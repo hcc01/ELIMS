@@ -240,9 +240,16 @@
     <addaction name="skin1Action"/>
     <addaction name="skin2Action"/>
    </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>关于</string>
+    </property>
+    <addaction name="actionVersion"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="skinMenu"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionlogin">
@@ -282,6 +289,11 @@
    </property>
    <property name="text">
     <string>经典</string>
+   </property>
+  </action>
+  <action name="actionVersion">
+   <property name="text">
+    <string>版本信息</string>
    </property>
   </action>
  </widget>

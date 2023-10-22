@@ -3,6 +3,7 @@
 #include<QMessageBox>
 #include"implementingstandardselectdlg.h"
 #include<QInputDialog>
+#include<global.h>
 testInfoEditor::testInfoEditor(TestInfo *info, int inspectedEentityID, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::testInfoEditor),
@@ -25,7 +26,7 @@ void testInfoEditor::init()
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> fieldNames=msg.result().toList();
+        QList<QVariant> fieldNames=msg.result().toList();
         ui->testFiledBox->clear();
         m_testFieldIDs.clear();
         for(int i=1;i<fieldNames.count();i++){
@@ -38,7 +39,10 @@ void testInfoEditor::init()
 
 void testInfoEditor::on_testInofOkBtn_clicked()
 {
-        QStringList items=ui->testItemEdit->toPlainText().remove(' ').replace("，",",").replace("’","'").replace("（","(").replace("）",")").split("、");
+    QString s=ui->testItemEdit->toPlainText();
+    toStdParameterName(s);
+    ui->testItemEdit->setText(s);
+    QStringList items=s.split("、");
         if(!items.count()){
             return;
         }
@@ -49,11 +53,12 @@ void testInfoEditor::on_testInofOkBtn_clicked()
             QString sql;
             QEventLoop loop;
             connect(this, &testInfoEditor::doSqlFinished, &loop, &QEventLoop::quit);
-            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=%2) as A "
-                                  "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
-                                  "where parameterName='%1' or alias='%1';").arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
-//            sql=QString("SELECT id from detection_parameters where testFieldID =%2 and (parameterName='%1' or alias='%1' or abbreviation='%1') ")
-//                      .arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+//            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=%2) as A "
+//                                  "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
+//                                  "where parameterName='%1' or alias='%1';").arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
+            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=?) as A "
+                          "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
+                          "where parameterName=? or alias=?;");
 
             bool error=false;
             // 发送异步的数据库查询请求
@@ -79,7 +84,7 @@ void testInfoEditor::on_testInofOkBtn_clicked()
 
                 }
                 emit doSqlFinished();
-            });
+            },0,{m_testFieldIDs.at(ui->testFiledBox->currentIndex()),item,item});
             // 等待异步查询完成
             loop.exec();
             if(error) return;
@@ -125,7 +130,7 @@ void testInfoEditor::on_testFiledBox_currentIndexChanged(int index)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> typeNames=msg.result().toList();
+        QList<QVariant> typeNames=msg.result().toList();
         ui->testTypeBox->clear();
         m_testTypeIDs.clear();
         for(int i=1;i<typeNames.count();i++){
@@ -144,7 +149,7 @@ void testInfoEditor::on_testTypeBox_currentTextChanged(const QString &arg1)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> typeNames=msg.result().toList();
+        QList<QVariant> typeNames=msg.result().toList();
         ui->sampleTypeBox->clear();
         for(int i=1;i<typeNames.count();i++){
             ui->sampleTypeBox->addItem(typeNames.at(i).toList().at(0).toString());

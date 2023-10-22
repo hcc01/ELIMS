@@ -1,7 +1,8 @@
 #include "tabwigetbase.h"
+#include "qeventloop.h"
 #include<QDialog>
 #include<QTimer>
-TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
+TabWidgetBase::TabWidgetBase(QWidget *parent, const QString &tabName) : QWidget(parent),m_tabName(tabName)
 {
 
 }
@@ -43,6 +44,40 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
 
 
 
+}
+
+int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, int operatorCount)
+{
+    int ret=0;
+    QString sql;
+    sql="insert into flowRecords(creator, flowInfo, operatorCount) values(?,?,?);set @flowID=LAST_INSERT_ID();";
+    QJsonArray values;
+
+    values={user()->name(),flowInfo.flowInfo(),operatorCount};
+    for(int id:operatorIDs){
+        sql+="insert info flowOperateRecords(flowID,operatorID) values(@flowID,?);";
+        values.append(id);
+    }
+    sql="select @flowID;";
+    QEventLoop loop;
+    connect(this,&TabWidgetBase::sqlFinished,&loop,&QEventLoop::quit);
+    doSqlQuery(sql,[this, &ret](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"获取流程ID出错：",msg.result().toString());
+            emit sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        if(r.count()!=2){
+            QMessageBox::information(nullptr,"获取流程ID出错：","无法获取ID。");
+            emit sqlFinished();
+            return;
+        }
+        ret=r.at(1).toList().first().toInt();
+        emit sqlFinished();
+    });
+    loop.exec();
+    return ret;//传回所建流程ID，让发送者进行下一步处理
 }
 
 

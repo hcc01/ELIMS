@@ -12,6 +12,7 @@ DBManagerUI::DBManagerUI(QWidget *parent) :
 
     ui->tableView->setModel(&_model);
     connect(ui->pageCtrWidet,&SqlPageControleUI::pageChanged,this, &DBManagerUI::onPageChanged);
+    qDebug()<<ui->pageCtrWidet;
 
 }
 
@@ -118,8 +119,9 @@ void DBManagerUI::initCMD()
                     ui->comboBox->addItem(a[i].toArray().at(0).toString());
                 }
     });
-
+    qDebug()<<"initCMD"<<ui->pageCtrWidet;
     ui->pageCtrWidet->setSql("show tables",1);
+
 }
 
 void DBManagerUI::on_lineEdit_returnPressed()

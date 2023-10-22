@@ -1,6 +1,6 @@
 #include "modinitui.h"
 #include "ui_modinitui.h"
-
+#include<QDebug>
 ModInitUI::ModInitUI(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ModInitUI)

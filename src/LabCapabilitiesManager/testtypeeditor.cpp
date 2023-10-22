@@ -21,7 +21,7 @@ void TestTypeEditor::init()
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> fieldNames=msg.result().toList();
+        QList<QVariant> fieldNames=msg.result().toList();
         ui->fieldBox->clear();
         for(int i=1;i<fieldNames.count();i++){
             ui->fieldBox->addItem(fieldNames.at(i).toList().at(0).toString());
@@ -95,7 +95,7 @@ void TestTypeEditor::on_fieldBox_currentIndexChanged(int index)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> typeNames=msg.result().toList();
+        QList<QVariant> typeNames=msg.result().toList();
         ui->testTypeBox->clear();
         for(int i=1;i<typeNames.count();i++){
             ui->testTypeBox->addItem(typeNames.at(i).toList().at(0).toString());
@@ -133,7 +133,7 @@ void TestTypeEditor::on_testTypeBox_currentIndexChanged(int index)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> typeNames=msg.result().toList();
+        QList<QVariant> typeNames=msg.result().toList();
         ui->sampleTypeBox->clear();
         for(int i=1;i<typeNames.count();i++){
             ui->sampleTypeBox->addItem(typeNames.at(i).toList().at(0).toString());

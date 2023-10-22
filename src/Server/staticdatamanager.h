@@ -14,7 +14,7 @@ class StaticDataManager : public QDialog
 public:
     explicit StaticDataManager(QWidget *parent = nullptr);
     ~StaticDataManager();
-
+    bool checkParameter(int& parameterID, const QString&parameter,int areaID);//检测参数ID，如果不存在，插入检测参数。返回是否新参数
 private slots:
     void on_improtLimitStandardBtn_clicked();
 

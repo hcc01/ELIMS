@@ -51,6 +51,8 @@ private slots:
 
     void onSkinChanged();
 
+    void on_actionVersion_triggered();
+
 private:
     Ui::MainWindow *ui;    
     CClient _clientSocket;

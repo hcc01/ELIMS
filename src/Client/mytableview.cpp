@@ -50,13 +50,18 @@ void MyTableView::addContextAction(const QString &action, ActionFuc f)
     connect(a,&QAction::triggered,f);
 }
 
-void MyTableView::append(const QVector<QVariant> &data)
+void MyTableView::append(const QList<QVariant> &data)
 {
     m_model->append(data);
     resizeRowToContents(m_model->rowCount()-1);
 }
 
-QVector<QVector<QVariant> > MyTableView::data() const
+QModelIndex MyTableView::getIndex(int row, int column)
+{
+    return m_model->index(row,column);
+}
+
+QList<QList<QVariant> > MyTableView::data() const
 {
     return m_model->getData();
 }

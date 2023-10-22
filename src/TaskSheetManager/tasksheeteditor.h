@@ -24,6 +24,7 @@ public:
     void load(const QString& taskNum);
 signals:
 //    void doSql(const QString& sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
+    void sqlFinished();
 private slots:
     void on_inspectedComBox_currentIndexChanged(int index);
 
@@ -53,6 +54,8 @@ private slots:
 
     void on_clientContactsBox_currentTextChanged(const QString &arg1);
 
+    void on_submitBtn_clicked();
+
 private:
     Ui::TaskSheetEditor *ui;
     QMap<QString,ClientInfo>m_clients;//保存客户列表，用以通过客户名索引客户ID和地址，省得一直查询数据库。
@@ -69,7 +72,7 @@ private:
     int m_taskID;
     QList<TestInfo*>m_testInfo;//监测信息列表，保存到数据库时和显示在窗口时使用
     bool editable;
-    QVector<QVector<QVariant>> m_mthds;//方法表，与方法界面的表头匹配
+    QList<QList<QVariant>> m_mthds;//方法表，与方法界面的表头匹配
 
 };
 

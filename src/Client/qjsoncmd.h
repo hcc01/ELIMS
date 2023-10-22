@@ -3,7 +3,7 @@
 #include<QVariant>
 #include<QJsonObject>
 #include<QJsonArray>
-
+#include<QJsonDocument>
 #include"../../depends/MessageHeader.h"
 
 namespace TASK {
@@ -186,6 +186,18 @@ public:
 private:
     QJsonObject _cmd;
 };
-
+class QFlowInfo{
+public:
+    QFlowInfo(const QString&flowName,const QString&tabName){m_flowInfo["flowName"]=flowName;m_flowInfo["tabName"]=tabName;}
+    QFlowInfo(const QJsonObject&info){m_flowInfo=info;}
+    QFlowInfo(const QString&flowInfo){m_flowInfo=QJsonDocument::fromJson(flowInfo.toUtf8()).object();}
+    QString flowName()const{return m_flowInfo.value("flowName").toString();}//流程名称
+    QString tabName()const{return m_flowInfo.value("tabName").toString();}//模块名称，用于指定操作模块去处理流程
+    QString flowInfo()const{QJsonDocument doc(m_flowInfo);return doc.toJson(QJsonDocument::Compact);}
+    QJsonObject object()const{return m_flowInfo;}
+    void setValue(const QString&k,const QJsonValue&v){m_flowInfo[k]=v;}
+private:
+    QJsonObject m_flowInfo;
+};
 
 #endif // QJSONCMD_H

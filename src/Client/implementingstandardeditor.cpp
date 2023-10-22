@@ -26,7 +26,7 @@ void ImplementingStandardEditor::init()
             return;
         }
         QStringList items;
-        QVector<QVariant> v=msg.result().toList();
+        QList<QVariant> v=msg.result().toList();
         for(int i=1;i<v.count();i++){
             items.append(v.at(i).toList().at(0).toString());
         }
@@ -37,7 +37,7 @@ void ImplementingStandardEditor::init()
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> v=msg.result().toList();
+        QList<QVariant> v=msg.result().toList();
         for(int i=1;i<v.count();i++){
             m_testTypes.append(v.at(i).toList().at(0).toString());
             m_testTypeIDs.append(v.at(i).toList().at(1).toInt());
@@ -136,7 +136,7 @@ void ImplementingStandardEditor::on_standardSelectBox_currentIndexChanged(int in
             return;
         }
         QStringList items;
-        QVector<QVariant> v=msg.result().toList();
+        QList<QVariant> v=msg.result().toList();
         for(int i=1;i<v.count();i++){
             items.append(v.at(i).toList().at(0).toString());
         }
@@ -158,7 +158,7 @@ void ImplementingStandardEditor::on_tableSelectBox_currentIndexChanged(int index
             return;
         }
         QStringList items;
-        QVector<QVariant> v=msg.result().toList();
+        QList<QVariant> v=msg.result().toList();
         for(int i=1;i<v.count();i++){
             items.append(v.at(i).toList().at(0).toString());
         }
@@ -178,7 +178,7 @@ void ImplementingStandardEditor::on_classSelectBox_currentIndexChanged(int index
             return;
         }
         QStringList items;
-        QVector<QVariant> v=msg.result().toList();
+        QList<QVariant> v=msg.result().toList();
         m_limitClassID=v.at(1).toList().at(0).toInt();
     });
 }

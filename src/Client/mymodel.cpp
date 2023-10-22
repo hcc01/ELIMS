@@ -20,10 +20,10 @@ bool MyModel::setRawData(QList<QVariant> data)
 {
     m_data.clear();
     for (const QVariant& variant : data) {
-        // 检查当前QVariant是否可以转换为QVector<QVariant>
-        if (variant.canConvert<QVector<QVariant>>()) {
-            // 将QVariant转换为QVector<QVariant>并添加到vector中
-            QVector<QVariant> innerVector = variant.value<QVector<QVariant>>();
+        // 检查当前QVariant是否可以转换为QList<QVariant>
+        if (variant.canConvert<QList<QVariant>>()) {
+            // 将QVariant转换为QList<QVariant>并添加到vector中
+            QList<QVariant> innerVector = variant.value<QList<QVariant>>();
             m_data.append(innerVector);
         }
         else return false;
@@ -107,7 +107,7 @@ bool MyModel::setData(const QModelIndex &index, const QVariant &value, int role)
     return QAbstractTableModel::setData(index,value,role);
 }
 
-QVector<QVector<QVariant> > MyModel::getData() const
+QList<QList<QVariant> > MyModel::getData() const
 {
     return m_data;
 }
@@ -132,10 +132,12 @@ QVariant MyModel::headerData(int section, Qt::Orientation orientation, int role)
     return QVariant();
 }
 
-void MyModel::append(const QVector<QVariant> &rowData)
+void MyModel::append(const QList<QVariant> &list)
 {
     int row = rowCount(); // 获取新行的行号
     beginInsertRows(QModelIndex(), row, row); // 发出信号通知视图有新行将要插入
+
+    QList<QVariant> rowData(list.begin(), list.end());
     m_data.append(rowData); // 将新行添加到模型中
     endInsertRows(); // 发出信号通知视图新行已经插入
 }
@@ -148,7 +150,8 @@ bool MyModel::removeRows(int row, int count, const QModelIndex &parent)
 
        beginRemoveRows(QModelIndex(), row, row + count - 1);
        for (int i = 0; i < count; ++i) {
-           m_data.remove(row);
+           m_data.removeAt(row);
+
        }
        endRemoveRows();
 

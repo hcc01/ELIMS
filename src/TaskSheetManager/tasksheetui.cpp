@@ -208,8 +208,10 @@ void TaskSheetUI::initMod()
 
 void TaskSheetUI::initCMD()
 {
-    ui->tableView->setHeader({"任务单号","录单员","业务员","委托单位","受检单位","项目名称","当前状态"});
+    ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态"});
+
     QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
+    if(user()->name()=="admin") sql="SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info ORDER BY createDate DESC;";
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());

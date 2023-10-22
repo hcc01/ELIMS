@@ -157,6 +157,7 @@ void LabCapabilitiesManagerUI::initMod()
           "parallelControl varchar(16),"//平行要求
           "curveCalibration varchar(16),"//曲线校核要求
           "spikeControl varchar(16),"//加标要求
+          "extendCoverage int DEFAULT 0,"
           "version INT DEFAULT 1 ,"
           "UNIQUE (methodName,methodNumber,coverage)); ";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
@@ -176,6 +177,8 @@ void LabCapabilitiesManagerUI::initMod()
           "CMA TINYINT NOT NULL DEFAULT 0 ,"
           "deleted TINYINT NOT NULL DEFAULT 0 ,"
           "non_stdMethod TINYINT NOT NULL DEFAULT 0 ,"//非标方法
+          "labPriority int default 0,"
+          "typePriority int default 0,"
           "usedTimes int default 0,"
           "FOREIGN KEY (methodID) REFERENCES test_methods (id),"
           "UNIQUE (methodID,parameterID), "

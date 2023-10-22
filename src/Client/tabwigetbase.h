@@ -11,7 +11,6 @@
  */
 #include"../Client/qjsoncmd.h"
 #include"cuser.h"
-#include "qeventloop.h"
 #include <QWidget>
 #include<QJsonObject>
 #include<QMessageBox>
@@ -23,7 +22,7 @@ class TabWidgetBase : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TabWidgetBase(QWidget *parent = nullptr);
+    explicit TabWidgetBase(QWidget *parent = nullptr,const QString&tabName="");
     virtual ~TabWidgetBase(){}
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
     virtual void dealProcess(const ProcessNoticeCMD&);//处理流程事件(没用了）
@@ -31,12 +30,16 @@ public:
     //virtual void initCMD()=0;//用于窗口建立后给服务器发送初始化命令。设为纯虚是因为不知道为什么子类如果不写这个函数，调用就会奔溃！
     virtual void initCMD(){}//初次调用模块窗口时需要进行的初始化操作。
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
+    int submitFlow(const QFlowInfo& flowInfo, QList<int> operatorIDs,int operatorCount=1 );
     void setUser(CUser* user){m_user=user;}
     CUser* user()const{return m_user;}
+    QString tabName()const{return m_tabName;}
 private:
 signals:
     void sendData(const QJsonObject&);
+    void sqlFinished();
 private:
+    QString m_tabName;
     //保存流程数据的函数地址，在需要处理流程时，在服务器中保存编号，客户端根据编号对应处理函数。
     QMap<int,DealFuc> m_fucMap;
     CUser* m_user;

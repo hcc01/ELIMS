@@ -38,7 +38,7 @@ void TaskSheetEditor::init()
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
         }
-        QVector<QVariant> clients=msg.result().toList();
+        QList<QVariant> clients=msg.result().toList();
         for(int i=1;i<clients.count();i++){
             m_clients[clients.at(i).toList().at(0).toString()]={clients.at(i).toList().at(1).toInt(),clients.at(i).toList().at(2).toString()};
         }
@@ -49,7 +49,7 @@ void TaskSheetEditor::init()
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
         }
-        QVector<QVariant> clients=msg.result().toList();
+        QList<QVariant> clients=msg.result().toList();
         for(int i=1;i<clients.count();i++){
             m_clients[clients.at(i).toList().at(0).toString()]={clients.at(i).toList().at(1).toInt(),clients.at(i).toList().at(2).toString()};
         }
@@ -280,11 +280,11 @@ void TaskSheetEditor::load(const QString &taskNum)
                     parameterIDs.append(parameters.at(i).toList().at(0).toInt());
                     monitoringParameters.append(parameters.at(i).toList().at(1).toStringList());
                 }
-                if(1/*!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
+                if(!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
                                     ||m_testInfo.last()->sampleType!=row.at(1).toString()
                                     ||m_testInfo.last()->samplingFrequency!=row.at(3).toInt()
                                     ||m_testInfo.last()->samplingPeriod!=row.at(4).toInt()
-                                    ||m_testInfo.last()->limitStandardID!=row.at(5).toInt())*/){
+                                    ||m_testInfo.last()->limitStandardID!=row.at(5).toInt())){
                     TestInfo* info=new TestInfo;
                     info->testTypeID=row.at(0).toInt();
                     info->sampleType=row.at(1).toString();
@@ -339,7 +339,7 @@ void TaskSheetEditor::on_inspectedComBox_currentIndexChanged(int index)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        ui->inspectedContactsBox->clear();        QVector<QVariant> contacts=msg.result().toList();
+        ui->inspectedContactsBox->clear();        QList<QVariant> contacts=msg.result().toList();
         m_contacts.clear();
         for(int i=1;i<contacts.count();i++){
             m_contacts[contacts.at(i).toList().at(0).toString()]=contacts.at(i).toList().at(1).toString();
@@ -381,6 +381,9 @@ void TaskSheetEditor::on_clientBox_currentIndexChanged(int index)
                 ui->clientContactsBox->addItem(contact);
                 m_contacts[contact]=phone;
                 ui->inspectedComBox->addItem(clientName);
+                ui->clientAddrEdit->setText(clientAddr);
+                ui->clientContactsBox->setCurrentText(contact);
+                ui->clientContactsPhoneEdit->setText(phone);
             });
 
         },0,{clientName,clientAddr,contact,phone});
@@ -395,7 +398,7 @@ void TaskSheetEditor::on_clientBox_currentIndexChanged(int index)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant> contacts=msg.result().toList();
+        QList<QVariant> contacts=msg.result().toList();
         m_contacts.clear();
         for(int i=1;i<contacts.count();i++){
             m_contacts[contacts.at(i).toList().at(0).toString()]=contacts.at(i).toList().at(1).toString();
@@ -409,11 +412,7 @@ void TaskSheetEditor::on_clientBox_currentIndexChanged(int index)
 void TaskSheetEditor::on_clientContactsBox_currentIndexChanged(int index)
 {
 //    ui->clientContactsPhoneEdit->setText(m_contacts.value(ui->clientContactsBox->currentText()));
-}
-
-
-void TaskSheetEditor::on_clientContactsBox_currentTextChanged(const QString &contact)
-{
+    QString contact=ui->clientContactsBox->currentText();
     if(contact.isEmpty()) return;
     if(!m_contacts.contains(contact)){
         if(QMessageBox::question(nullptr,"","该联系人不存在，是否新增联系人？","确认","取消")) return;
@@ -434,6 +433,12 @@ void TaskSheetEditor::on_clientContactsBox_currentTextChanged(const QString &con
         return;
     }
     ui->clientContactsPhoneEdit->setText(m_contacts.value(contact));
+}
+
+
+void TaskSheetEditor::on_clientContactsBox_currentTextChanged(const QString &contact)
+{
+
 }
 
 void TaskSheetEditor::on_inspectedContactsBox_currentIndexChanged(int index)
@@ -477,7 +482,7 @@ void TaskSheetEditor::on_methodSelectBtn_clicked()
 
     //保存到数据库    
     static bool checkSaved=false;
-    if(!m_bSaved){
+    if(!m_bSaved){//未保存数据，先检查确认保存
 
 //        QMessageBox::information(this,"error","请先保存。");
         if(!checkSaved) {
@@ -486,9 +491,7 @@ void TaskSheetEditor::on_methodSelectBtn_clicked()
         }
 
 //        return;
-
-
-        QTimer::singleShot(100, this, [this]() {
+        QTimer::singleShot(100, this, [this]() {//如果未保存完成，每100ms执行一次保存
             on_methodSelectBtn_clicked();
         });
         return;
@@ -503,7 +506,7 @@ void TaskSheetEditor::on_methodSelectBtn_clicked()
 
         MethodSelectDlg *dlg=new MethodSelectDlg(msg.result().toList().at(1).toList().at(0).toInt(),this);
         connect(dlg,&MethodSelectDlg::doSql,tabWiget(),&TabWidgetBase::doSqlQuery);
-        connect(dlg,&MethodSelectDlg::methodSelected,[this](const QVector<QVector<QVariant>>&table){
+        connect(dlg,&MethodSelectDlg::methodSelected,[this](const QList<QList<QVariant>>&table){
             m_mthds=table;
             qDebug()<<table;
         });
@@ -595,7 +598,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
 void TaskSheetEditor::on_exportBtn_clicked()
 {
     QString sql;
-    QAxObject*book;book=EXCEL.Open("./采样任务单.xlsm",QVariant(),true);
+    QAxObject*book;book=EXCEL.Open(".\\采样任务单.xlsm",QVariant(),true);
     EXCEL.setScreenUpdating(false);
     if(!book){
         QMessageBox::information(nullptr,"错误","无法打开采样任务单。");
@@ -661,4 +664,40 @@ void TaskSheetEditor::on_exportBtn_clicked()
     QMessageBox::information(nullptr,"","导出完成。");
 }
 
+
+
+void TaskSheetEditor::on_submitBtn_clicked()
+{
+    QFlowInfo flowInfo("任务单审核",this->tabWiget()->tabName());
+    flowInfo.setValue("taskSheetID",m_taskSheetID);
+    QEventLoop loop;
+    connect(this,&TaskSheetEditor::sqlFinished,&loop,&QEventLoop::quit);
+    QList<int>operateorIDs;
+    doSql("select id from users where position & ?;",[this,&operateorIDs](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询操作人员时出错：",msg.result().toString());
+            emit sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        for(int i=1;i<r.count();i++){
+            operateorIDs.append(r.at(i).toList().first().toInt());
+        }
+        emit sqlFinished();
+    },0,{CUser::TechnicalManager | CUser::QualityManager | CUser::LabSupervisor});//由技术负责人或质量负责人或实验室主管负责审核任务单
+    loop.exec();
+    if(!operateorIDs.count()){
+        QMessageBox::information(nullptr,"添加操作人员时出错：","未获取到有效的可操作人员。");
+        return;
+    }
+    int flowID=this->tabWiget()->submitFlow(flowInfo,operateorIDs);
+    if(!flowID){
+        QMessageBox::information(nullptr,"创建流程出错：","未获取到有效的流程ID。");
+        return;
+    }
+    doSql("insert into task_status (taskSheetID, taskStatus, flowID) values(?,?,?) ",[this](const QSqlReturnMsg&msg){
+
+    },0,{m_taskSheetID,1,flowID});
+
+}
 

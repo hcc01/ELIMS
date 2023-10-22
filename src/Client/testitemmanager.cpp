@@ -26,7 +26,7 @@ void TestItemManager::init()
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant>types=msg.result().toList();
+        QList<QVariant>types=msg.result().toList();
         ui->fieldBox->clear();
         for(int i=1;i<types.count();i++){
             ui->fieldBox->addItem(types.at(i).toList().at(0).toString());
@@ -107,8 +107,9 @@ void TestItemManager::on_OKBtn_clicked()
             values={name,ui->subParameterCheck->isChecked(),m_currentID};
         }
         //插入别名
-        if(!ui->testAliasEdit->text().isEmpty()){
-            QStringList aliases=ui->testAliasEdit->text().split("、");
+//        if(!ui->testAliasEdit->text().isEmpty()){
+        QStringList aliases;
+        if(!ui->testAliasEdit->text().isEmpty()) aliases=ui->testAliasEdit->text().split("、");
             if(!m_newItem){
                 sql+="delete from detection_parameter_alias where parameterID=?;";//先删除原来的别名
                 values.append(m_currentID);
@@ -126,7 +127,7 @@ void TestItemManager::on_OKBtn_clicked()
                 }
             }
 
-        }
+//        }
         //插入子项目
         if(!m_newItem){
             sql+="delete from detection_subparameters where parameterID=?;";
@@ -167,7 +168,7 @@ void TestItemManager::on_fieldBox_currentTextChanged(const QString &arg1)
             QMessageBox::information(this,"error",msg.result().toString());
             return;
         }
-        QVector<QVariant>r=msg.result().toList();
+        QList<QVariant>r=msg.result().toList();
         m_items.clear();
         m_itemIDs.clear();
         m_IDtoItems.clear();

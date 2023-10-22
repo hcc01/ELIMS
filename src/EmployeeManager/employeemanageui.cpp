@@ -70,4 +70,5 @@ void EmployeeManageUI::initMod()
             return;
         }
     });
+
 }

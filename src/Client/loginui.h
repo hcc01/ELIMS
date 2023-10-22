@@ -23,6 +23,12 @@ private slots:
 
     void on_btExit_clicked();
 
+    void on_comboBox_ID_currentIndexChanged(int index);
+
+    void on_comboBox_ID_currentTextChanged(const QString &arg1);
+
+    void on_comboBox_ID_editTextChanged(const QString &arg1);
+
 private:
     Ui::LoginUI *ui;
 };

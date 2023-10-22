@@ -4,17 +4,20 @@
 #include <QDialog>
 #include<QStyledItemDelegate>
 #include<QComboBox>
+#include<QTableView>
 #include"../Client/qjsoncmd.h"
 namespace Ui {
 class MethodSelectDlg;
 }
 class ComboBoxDelegate : public QStyledItemDelegate {
 public:
-    ComboBoxDelegate(const QStringList&items={}, QObject* parent = nullptr) : QStyledItemDelegate(parent),m_items(items) {}
+    ComboBoxDelegate(QTableView* view, const QStringList&items={}) : QStyledItemDelegate(view),m_items(items) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QComboBox* editor = new QComboBox(parent);
-        QPoint p=QPoint(index.row(),index.column());
+        QPair<int,int> p=QPair(index.row(),index.column());
+        qDebug()<<p;
+        qDebug()<<m_CellItems;
         if(m_CellItems.contains(p)){
             editor->addItems(m_CellItems.value(p));
         }
@@ -37,12 +40,13 @@ public:
         model->setData(index, comboBox->currentText(), Qt::EditRole);
     }
 
-    void setCellItems(int r,int c,QStringList items){//让不同单元格有不同的选择器
-        m_CellItems.insert(QPoint(r,c),items);
+    void setCellItems(int row,int column,QStringList items){//让不同单元格有不同的选择器
+        m_CellItems.insert(QPair(row,column),items);
     }
 private:
    QStringList m_items;
-    QHash<QPoint,QStringList>m_CellItems;
+   QHash<QPair<int,int>,QStringList>m_CellItems;
+   QTableView* m_view;
 };
 
 class MethodSelectDlg : public QDialog
@@ -52,11 +56,11 @@ class MethodSelectDlg : public QDialog
 public:
     explicit MethodSelectDlg(int taskID, QWidget *parent = nullptr);
     ~MethodSelectDlg();
-    void showMethods(const QVector<QVector<QVariant>>&table);
+    void showMethods(const QList<QList<QVariant>>&table);
 signals:
     void doSql(const QString& sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
     void doSqlFinished();
-    void methodSelected(const QVector<QVector<QVariant>>&);
+    void methodSelected(const QList<QList<QVariant>>&);
 private slots:
     void on_pushButton_clicked();
 
@@ -69,7 +73,7 @@ private:
     QList<int>m_parameterIDs;
     QList<int> m_testTypeIDs;
     bool m_saving;
-    QVector<QVector<QVariant>> m_methodTable;
+    QList<QList<QVariant>> m_methodTable;
 };
 
 #endif // METHODSELECTDLG_H

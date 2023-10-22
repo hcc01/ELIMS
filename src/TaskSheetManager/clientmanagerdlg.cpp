@@ -44,7 +44,7 @@ void ClientManagerDlg::on_OKButton_clicked()
         QMessageBox::information(this,"error","请输入客户地址。");
         return;
     }
-    QVector<QVector<QVariant>> contactsList=ui->contactsView->data();
+    QList<QList<QVariant>> contactsList=ui->contactsView->data();
     if(!contactsList.count()){
         QMessageBox::information(this,"error","请添加至少1个联系人信息。");
         return;
@@ -116,7 +116,7 @@ void ClientManagerDlg::on_clientNameBox_currentIndexChanged(int index)
                 return;
             }
             ui->contactsView->clear();
-            QVector<QVariant> contacts=msg.result().toList();
+            QList<QVariant> contacts=msg.result().toList();
             for(int i=1;i<contacts.count();i++){
                 ui->contactsView->append(contacts.at(i).toList());
             }

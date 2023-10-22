@@ -27,6 +27,7 @@ SOURCES += \
 
 HEADERS += \
     ../Client/ctablemodel.h \
+    ../Client/global.h \
     ../Client/mycombobox.h \
     ../Client/mymodel.h \
     ../Client/mytableview.h \

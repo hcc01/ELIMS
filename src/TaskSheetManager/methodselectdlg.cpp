@@ -10,9 +10,9 @@ MethodSelectDlg::MethodSelectDlg(int taskID, QWidget *parent) :
 {
     ui->setupUi(this);
     ui->tableView->setHeader({"检测类型","检测项目","检测方法","CMA资质","是否分包","分包原因"});
-    m_methodBox=new ComboBoxDelegate({},this);
+    m_methodBox=new ComboBoxDelegate(ui->tableView,{});
     ui->tableView->setItemDelegateForColumn(2,m_methodBox);
-    ComboBoxDelegate* subpackageEditor=new ComboBoxDelegate({"否","是"},this);
+    ComboBoxDelegate* subpackageEditor=new ComboBoxDelegate(ui->tableView,{"否","是"});
     ui->tableView->setItemDelegateForColumn(4,subpackageEditor);
     ui->tableView->setEditableColumn(2);
     ui->tableView->setEditableColumn(4);
@@ -24,7 +24,7 @@ MethodSelectDlg::~MethodSelectDlg()
     delete ui;
 }
 
-void MethodSelectDlg::showMethods(const QVector<QVector<QVariant> > &table)
+void MethodSelectDlg::showMethods(const QList<QList<QVariant> > &table)
 {
     for(auto line:table){
         if(line.count()!=6){
@@ -52,6 +52,7 @@ void MethodSelectDlg::on_pushButton_clicked()//加载方法
         qDebug()<<r;
         m_parameterIDs.clear();
         m_testTypeIDs.clear();
+        //开始确认每个项目的检测方法
         for(int i=1;i<r.count();i++){
             QVariantList row=r.at(i).toList();
             int testTypeID=row.at(0).toInt();
@@ -63,10 +64,14 @@ void MethodSelectDlg::on_pushButton_clicked()//加载方法
             m_testTypeIDs.append(testTypeID);
             QString parameter=row.at(4).toString();
             QString testType=row.at(1).toString();
-            QString sql=QString("select methodID, methodName, methodNumber, CMA from (select methodID,CMA from method_parameters where parameterID='%1') as A "
-                                  "join (select * from test_methods where coverage&%2 and testFieldID=%3 ) as B on A.methodID= B.id;")
-                              .arg(parameterID).arg(typeBit).arg(testFieldID);
-            doSql(sql,[this,i,testType,parameter](const QSqlReturnMsg&msg){//进行方法选择
+
+            QString sql;
+//            QString("select A.id, methodName, methodNumber, CMA, non_stdMethod,labPriority,typePriority from (select * from method_parameters where parameterID='%1') as A "
+//                                  "join (select * from test_methods where coverage&%2 and testFieldID=%3 ) as B on A.methodID= B.id;")
+//                              .arg(parameterID).arg(typeBit).arg(testFieldID);
+            sql="select A.id, methodName, methodNumber, CMA, non_stdMethod,labPriority,typePriority ,coverage from (select * from method_parameters where parameterID=?) as A "
+                  "join (select * from test_methods where (coverage&? or extendCoverage&?) and testFieldID=? ) as B on A.methodID= B.id;";
+            doSql(sql,[this,i,testType,parameter](const QSqlReturnMsg&msg){//每个项目可能有多个方法，进行方法选择
                 if(msg.error()){
                     QMessageBox::information(nullptr,"select method error",msg.result().toString());
                     return;
@@ -79,27 +84,28 @@ void MethodSelectDlg::on_pushButton_clicked()//加载方法
                 for(int j=1;j<r.count();j++){
                     QList<QVariant>row=r.at(j).toList();
                     QString method=QString("%1 %2").arg(row.at(2).toString()).arg(row.at(1).toString());
-                    QString cma=row.at(3).toInt()?"否":"是";
+                    QString cma=row.at(3).toInt()?"是":"否";
                     methods.append(method);
                     methodToID[method]=(row.at(0).toInt());
                     maps.insert(method,cma);
                 }
-                m_methodBox->setCellItems(i-1,2,methods);
+                m_methodBox->setCellItems(i-1,2,methods);//将所有可选的方法加入选择框
+
                 ui->tableView->append({testType,parameter,"","","",""});
                 ui->tableView->setMappingCell(i-1,3,i-1,2,maps);
                 ui->tableView->setCellFlag(i-1,2,QVariant::fromValue(methodToID));
                 if(methods.count()) {
-                    if(m_methodTable.count()>i&&m_methodTable.at(i-1).at(0)==testType&&m_methodTable.at(i-1).at(1)==parameter){//如果之前有选择方法，使用之前的方法
+                    if(m_methodTable.count()>i&&m_methodTable.at(i-1).at(0)==testType&&m_methodTable.at(i-1).at(1)==parameter&&!m_methodTable.at(i-1).at(2).toString().isEmpty()){//如果之前有选择方法，使用之前的方法
                         ui->tableView->setData(i-1,2,m_methodTable.at(i-1).at(2));
                     }
                     else ui->tableView->setData(i-1,2,methods.at(0));
                 }
-                if(methods.count()>1) {
-                    ui->tableView->setBackgroundColor(i-1,2,qRgba(250,250,100,50));
-                    ui->tableView->repaint();
-                }
+//                if(methods.count()>1) {
+//                    ui->tableView->setBackgroundColor(i-1,2,qRgba(250,250,100,50));
+//                    ui->tableView->repaint();
+//                }
 
-            });
+            },0,{parameterID,typeBit,typeBit,testFieldID});
 //            ui->tableView->viewport()->update();
             //ui->tableView->append({row.at(1),row.at(4),})
         }
@@ -129,11 +135,13 @@ void MethodSelectDlg::on_OkBtn_clicked()
 
 
                             values={methodID,methodNmae,(ui->tableView->value(i,"是否分包").toString()=="是"?1:0),ui->tableView->value(i,"分包原因").toString(), m_taskID,m_testTypeIDs.at(i),m_parameterIDs.at(i)};
-        doSql(sql,[this,&error](const QSqlReturnMsg&msg){
+        doSql(sql,[this,&error,methodNmae,methodID,methodToId](const QSqlReturnMsg&msg){
                 if(msg.error()){
-                    QMessageBox::information(nullptr,"更新方法时错误：",msg.result().toString());
+                                        QMessageBox::information(nullptr,QString("更新方法%1(%2)时错误：").arg(methodNmae).arg(methodID),msg.result().toString());
                     error=true;
-                    emit doSqlFinished(); m_saving=false;
+                                        qDebug() << methodToId ;
+                    emit doSqlFinished();
+                    m_saving = false;
                     return;
                 }
                 emit doSqlFinished();

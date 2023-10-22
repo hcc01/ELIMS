@@ -24,7 +24,7 @@
  * 模块是一个设计好的以TabWidgetBase为基类的窗口类，在MainWindow的Tab页中显示出来。
  */
 #define ADD_MODULE(module,linkButton) \
-    TabFactory::Register(linkButton->text(), static_cast<CREATE_FUNC>([](QWidget *parent) -> void * { return new module(parent); })); \
+    TabFactory::Register(linkButton->text(), static_cast<CREATE_FUNC>([](QWidget *parent,const QString&tabName) -> void * { return new module(parent); })); \
     connect(linkButton, &QPushButton::clicked, this, &MainWindow::onOpenTab);
 void MainWindow::doTabwidgetMapping()
 {
@@ -109,6 +109,9 @@ void MainWindow::DoConnect()
 
 void MainWindow::DoLogin()
 {
+    static bool logining=false;
+    if(logining) return;
+    logining=true;
     LoginUI loginUI;
     connect(&loginUI,&LoginUI::login,this,[&](const QString& id, const QString& password){
         netmsg_Login msgLogin;
@@ -118,6 +121,7 @@ void MainWindow::DoLogin()
     });
     connect(this,&MainWindow::loginResult,&loginUI, &LoginUI::onLoginResult);
     loginUI.exec();
+    logining=false;
 }
 
 void MainWindow::sendData(const QJsonObject &json)
@@ -373,5 +377,11 @@ void MainWindow::onSkinChanged()
     }
     emit changeSkin(skinActions.indexOf(action));
     qDebug()<<skinActions.indexOf(action);
+}
+
+
+void MainWindow::on_actionVersion_triggered()
+{
+    QMessageBox::information(nullptr,"","版本号：测试版v0.1001");
 }
 

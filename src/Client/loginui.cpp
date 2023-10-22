@@ -3,6 +3,8 @@
 #include"QMessageBox"
 #include"QCryptographicHash"
 #include"../../depends/MessageHeader.h"
+#include<QFile>
+#include<QDebug>
 LoginUI::LoginUI(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::LoginUI)
@@ -10,6 +12,11 @@ LoginUI::LoginUI(QWidget *parent) :
     ui->setupUi(this);
 //    setWindowFlags(Qt::FramelessWindowHint | Qt::Tool);
     setWindowTitle("请登录:");
+    QFile file("./users");
+    if(!file.open(QFile::ReadOnly)) return;
+    QString user=file.readAll();
+    ui->comboBox_ID->addItems(user.split("\n"));
+    file.close();
 }
 
 LoginUI::~LoginUI()
@@ -50,9 +57,38 @@ void LoginUI::on_btLogin_clicked()
     QCryptographicHash hash(QCryptographicHash::Md5);
     hash.addData(ui->lineEdit_Password->text().toLocal8Bit());
     emit login(ui->comboBox_ID->currentText(),QString(hash.result().toHex()));
+    QFile file("./users");
+    if(!file.open(QFile::ReadWrite)) return;
+    QStringList users;
+    if(ui->comboBox_ID->currentText()!=ui->comboBox_ID->itemText(ui->comboBox_ID->currentIndex())){
+        ui->comboBox_ID->addItem(ui->comboBox_ID->currentText());
+    }
+    for(int i=0;i<ui->comboBox_ID->count();i++){
+        users.append(ui->comboBox_ID->itemText(i));
+    }
+    file.write(users.join("\n").toUtf8());
+    file.close();
 }
 
 void LoginUI::on_btExit_clicked()
 {
     exit(0);
 }
+
+void LoginUI::on_comboBox_ID_currentIndexChanged(int index)
+{
+
+}
+
+
+void LoginUI::on_comboBox_ID_currentTextChanged(const QString &arg1)
+{
+//    qDebug()<<ui->comboBox_ID->currentText();
+}
+
+
+void LoginUI::on_comboBox_ID_editTextChanged(const QString &arg1)
+{
+//    qDebug()<<ui->comboBox_ID->currentText();
+}
+
