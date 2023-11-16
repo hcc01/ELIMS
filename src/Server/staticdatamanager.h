@@ -1,6 +1,7 @@
 #ifndef STATICDATAMANAGER_H
 #define STATICDATAMANAGER_H
 
+#include "qstatusbar.h"
 #include <QDialog>
 
 namespace Ui {
@@ -26,6 +27,7 @@ private slots:
 
 private:
     Ui::StaticDataManager *ui;
+    QStatusBar* statusBar;
 };
 
 #endif // STATICDATAMANAGER_H

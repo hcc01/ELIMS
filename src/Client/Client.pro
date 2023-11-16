@@ -32,6 +32,8 @@ SOURCES += \
     mainwindow.cpp \
     modinitui.cpp \
     mycombobox.cpp \
+    mymodel.cpp \
+    mytableview.cpp \
     persnaldatamanagerui.cpp \
     processmanager.cpp \
     qdoubleedit.cpp \
@@ -41,6 +43,7 @@ SOURCES += \
     standardsmanager.cpp \
     tabwigetbase.cpp \
     testitemmanager.cpp \
+    todoui.cpp \
     uniteditbox.cpp \
     unitsc.cpp
 
@@ -73,6 +76,8 @@ HEADERS += \
     mainwindow.h \
     modinitui.h \
     mycombobox.h \
+    mymodel.h \
+    mytableview.h \
     persnaldatamanagerui.h \
     processmanager.h \
     qdoubleedit.h \
@@ -82,6 +87,7 @@ HEADERS += \
     tabfactory.h \
     tabwigetbase.h \
     testitemmanager.h \
+    todoui.h \
     uniteditbox.h \
     unitsc.h
 
@@ -93,7 +99,8 @@ FORMS += \
     modinitui.ui \
     persnaldatamanagerui.ui \
     standardsmanager.ui \
-    testitemmanager.ui
+    testitemmanager.ui \
+    todoui.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

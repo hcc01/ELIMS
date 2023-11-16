@@ -120,3 +120,8 @@ void MyTableView::setMappingCell(int row, int column, int relatedToRow, int rela
 {
     m_model->setRelatedData(row, column, relatedToRow,  relatedTocolumn, relatedData);
 }
+
+void MyTableView::deleteRow(int row)
+{
+    m_model->removeRows(row,1);
+}

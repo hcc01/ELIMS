@@ -27,6 +27,7 @@ public:
     int selectedRow()const;//当前选中的行
     void setEditableColumn(int colunm);//设置可编辑的列
     void setMappingCell(int row, int column, int relatedToRow, int relatedTocolumn, QHash<QString, QVariant> relatedData);//设置单元格的数据关联到另一单元格
+    void deleteRow(int row);
 signals:
     void info(const QList<QVariant>&);//发送行数据（这个是用于任务单显示监测信息）
     void rowChanged(int row);

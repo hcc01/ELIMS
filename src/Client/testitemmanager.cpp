@@ -12,6 +12,8 @@ TestItemManager::TestItemManager(bool addMode,QWidget *parent) :
 {
     ui->setupUi(this);
     ui->delBtn->hide();
+    ui->IDLable->hide();
+
 }
 
 TestItemManager::~TestItemManager()
@@ -58,11 +60,14 @@ void TestItemManager::setAddMode(bool addMode)
     if(m_newItem){
         setWindowTitle("添加检测项目：");
         ui->delBtn->hide();
+        ui->IDLable->hide();
         ui->OKBtn->setText("确认添加");
         ui->testNameEdit->setCompleter(m_completer);
     }
     else{
         setWindowTitle("修改检测项目："+m_IDtoItems.value(m_currentID));
+        ui->IDLable->show();
+        ui->IDLable->setText(QString("ID:%1").arg(m_currentID));
         ui->delBtn->show();
         ui->OKBtn->setText("确认修改");
         ui->testNameEdit->setCompleter(nullptr);

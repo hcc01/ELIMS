@@ -14,23 +14,59 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="0" colspan="3">
+   <item row="0" column="3">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>检测项目名称</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="3">
     <widget class="QTextBrowser" name="textBrowser"/>
    </item>
-   <item row="0" column="1" colspan="2">
-    <widget class="QComboBox" name="fieldBox"/>
+   <item row="6" column="1" colspan="2">
+    <widget class="QLineEdit" name="subItemGroupEdit">
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
    </item>
-   <item row="5" column="4">
+   <item row="6" column="4">
     <widget class="QPushButton" name="OKBtn">
      <property name="text">
       <string>确认</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="4">
-    <widget class="QPushButton" name="selectFieldBtn">
+   <item row="0" column="4">
+    <widget class="QLineEdit" name="testNameEdit"/>
+   </item>
+   <item row="5" column="3" colspan="2">
+    <widget class="QListWidget" name="listWidget"/>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>选择领域</string>
+      <string>子参数组名：</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="2">
+    <widget class="QComboBox" name="fieldBox"/>
+   </item>
+   <item row="4" column="0">
+    <widget class="QCheckBox" name="subParameterCheck">
+     <property name="text">
+      <string>包含子参数</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
@@ -41,72 +77,21 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="clearItemBtn">
-     <property name="text">
-      <string>清除</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QPushButton" name="selectItemBtn">
-     <property name="text">
-      <string>添加</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="4">
-    <widget class="QLineEdit" name="testNameEdit"/>
-   </item>
-   <item row="4" column="3" colspan="2">
-    <widget class="QListWidget" name="listWidget"/>
-   </item>
-   <item row="0" column="3">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>检测项目名称</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>别名</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="3">
+   <item row="4" column="3">
     <widget class="QCheckBox" name="copytoCheck">
      <property name="text">
       <string>同时复制到其它领域</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QCheckBox" name="subParameterCheck">
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>包含子参数</string>
-     </property>
-     <property name="checkable">
-      <bool>true</bool>
+      <string>别名</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_5">
-     <property name="text">
-      <string>子参数组名：</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="3">
-    <widget class="QPushButton" name="delBtn">
-     <property name="text">
-      <string>退出修改</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="4">
+   <item row="2" column="1" colspan="4">
     <widget class="QLineEdit" name="testAliasEdit">
      <property name="inputMask">
       <string/>
@@ -119,15 +104,37 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="1" colspan="2">
-    <widget class="QLineEdit" name="subItemGroupEdit">
-     <property name="inputMask">
-      <string/>
-     </property>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="clearItemBtn">
      <property name="text">
-      <string/>
+      <string>清除</string>
      </property>
-     <property name="placeholderText">
+    </widget>
+   </item>
+   <item row="6" column="3">
+    <widget class="QPushButton" name="delBtn">
+     <property name="text">
+      <string>退出修改</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QPushButton" name="selectItemBtn">
+     <property name="text">
+      <string>添加</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="4">
+    <widget class="QPushButton" name="selectFieldBtn">
+     <property name="text">
+      <string>选择领域</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QLabel" name="IDLable">
+     <property name="text">
       <string/>
      </property>
     </widget>

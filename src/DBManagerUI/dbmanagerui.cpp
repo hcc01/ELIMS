@@ -208,3 +208,12 @@ void DBManagerUI::on_exportToExcelBtn_clicked()
     delete book;
 }
 
+
+void DBManagerUI::on_RefreshBtn_clicked()
+{
+    QString arg1=ui->comboBox->currentText();
+    doSqlQuery(QString("select * from %1").arg(arg1),[this](const QSqlReturnMsg&msg){
+            showTable(msg);
+        },1);
+}
+

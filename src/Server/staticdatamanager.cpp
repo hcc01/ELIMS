@@ -8,11 +8,14 @@
 #include"cdatabasemanage.h"
 #include<QInputDialog>
 #include"../Client/global.h"
+#include<QLayout>
 StaticDataManager::StaticDataManager(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::StaticDataManager)
 {
     ui->setupUi(this);
+    statusBar = new QStatusBar(this);
+    this->layout()->addWidget(statusBar);
 }
 
 StaticDataManager::~StaticDataManager()
@@ -36,27 +39,28 @@ bool StaticDataManager::checkParameter(int &parameterID, const QString &paramete
         return ret;
     }
     if(!query.next()){//项目参数表中不没有该参数，自动添加
-        query.prepare("INSERT INTO detection_parameters (testFieldID, parameterName) VALUES(?,?);");
-        query.addBindValue(areaID);
-        query.addBindValue(parameter);
-        if(!query.exec()){
-            QMessageBox::information(this,"INSERT INTO detection_parameters",query.lastError().text());
-            DB.database().rollback();
-            return ret;
-        }
-        query.exec("SELECT LAST_INSERT_ID()");
-        if(!query.next()) {
-            QMessageBox::information(this,"error","无法获取上次插入ID");
-            DB.database().rollback();
-            return ret;
-        }
-        parameterID=query.value(0).toInt();
-        ret=true;
+        //取消自动添加，应当进行确认修改后添加
+//        query.prepare("INSERT INTO detection_parameters (testFieldID, parameterName) VALUES(?,?);");
+//        query.addBindValue(areaID);
+//        query.addBindValue(parameter);
+//        if(!query.exec()){
+//            QMessageBox::information(this,"INSERT INTO detection_parameters",query.lastError().text());
+//            DB.database().rollback();
+//            return ret;
+//        }
+//        query.exec("SELECT LAST_INSERT_ID()");
+//        if(!query.next()) {
+//            QMessageBox::information(this,"error","无法获取上次插入ID");
+//            DB.database().rollback();
+//            return ret;
+//        }
+//        parameterID=query.value(0).toInt();
+        ret=false;
         //                    newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
     }
     else{
         parameterID=query.value(0).toInt();
-        ret=false;
+        ret=true;
     }
     return ret;
 }
@@ -274,9 +278,12 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
     QString parameters,MDLs,coverages,labParameters;
     int coverage=0,testingMode,minAmount,mediumPrepare;
     QSqlQuery query(DB.database());
+    bool rollBack=false;
     if(DB.database().transaction()){//启动事务，准备插入数据
         while(!methodName.isEmpty()){
-            ui->status->setText(QString("正在处理第%1行……").arg(r));
+            statusBar->showMessage(QString("正在处理第%1行……").arg(r));
+            // 处理事件循环，刷新界面
+            QApplication::processEvents();
             methodNum=EXCEL.cellValue(r,2,sheet).toString().simplified();//列B是标准编号
             unit=EXCEL.cellValue(r,7,sheet).toString();//列G是数据单位
             sampleGroup=EXCEL.cellValue(r,10,sheet).toString();//列J是样品分组
@@ -298,7 +305,8 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             parameters=EXCEL.cellValue(r,4,sheet).toString();//列D测试参数
             toStdParameterName(parameters);
             MDLs=EXCEL.cellValue(r,6,sheet).toString();//列F检出限
-            labParameters=EXCEL.cellValue(r,4,sheet).toString();//列E实验室资质项目
+            labParameters=EXCEL.cellValue(r,5,sheet).toString();//列E实验室资质项目
+            toStdParameterName(labParameters);
             QString labMDLs=EXCEL.cellValue(r,26,sheet).toString();//列实验室检出限
             QString labPriority,priorityType;
             int typePriority=0;
@@ -363,16 +371,21 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             }
             //开始解析检测参数
             QStringList parameterList;
+            int parameterCount;//记录一般指标的数量，用以后面处理项目时识别综合指标ID
             QStringList classParameters;//综合指标
+            QHash<QString, QStringList> classParameterSubs;//综合指标的子参数
+            QHash<QString,QString>classParameterSubIDs;//综合指标的子参数ID
+            QHash<QString,int>parameterIDs;//参数ID映射
             for(auto p:parameters.split("、")){//综合指标保存格式：苯系物@苯|甲苯|乙苯|二甲苯|异丙苯|苯乙烯
                 int n=p.indexOf("@");
-                    if(n>=0){
-                           classParameters.append(p.left(n));
-                           parameterList.append(p.mid(n+1).split("|"));
+                if(n>=0){
+                   classParameters.append(p.left(n));
+                   parameterList.append(p.mid(n+1).split("|"));
+                   classParameterSubs[p.left(n)]=p.mid(n+1).split("|");
                 }
-                    else{
-                           parameterList.append(p);
-                    }
+                else{
+                    parameterList.append(p);
+                }
             }
             QStringList MDLlist=MDLs.split("、");
             if(MDLlist.count()){//综合指标不设检出限
@@ -383,11 +396,12 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                        return;
                 }
             }
+            parameterCount=parameterList.count();
             parameterList.append(classParameters);//将综合指标合并入检测指标。
             //开始解析实验室资质参数
             QStringList labParameterList;
             QStringList classlabParameterList;//综合指标
-            for(auto p:labParameters.split("、")){//综合指标保存格式：苯系物@苯|甲苯|乙苯|二甲苯|异丙苯|苯乙烯
+            if(!labParameters.isEmpty()) for(auto p:labParameters.split("、")){//综合指标保存格式：苯系物@苯|甲苯|乙苯|二甲苯|异丙苯|苯乙烯
                 int n=p.indexOf("@");
                     if(n>=0){
                            classlabParameterList.append(p.left(n));
@@ -397,7 +411,8 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                            labParameterList.append(p);
                     }
             }
-            QStringList labMDLlist=labMDLs.split("、");
+            QStringList labMDLlist;
+            if(!labMDLs.isEmpty()) labMDLlist=labMDLs.split("、");
             if(labMDLlist.count()){//综合指标不设检出限
                 if(labMDLlist.count()!=1&&labMDLlist.count()!=labParameterList.count()){
                            QMessageBox::information(this,"error",QString("实验室检出限数量与参数数量不匹配,at line %1").arg(r));
@@ -468,113 +483,128 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                }
                //接下来更新检测参数表
                for (int i=0;i< parameterList.count();i++) {
-                        parameter=parameterList.at(i);
-                        //检查参数是否存在，不存在则插入
-                        bool newPara=checkParameter(parameterID,parameter,areaID);
-                        if(!parameterID){
-                            DB.database().rollback();
-                            return;
-                        }
-                        if(newPara){
-                            newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
-                        }
-                        //先检测下方法参数是否存在，存在则更新
-                        query.prepare("select id from method_parameters where methodID=? and parameterID=?;");
-                        query.addBindValue(methodID);
-                        query.addBindValue(parameterID);
-                        if(!query.exec()){
-                            QMessageBox::information(this,"检查方法参数时错误：",query.lastError().text());
-                            DB.database().rollback();
-                            return;
-                        }
-                        if(query.next()){//已经存在的检测参数，更新
-                            int id=query.value(0).toInt();
-                            query.prepare("update method_parameters set MDL=:MDL, unit=:unit, CMA=:CMA, LabMDL=:LabMDL, non_stdMethod=:non_stdMethod, labPriority=:labPriority, typePriority=:typePriority "
-                                          "where id=:id;");
-
-                            bool CMA=false;
-                            int n=labParameterList.indexOf(parameter);
-                            if(n>=0) {
-                                CMA=true;
-                                labParameterList2.removeOne(parameter);
-                            }
-                            double mdl;
-                            if(MDLlist.count()>1&&MDLlist.count()>i)
-                                mdl=MDLlist.at(i).toDouble();
-                            else if(MDLlist.count())
-                                mdl=MDLlist.at(0).toDouble();
-                            else
-                                mdl=0;
-                            query.bindValue(":MDL",mdl);
-                            query.bindValue(":unit",unit);
-                            query.bindValue(":CMA",CMA);
-                            if(labMDLlist.count()>1)
-                                mdl=labMDLlist.at(n).toDouble();
-                            else if(labMDLlist.count())
-                                mdl=labMDLlist.at(0).toDouble();
-                            else
-                                mdl=0;
-                            query.bindValue(":LabMDL",mdl);
-                            query.bindValue(":non_stdMethod",false);
-                            query.bindValue(":labPriority",labPriority);
-                            query.bindValue(":typePriority",typePriority);
-                            query.bindValue(":id",id);
-                            if(!query.exec()){
-                                QMessageBox::information(this,"更新方法参数时错误：",query.lastError().text());
-                                qDebug()<<query.lastQuery();
-                                DB.database().rollback();
-                                return;
-                            }
-                        }
-                        else{
-                            //添加方法参数
-                            query.prepare("INSERT INTO method_parameters ( methodID, parameterID, MDL, unit, CMA,LabMDL,labPriority, typePriority) VALUES(?,?,?,?,?,?,?,?);");
-                            query.bindValue(0,methodID);
-                            query.bindValue(1,parameterID);
-                            if(MDLlist.count()>1&&MDLlist.count()>i)
-                                query.bindValue(2,MDLlist.at(i).toDouble());
-                            else if(MDLlist.count())
-                                query.bindValue(2,MDLlist.at(0).toDouble());
-                            else
-                                query.bindValue(2,-1.0);
-                            query.bindValue(3,unit);
-                            bool CMA=false;
-                            int n=labParameterList.indexOf(parameter);
-                            if(n>=0) {
-                                CMA=true;
-                                labParameterList2.removeOne(parameter);
-                            }
-                            query.bindValue(4,CMA);
-                            double mdl;
-                            if(labMDLlist.count()>1)
-                                mdl=labMDLlist.at(n).toDouble();
-                            else if(labMDLlist.count())
-                                mdl=labMDLlist.at(0).toDouble();
-                            else
-                                mdl=0;
-                            query.bindValue(5,mdl);
-                            query.bindValue(6,labPriority);
-                            query.bindValue(7,typePriority);
-                            if(!query.exec()){
-                                QMessageBox::information(this,"INSERT INTO method_parameters error",query.lastError().text());
-                                qDebug()<<query.lastError().text();
-                                qDebug()<<query.lastQuery();
-                                qDebug()<<parameterID<<parameter;
-                                DB.database().rollback();
-                                return;
-                            }
-                        }
-
-                   }
-
-                for(auto parameter:labParameterList2){//添加非标参数（如果有）
-                    bool newPara=checkParameter(parameterID,parameter,areaID);
+                    parameter=parameterList.at(i);
+                    //检查参数是否存在
+                    if(!checkParameter(parameterID,parameter,areaID)){
+                        rollBack=true;
+                        newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
+                        continue;//这里不用return,要把每个项目都检查过去，有问题一次改好。
+                    }
+                    parameterIDs[parameter]=parameterID;
                     if(!parameterID){
+                        QMessageBox::information(this,"checkParameter error","无法获取ID:"+parameter);
                         DB.database().rollback();
                         return;
                     }
-                    if(newPara){
+                    //判断是否综合指标，是则需要计算子参数ID。
+                    if(i>=parameterCount){
+                        QStringList ids;
+                        for(auto sub:classParameterSubs.value(parameter)){
+                            ids.append(QString::number(parameterIDs[sub]));
+                        }
+                        classParameterSubIDs[parameter]=ids.join(",");//将子参数列表储存好
+                    }
+                    //先检测下方法参数是否存在，存在则更新
+                    query.prepare("select id from method_parameters where methodID=? and parameterID=?;");
+                    query.addBindValue(methodID);
+                    query.addBindValue(parameterID);
+                    if(!query.exec()){
+                        QMessageBox::information(this,"检查方法参数时错误：",query.lastError().text());
+                        DB.database().rollback();
+                        return;
+                    }
+                    if(query.next()){//已经存在的检测参数，更新
+                        int id=query.value(0).toInt();
+                        query.prepare("update method_parameters set subParameterIDs=:subParameterIDs, MDL=:MDL, unit=:unit, CMA=:CMA, LabMDL=:LabMDL, non_stdMethod=:non_stdMethod, labPriority=:labPriority, typePriority=:typePriority "
+                                      "where id=:id;");
+
+                        bool CMA=false;
+                        int n=labParameterList.indexOf(parameter);
+                        if(n>=0) {
+                            CMA=true;
+                            labParameterList2.removeOne(parameter);
+                        }
+                        double mdl;
+                        if(MDLlist.count()>1&&MDLlist.count()>i)
+                            mdl=MDLlist.at(i).toDouble();
+                        else if(MDLlist.count())
+                            mdl=MDLlist.at(0).toDouble();
+                        else
+                            mdl=0;
+                        query.bindValue(":subParameterIDs",classParameterSubIDs[parameter]);
+                        query.bindValue(":MDL",mdl);
+                        query.bindValue(":unit",unit);
+                        query.bindValue(":CMA",CMA);
+                        if(labMDLlist.count()>1&&n<labMDLlist.count())
+                            mdl=labMDLlist.at(n).toDouble();
+                        else if(labMDLlist.count())
+                            mdl=labMDLlist.at(0).toDouble();
+                        else
+                            mdl=0;
+                        query.bindValue(":LabMDL",mdl);
+                        query.bindValue(":non_stdMethod",false);
+                        query.bindValue(":labPriority",labPriority);
+                        query.bindValue(":typePriority",typePriority);
+                        query.bindValue(":id",id);
+                        if(!query.exec()){
+                            QMessageBox::information(this,"更新方法参数时错误：",query.lastError().text());
+                            qDebug()<<query.lastQuery();
+                            DB.database().rollback();
+                            return;
+                        }
+                    }
+                    else{
+                        //添加方法参数
+                        query.prepare("INSERT INTO method_parameters ( methodID, parameterID, MDL, unit, CMA,LabMDL,labPriority, typePriority,subParameterIDs) VALUES(?,?,?,?,?,?,?,?,?);");
+                        query.bindValue(0,methodID);
+                        query.bindValue(1,parameterID);
+                        if(MDLlist.count()>1&&MDLlist.count()>i)
+                            query.bindValue(2,MDLlist.at(i).toDouble());
+                        else if(MDLlist.count())
+                            query.bindValue(2,MDLlist.at(0).toDouble());
+                        else
+                            query.bindValue(2,-1.0);
+                        query.bindValue(3,unit);
+                        bool CMA=false;
+                        int n=labParameterList.indexOf(parameter);
+                        if(n>=0) {
+                            CMA=true;
+                            labParameterList2.removeOne(parameter);
+                        }
+                        query.bindValue(4,CMA);
+                        double mdl;
+                        if(labMDLlist.count()>1&&n<labMDLlist.count())
+                            mdl=labMDLlist.at(n).toDouble();
+                        else if(labMDLlist.count())
+                            mdl=labMDLlist.at(0).toDouble();
+                        else
+                            mdl=0;
+                        query.bindValue(5,mdl);
+                        query.bindValue(6,labPriority);
+                        query.bindValue(7,typePriority);
+                        query.bindValue(8,classParameterSubIDs.value(parameter));
+                        if(!query.exec()){
+                            QMessageBox::information(this,"INSERT INTO method_parameters error",query.lastError().text());
+                            qDebug()<<query.lastError().text();
+                            qDebug()<<query.lastQuery();
+                            qDebug()<<parameterID<<parameter;
+                            DB.database().rollback();
+                            return;
+                        }
+                    }
+
+                }
+
+                for(auto parameter:labParameterList2){//添加非标参数（如果有）
+                    if(!checkParameter(parameterID,parameter,areaID)){
+                        rollBack=true;
                         newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
+                        continue;
+                    }
+                    if(!parameterID){
+                        QMessageBox::information(this,"checkParameter error","无法获取ID:"+parameter);
+                        DB.database().rollback();
+                        return;
                     }
                     //检查是否存在该参数信息
                     query.prepare("select id from method_parameters where methodID=? and parameterID=?;");
@@ -597,7 +627,7 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                         query.bindValue(":MDL",mdl);
                         query.bindValue(":unit",unit);
                         query.bindValue(":CMA",CMA);
-                        if(labMDLlist.count()>1)
+                        if(labMDLlist.count()>1&&n<labMDLlist.count())
                             mdl=labMDLlist.at(n).toDouble();
                         else if(labMDLlist.count())
                             mdl=labMDLlist.at(0).toDouble();
@@ -623,7 +653,7 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                         int n=labParameterList.indexOf(parameter);
                         query.bindValue(4,true);
                         double mdl;
-                        if(labMDLlist.count()>1)
+                        if(labMDLlist.count()>1&&n<labMDLlist.count())
                             mdl=labMDLlist.at(n).toDouble();
                         else if(labMDLlist.count())
                             mdl=labMDLlist.at(0).toDouble();
@@ -685,16 +715,26 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                 //插入方法参数表
                 for (int i=0;i< parameterList.count();i++) {
                     parameter=parameterList.at(i);
-                    bool newPara=checkParameter(parameterID,parameter,areaID);
+                    if(!checkParameter(parameterID,parameter,areaID)){
+                        rollBack=true;
+                        newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
+                        continue;
+                    }
                     if(!parameterID){
+                        QMessageBox::information(this,"checkParameter error","无法获取ID:"+parameter);
                         DB.database().rollback();
                         return;
                     }
-                    if(newPara){
-                        newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
+                    //判断是否综合指标，是则需要计算子参数ID。
+                    if(i>=parameterCount){
+                        QStringList ids;
+                        for(auto sub:classParameterSubs.value(parameter)){
+                            ids.append(QString::number(parameterIDs[sub]));
+                        }
+                        classParameterSubIDs[parameter]=ids.join(",");//将子参数列表储存好
                     }
                     //开始保存方法参数
-                    query.prepare("INSERT INTO method_parameters ( methodID, parameterID, MDL, unit, CMA,LabMDL,labPriority, typePriority) VALUES(?,?,?,?,?,?,?,?);");
+                    query.prepare("INSERT INTO method_parameters ( methodID, parameterID, MDL, unit, CMA,LabMDL,labPriority, typePriority, subParameterIDs) VALUES(?,?,?,?,?,?,?,?,?);");
                     query.bindValue(0,methodID);
                     query.bindValue(1,parameterID);
                     if(MDLlist.count()>1&&MDLlist.count()>i)
@@ -712,7 +752,7 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                     }
                     query.bindValue(4,CMA);
                     double mdl;
-                    if(labMDLlist.count()>1)
+                    if(labMDLlist.count()>1&&n<labMDLlist.count())
                         mdl=labMDLlist.at(n).toDouble();
                     else if(labMDLlist.count())
                         mdl=labMDLlist.at(0).toDouble();
@@ -721,6 +761,7 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                     query.bindValue(5,mdl);
                     query.bindValue(6,labPriority);
                     query.bindValue(7,typePriority);
+                    query.bindValue(8,classParameterSubIDs.value(parameter));
                     if(!query.exec()){
                         QMessageBox::information(this,"INSERT INTO method_parameters error",query.lastError().text());
                         qDebug()<<query.lastError().text();
@@ -731,13 +772,15 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                     }
                 }
                 for(auto parameter:labParameterList2){//添加非标参数（如果有）
-                    bool newPara=checkParameter(parameterID,parameter,areaID);
+                    if(!checkParameter(parameterID,parameter,areaID)){
+                        newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
+                        rollBack=true;
+                        continue;
+                    }
                     if(!parameterID){
+                        QMessageBox::information(this,"checkParameter error","无法获取ID:"+parameter);
                         DB.database().rollback();
                         return;
-                    }
-                    if(newPara){
-                        newParameters.append(coverages.split("、").at(0)+": "+parameter+";");
                     }
                     query.prepare("INSERT INTO method_parameters ( methodID, parameterID, MDL, unit, CMA,LabMDL,labPriority, typePriority) VALUES(?,?,?,?,?,?,?,?);");
                     query.bindValue(0,methodID);
@@ -747,7 +790,7 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                     int n=labParameterList.indexOf(parameter);
                     query.bindValue(4,true);
                     double mdl;
-                    if(labMDLlist.count()>1)
+                    if(labMDLlist.count()>1&&n<labMDLlist.count())
                         mdl=labMDLlist.at(n).toDouble();
                     else if(labMDLlist.count())
                         mdl=labMDLlist.at(0).toDouble();
@@ -767,22 +810,24 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                 }
             }
             r++;
-            methodName=EXCEL.cellValue(r,1,sheet).toString();
+            methodName=EXCEL.cellValue(r,1,sheet).toString().simplified();
         }
     }
     else{
         qDebug()<<"启动事务失败";
         return;
     }
-    DB.database().commit();
+    if(!rollBack) DB.database().commit();
+    else DB.database().rollback();
     if(!newParameters.isEmpty()){
         QFile file("./newParameters.txt");
         if(!file.open(QFile::ReadWrite)) qDebug()<<"无法创建文件。";
         else file.write(newParameters.toLocal8Bit());
-        QMessageBox::information(nullptr,"","操作完成，有新检测参数添加，请确认是否需要完善。");
+        QMessageBox::information(nullptr,"","操作错误，有未知的检测参数，请打开./newParameters.txt文件确认。");
+        file.close();
     }
     else QMessageBox::information(nullptr,"","操作完成。");
-
+    statusBar->clearMessage();
     EXCEL.CloseBook(book);
 }
 

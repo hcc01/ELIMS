@@ -6,6 +6,7 @@
 #include<QDebug>
 #include<QHostInfo>
 #include"tabfactory.h"
+#include"todoui.h"
 #include"qjsoncmd.h"
 #include"rmmanage.h"
 #include"employeemanageui.h"
@@ -24,7 +25,7 @@
  * 模块是一个设计好的以TabWidgetBase为基类的窗口类，在MainWindow的Tab页中显示出来。
  */
 #define ADD_MODULE(module,linkButton) \
-    TabFactory::Register(linkButton->text(), static_cast<CREATE_FUNC>([](QWidget *parent,const QString&tabName) -> void * { return new module(parent); })); \
+    TabFactory::Register(linkButton->text(), static_cast<CREATE_FUNC>([](QWidget *parent) -> void * { return new module(parent); })); \
     connect(linkButton, &QPushButton::clicked, this, &MainWindow::onOpenTab);
 void MainWindow::doTabwidgetMapping()
 {
@@ -38,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_user(nullptr)
 {
     ui->setupUi(this);
+    ADD_MODULE(ToDoUI,ui->btnToDo);
     ADD_MODULE(RMManageUI,ui->btRMManage);
     ADD_MODULE(EmployeeManageUI,ui->btEmployeeManage);
     ADD_MODULE(DBManagerUI,ui->btDBManage);
@@ -47,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(PersnalDataManagerUI,ui->btPersonalInfo);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
+    _waitDlg.show();
     connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
         DoConnect();
         if(isLogined) DoLogin();//已经登录过了，断线后重新登录。（否则就是在登录界面等待登录，不要再重走这个步骤）；目前这个设置不完善，待优化
@@ -72,12 +75,25 @@ MainWindow::MainWindow(QWidget *parent)
             w->setVisible(false);
         }
     }
-    ui->btPersonalInfo->show();qDebug()<<m_user->position();
+//    ui->btnToDo->show();
+    ui->btPersonalInfo->show();
     if(m_user->position()&(CUser::ReportWriter|CUser::LabManager|LabSupervisor)){
         ui->btTaskSheet->show();
     }
     if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
         ui->btEmployeeManage->show();
+    }
+    ui->btnToDo->clicked();
+    ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
+    if(todoUI){
+        connect(todoUI,&ToDoUI::dealFLow,[this](const QFlowInfo&flowInfo,int operateFlag){
+            TabWidgetBase* tab=getTabWidget(flowInfo.tabName());
+            if(!tab){
+                QMessageBox::critical(nullptr,"error","无法获取模块窗口.");
+                return;
+            }
+            tab->dealProcess(flowInfo,operateFlag);
+        });
     }
 }
 
@@ -91,6 +107,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::DoConnect()
 {
+
 //    QHostInfo info = QHostInfo::fromName("127.0.0.1");
     QHostInfo info = QHostInfo::fromName("mud.tpddns.cn");
     if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),5555)==SOCKET_ERROR){
@@ -105,6 +122,7 @@ void MainWindow::DoConnect()
         }
     }
 
+    _waitDlg.hide();
 }
 
 void MainWindow::DoLogin()
@@ -223,21 +241,21 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
 
     }
         break;
-    case JC_NOTICE:
-    {
-        NoticeCMD cmd(json);
-        int type=cmd.type();
-        switch(type){
-        case NT_WORKFLOW://流程待办
-        {
+//    case JC_NOTICE:
+//    {
+//        NoticeCMD cmd(json);
+//        int type=cmd.type();
+//        switch(type){
+//        case NT_WORKFLOW://流程待办
+//        {
 
-            ProcessNoticeCMD cmd(json);
-            ui->listWidget->addTodo(cmd);
-        }
-            break;
-        }
-    }
-        break;
+//            ProcessNoticeCMD cmd(json);
+//            ui->listWidget->addTodo(cmd);
+//        }
+//            break;
+//        }
+//    }
+//        break;
 //    case CMD_LOGOUT:
 //    {
 //        int r=QMessageBox::warning(this,"", json.value("data").toString(),"重新登录","退出");
@@ -285,6 +303,7 @@ void MainWindow::onOpenTab()
         return;
     }
     tab->setUser(m_user);
+    tab->setTabName(text);
     connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
         QJsonObject j=sqlCmd;
         j["tytle"]=text;//标识下处理窗口
@@ -317,16 +336,16 @@ void MainWindow::on_btEmployeeManage_clicked()
 
 }
 
-void MainWindow::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
-{
-    ProcessNoticeCMD cmd=ui->listWidget->model()->data(ui->listWidget->currentIndex(),Qt::UserRole).toJsonObject();
-    TabWidgetBase* tab=getTabWidget(cmd.tabText());
-    if(!tab){
-        qDebug()<<"error to find widget"<<cmd.tabText();
-        return;
-    }
-    tab->dealProcess(cmd);
-}
+//void MainWindow::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
+//{
+//    ProcessNoticeCMD cmd=ui->listWidget->model()->data(ui->listWidget->currentIndex(),Qt::UserRole).toJsonObject();
+//    TabWidgetBase* tab=getTabWidget(cmd.tabText());
+//    if(!tab){
+//        qDebug()<<"error to find widget"<<cmd.tabText();
+//        return;
+//    }
+//    tab->dealProcess(cmd);
+//}
 
 void MainWindow::on_pushButton_clicked()
 {
@@ -382,6 +401,12 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版v0.1001");
+    QMessageBox::information(nullptr,"","版本号：测试版v0.110");
+}
+
+
+void MainWindow::on_exitAct_triggered()
+{
+    exit(0);
 }
 

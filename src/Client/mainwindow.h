@@ -41,7 +41,7 @@ private slots:
 
     void on_btEmployeeManage_clicked();
 
-    void on_listWidget_itemDoubleClicked(QListWidgetItem *item);
+//    void on_listWidget_itemDoubleClicked(QListWidgetItem *item);
 
     void on_pushButton_clicked();
 
@@ -52,6 +52,8 @@ private slots:
     void onSkinChanged();
 
     void on_actionVersion_triggered();
+
+    void on_exitAct_triggered();
 
 private:
     Ui::MainWindow *ui;    

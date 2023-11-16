@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "TaskSheetManager_global.h"
 #include"../Client/tabwigetbase.h"
+#include "tasksheeteditor.h"
 namespace Ui {
 class TaskSheetUI;
 }
@@ -15,24 +16,27 @@ class TASKSHEETMANAGER_EXPORT TaskSheetUI : public TabWidgetBase
 public:
     explicit TaskSheetUI(QWidget *parent = nullptr);
     enum TaskStatus{
-
+        CREATE, REVIEW, MODIFY,SCHEDULING,SCHEDUL_CONFIRM, WAIT_SAMPLING, SAMPLING,
     };
-
+    const QHash<int,QString> StatusName={{CREATE,"新建"},{REVIEW,"审核"},{MODIFY,"退回修改"},
+        {SCHEDULING,"排单"}, {SCHEDUL_CONFIRM,"等待排单确认"}, {WAIT_SAMPLING,"等待采样"},
+        {SAMPLING,"采样"}};
     ~TaskSheetUI();
-    //基类纯虚函数的实现start
-//    virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);//处理数据库操作返回的信息
-    virtual void dealProcess(const ProcessNoticeCMD&);//处理流程事件
-    virtual void initMod();//新增模块时初始化操作，建表等。
+    void submitProcess(int node);//流程推进
+    virtual void dealProcess(const QFlowInfo&, int operateFlag)override;//处理流程事件
+    virtual void initMod()override;//新增模块时初始化操作，建表等。
     void initCMD() override;
     //end
-
+    bool updateTaskStatus(int taskID, int status);
+    TaskSheetEditor* sheetEditorDlg(int openMode=TaskSheetEditor::NewMode);
 private:
 
 private slots:
     void on_newSheetBtn_clicked();
-
+    void submitReview(int sheetID);
 private:
     Ui::TaskSheetUI *ui;
+    TaskSheetEditor* m_sheet;
 };
 
 #endif // TASKSHEETUI_H

@@ -13,71 +13,43 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="improtLimitStandardBtn">
-   <property name="geometry">
-    <rect>
-     <x>50</x>
-     <y>60</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>导入执行标准</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="improtTestMethod">
-   <property name="geometry">
-    <rect>
-     <x>50</x>
-     <y>90</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>导入检测方法</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="status">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>250</y>
-     <width>391</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="improtParameterBtn">
-   <property name="geometry">
-    <rect>
-     <x>50</x>
-     <y>20</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>导入项目总表</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="parameterStdBtn">
-   <property name="geometry">
-    <rect>
-     <x>190</x>
-     <y>20</y>
-     <width>121</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>参数名称标准化</string>
-   </property>
-  </widget>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QPushButton" name="parameterStdBtn">
+     <property name="text">
+      <string>参数名称标准化</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="improtParameterBtn">
+     <property name="text">
+      <string>导入项目总表</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="improtLimitStandardBtn">
+     <property name="text">
+      <string>导入执行标准</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="improtTestMethod">
+     <property name="text">
+      <string>导入检测方法</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="status">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

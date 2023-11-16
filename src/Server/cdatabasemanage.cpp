@@ -25,7 +25,14 @@ void CDatabaseManage::connectDb()
     qDebug()<<"db opened";
     _dbOpen=true;
     QSqlQuery query(_db);
+
     if(!query.exec("create table if not exists sys_employee_login (id int not null auto_increment, name  char(32) not null unique, password  char(32),last_login_time datetime ,last_login_ip char(16), primary key (id)  );")){
+        qDebug()<<"query error:"<<query.lastError().text();
+    }
+    if(!query.exec("create table if not exists flow_records (id int not null auto_increment, creator  varchar(32) not null,createTime DATETIME ,tabName  varchar(32),flowInfo JSON ,status int default 0, operatorCountNeeded int default 1, operatorCountPassed int default 0, primary key (id)  );")){
+        qDebug()<<"query error:"<<query.lastError().text();
+    }
+    if(!query.exec("create table if not exists flow_operate_records (id int not null auto_increment, flowID int, operatorID int,operateStatus int default 0, operateComments varchar(255), operateTime DateTime, primary key (id), FOREIGN KEY (flowID) REFERENCES flow_records (id), FOREIGN KEY (operatorID) REFERENCES sys_employee_login (id)  );")){
         qDebug()<<"query error:"<<query.lastError().text();
     }
     if(!query.exec("select id from sys_employee_login where name='admin';")){

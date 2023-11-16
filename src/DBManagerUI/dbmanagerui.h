@@ -28,7 +28,7 @@ public:
         return "数据库管理";
     }
 //    void onSqlReturn(const QSqlReturnMsg& jsCmd);
-    void dealProcess(const ProcessNoticeCMD& cmd) override{};
+//    void dealProcess(const ProcessNoticeCMD& cmd) override{};
 
     void initMod()override;
     void showTable(const QSqlReturnMsg&msg);
@@ -48,6 +48,8 @@ private slots:
     void on_comboBox_editTextChanged(const QString &arg1);
 
     void on_exportToExcelBtn_clicked();
+
+    void on_RefreshBtn_clicked();
 
 private:
     void initCMD();

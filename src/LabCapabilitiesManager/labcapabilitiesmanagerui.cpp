@@ -171,6 +171,7 @@ void LabCapabilitiesManagerUI::initMod()
           "id int AUTO_INCREMENT primary key, "
           "methodID int not null,  "
           "parameterID int not null,  "
+          "subParameterIDs varchar(255),"
           "MDL double, "
           "unit varchar(8), "
           "LabMDL double,"

@@ -27,7 +27,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_5">
        <property name="geometry">
@@ -43,9 +43,16 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QPushButton" name="btRMManage">
+         <widget class="QPushButton" name="btnToDo">
           <property name="text">
-           <string>标准物质管理</string>
+           <string>我的待办</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnSubmited">
+          <property name="text">
+           <string>我的流程</string>
           </property>
          </widget>
         </item>
@@ -53,6 +60,13 @@
          <widget class="QPushButton" name="btTaskSheet">
           <property name="text">
            <string>任务单管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btRMManage">
+          <property name="text">
+           <string>标准物质管理</string>
           </property>
          </widget>
         </item>
@@ -155,6 +169,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>危废管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -187,7 +208,7 @@
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>-1</number>
       </property>
       <property name="tabsClosable">
        <bool>true</bool>
@@ -195,16 +216,6 @@
       <property name="tabBarAutoHide">
        <bool>false</bool>
       </property>
-      <widget class="QWidget" name="tab_3">
-       <attribute name="title">
-        <string>我的待办</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
-        <item>
-         <widget class="ProcessManager" name="listWidget"/>
-        </item>
-       </layout>
-      </widget>
      </widget>
     </item>
    </layout>
@@ -224,7 +235,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionlogin"/>
-    <addaction name="action_2"/>
+    <addaction name="exitAct"/>
     <addaction name="actionInitMod"/>
    </widget>
    <widget class="QMenu" name="menu_2">
@@ -262,7 +273,7 @@
     <string>关于</string>
    </property>
   </action>
-  <action name="action_2">
+  <action name="exitAct">
    <property name="text">
     <string>退出</string>
    </property>
@@ -297,13 +308,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>ProcessManager</class>
-   <extends>QListWidget</extends>
-   <header location="global">processmanager.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>

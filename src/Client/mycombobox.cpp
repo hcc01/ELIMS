@@ -16,7 +16,5 @@ void MyComboBox::init(const QStringList &items)
     completer->setCaseSensitivity(Qt::CaseInsensitive);
     completer->setFilterMode(Qt::MatchContains);
     setCompleter(completer);
-
-
 }
 

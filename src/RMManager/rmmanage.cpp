@@ -142,15 +142,15 @@ void RMManageUI::onSqlReturn(const QSqlReturnMsg &jsCmd)
 
 }
 
-void RMManageUI::dealProcess(const ProcessNoticeCMD &cmd)
-{
-    _rmCheck.append("申请人："+cmd.createName());
-    _rmCheck.append("申请日期："+cmd.createTime());
-    //QString sql=QString("select content from wf_instance left join wf_action_record where id=%1").arg(cmd.recordID());
-    QString sql="select * from wf_instance ";
-    QSqlCmd sqlCMD(sql,GET_CONTENT);
-    sendData(sqlCMD.jsCmd());
-}
+//void RMManageUI::dealProcess(const ProcessNoticeCMD &cmd)
+//{
+//    _rmCheck.append("申请人："+cmd.createName());
+//    _rmCheck.append("申请日期："+cmd.createTime());
+//    //QString sql=QString("select content from wf_instance left join wf_action_record where id=%1").arg(cmd.recordID());
+//    QString sql="select * from wf_instance ";
+//    QSqlCmd sqlCMD(sql,GET_CONTENT);
+//    sendData(sqlCMD.jsCmd());
+//}
 
 void RMManageUI::test()
 {

@@ -5,25 +5,40 @@
 #include<qexcel.h>
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
-    ui(new Ui::TaskSheetUI)
+    ui(new Ui::TaskSheetUI),
+    m_sheet(nullptr)
 {
     ui->setupUi(this);
+    ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态"});
     ui->tableView->addContextAction("编辑",[this](){
+
         QString taskNum;
         int row=ui->tableView->selectedRow();
         if(row<0) return;
+        int status=ui->tableView->cellFlag(row,6).toInt();
+        if(user()->name()!=ui->tableView->value(row,1).toString()) return;//非本人不可编辑
+        qDebug()<<status;
+        if(status!=0) {
+            QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
+            return;//提交审核后，任务单锁定不能编辑
+        }
         taskNum=ui->tableView->value(row,0).toString();
-        TaskSheetEditor* sheet=new TaskSheetEditor(this,this);
-        sheet->init();
+        TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::EditMode);
+        sheet->load(taskNum);
+        sheet->show();        
+    });
+    ui->tableView->addContextAction("查看",[this](){
+        QString taskNum;
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+
+        taskNum=ui->tableView->value(row,0).toString();
+        TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::ViewMode);
         sheet->load(taskNum);
         sheet->show();
+//        connect(sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     });
-//    ui->tableView->addContextAction("导出EXCEL",[this](){
-//        QString taskNum;
-//        int row=ui->tableView->selectedRow();
-//        if(row<0) return;
-//        taskNum=ui->tableView->value(row,0).toString();
-//    });
+
 }
 
 TaskSheetUI::~TaskSheetUI()
@@ -31,9 +46,45 @@ TaskSheetUI::~TaskSheetUI()
     delete ui;
 }
 
-void TaskSheetUI::dealProcess(const ProcessNoticeCMD &)
+void TaskSheetUI::submitProcess(int node)
 {
+    switch(node){
+    case REVIEW:
+    {
 
+    }
+    break;
+    }
+}
+
+void TaskSheetUI::dealProcess(const QFlowInfo &flowInfo,int operateFlag)
+{
+    int flowID=flowInfo.flowID();
+    int taskSheetID=flowInfo.value("taskSheetID").toInt();
+    if(!taskSheetID){
+        QMessageBox::information(nullptr,"","处理流程时错误：无法获取任务单ID。");
+        return;
+    }
+    QString sql;
+    switch(operateFlag){
+    case VIEWINFO:
+    {
+
+    }
+    break;
+    case AGREE://流程同意，更新任务单状态
+    {
+        sql="update test_task_info set taskStatus=taskStatus+1 where id=?;set @taskStatus (select taskStatus from test_task where id=?); insert into task_status(taskSheetID,taskStatus, flowID) values(?,@taskStatus,?);";
+        QJsonArray values;
+        values={taskSheetID,taskSheetID,taskSheetID, flowID};
+    }
+    break;
+    case REJECT:
+    {
+
+    }
+    break;
+    }
 }
 
 void TaskSheetUI::initMod()
@@ -111,7 +162,7 @@ void TaskSheetUI::initMod()
             "subpackage TINYINT NOT NULL DEFAULT 1,"//是否允许分包说明
            "otherRequirements VARCHAR(255),"//其它要求
            "remarks VARCHAR(255),"//备注
-           "taskStatus  int, "          //任务状态（enum, 用于状态查询）
+           "taskStatus  int, "          //任务状态
            "creator  varchar(32),"//创建人
           "createDate datetime, "//创建时间
           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
@@ -128,11 +179,12 @@ void TaskSheetUI::initMod()
           "id int AUTO_INCREMENT primary key, "
           "taskSheetID int not null,"//任务单ID
            "taskStatus  int, "          //任务状态
-          "operator VARCHAR(10), "//操作人员
-          "operateTime datetime, "//操作时间
-          "operateComment VARCHAR(255), "    //操作说明，
-          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id) "
-          //           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
+          "flowID int, "
+//          "operator VARCHAR(10), "//操作人员
+//          "operateTime datetime, "//操作时间
+//          "operateComment VARCHAR(255), "    //操作说明，
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          " FOREIGN KEY (flowID) REFERENCES flow_records (id)"
           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
@@ -208,8 +260,7 @@ void TaskSheetUI::initMod()
 
 void TaskSheetUI::initCMD()
 {
-    ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态"});
-
+    ui->tableView->clear();
     QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
     if(user()->name()=="admin") sql="SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info ORDER BY createDate DESC;";
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
@@ -220,7 +271,10 @@ void TaskSheetUI::initCMD()
             QList<QVariant> r=msg.result().toList();
             for(int i=1;i<r.count();i++){
                 QList<QVariant>row=r.at(i).toList();
-                ui->tableView->append(row);
+                int status=row.at(6).toInt();
+                row[6]=StatusName.value(status);
+                ui->tableView->append(row);                
+                ui->tableView->setCellFlag(i-1,6,status);
             }
         },1);
 }
@@ -228,9 +282,83 @@ void TaskSheetUI::initCMD()
 
 void TaskSheetUI::on_newSheetBtn_clicked()
 {
-    TaskSheetEditor* sheet=new TaskSheetEditor(this);
-//    connect(sheet,&TaskSheetEditor::doSql,this,&TaskSheetUI::doSqlQuery);
+    TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::NewMode);
     sheet->show();
-    sheet->init();
+}
+
+void TaskSheetUI::submitReview(int sheetID)
+{
+
+    QFlowInfo flowInfo("任务单审核",tabName());
+    flowInfo.setValue("taskSheetID",sheetID);//标记需要处理的流程ID
+    flowInfo.setNode(REVIEW);
+    QEventLoop loop;
+    connect(this,&TaskSheetUI::sqlFinished,&loop,&QEventLoop::quit);
+
+    QList<int>operateorIDs;//操作人员的ID列表
+    doSqlQuery("select id from (select name from users where position & ?) as A left join sys_employee_login as B on A.name=B.name ;",[this,&operateorIDs](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询操作人员时出错：",msg.result().toString());
+            emit sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        for(int i=1;i<r.count();i++){
+            operateorIDs.append(r.at(i).toList().first().toInt());
+        }
+        emit sqlFinished();
+    },0,{CUser::TechnicalManager | CUser::QualityManager | CUser::LabSupervisor});//由技术负责人或质量负责人或实验室主管负责审核任务单
+    loop.exec();
+    if(!operateorIDs.count()){
+        QMessageBox::information(nullptr,"添加操作人员时出错：","未获取到有效的可操作人员。");
+        return;
+    }
+    int flowID=submitFlow(flowInfo,operateorIDs);//提交到流程登记
+    if(!flowID){
+        QMessageBox::information(nullptr,"创建流程出错：","未获取到有效的流程ID。");
+        return;
+    }
+    doSqlQuery("insert into task_status (taskSheetID, taskStatus, flowID) values(?,?,?) ",[this](const QSqlReturnMsg&msg){//更新任务单状态
+        if(msg.error()){
+            QMessageBox::information(nullptr,"插入流程时出错：",msg.result().toString());
+            emit sqlFinished();
+            return;
+        }
+        emit sqlFinished();
+    },0,{sheetID,REVIEW,flowID});
+    loop.exec();
+    updateTaskStatus(sheetID,REVIEW);
+    initCMD();
+}
+bool TaskSheetUI::updateTaskStatus(int taskID, int status)
+{
+    bool ret=false;
+    QEventLoop loop;
+    connect(this,&TaskSheetUI::sqlFinished,&loop,&QEventLoop::quit);
+    doSqlQuery("UPDATE test_task_info set taskStatus=? where id=?",[this, &ret](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"updateTaskStatus error",msg.result().toString());
+            emit sqlFinished();
+            return;
+        }
+        ret=true;
+        emit sqlFinished();
+    },0,{status,taskID});
+    loop.exec();
+    return ret;
+}
+
+TaskSheetEditor *TaskSheetUI::sheetEditorDlg(int openMode)
+{
+    if(!m_sheet){
+        m_sheet=new TaskSheetEditor(this,openMode);
+        m_sheet->init();
+        connect(m_sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
+    }
+    else{
+        m_sheet->setOpenMode(openMode);        
+    }
+    m_sheet->reset();
+    return m_sheet;
 }
 

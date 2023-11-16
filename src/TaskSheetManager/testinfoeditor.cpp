@@ -4,11 +4,10 @@
 #include"implementingstandardselectdlg.h"
 #include<QInputDialog>
 #include<global.h>
-testInfoEditor::testInfoEditor(TestInfo *info, int inspectedEentityID, QWidget *parent) :
+testInfoEditor::testInfoEditor(TestInfo *info, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::testInfoEditor),
-    m_info(info),
-    m_inspectedEentityID(inspectedEentityID)
+    m_info(info)
 {
     ui->setupUi(this);
     ui->testItemEdit->setPlaceholderText("多个检测参数以“、”隔开");
@@ -37,8 +36,30 @@ void testInfoEditor::init()
     });
 }
 
+void testInfoEditor::load(TestInfo* info)
+{
+    m_info=info;
+    int n=m_testFieldIDs.indexOf(m_info->testFieldID);
+    qDebug()<<m_testFieldIDs;
+    qDebug()<<m_info->testFieldID;
+    if(n>=0){
+        ui->testFiledBox->setCurrentIndex(n);
+        ui->testTypeBox->setCurrentIndex(m_testTypeIDs.indexOf(m_info->testTypeID));
+        ui->sampleTypeBox->setCurrentText(m_info->sampleType);
+        ui->samplingPosCountBox->setValue(m_info->samplingSiteCount);
+        ui->samplingFrequencyBox->setValue(m_info->samplingFrequency);
+        ui->samplingPeriodCountBox->setValue(m_info->samplingPeriod);
+        ui->samplePosEdit->setText(m_info->samplingSites.join("、"));
+        ui->testItemEdit->setText(m_info->monitoringParameters.join("、"));
+        ui->remarkEdit->setText(m_info->remark);
+        ui->standardNameEidt->setText(m_info->limitStandard);
+        m_limitStandardID=m_info->limitStandardID;
+    }
+}
+
 void testInfoEditor::on_testInofOkBtn_clicked()
 {
+    if(!m_info) return;
     QString s=ui->testItemEdit->toPlainText();
     toStdParameterName(s);
     ui->testItemEdit->setText(s);
@@ -117,6 +138,7 @@ void testInfoEditor::on_testInofOkBtn_clicked()
     info->samplingPeriod=ui->samplingPeriodCountBox->value();
 //    m_testInfo.append(info);
 //    ui->testInfoTableView->append(info->infoList());
+    m_info=nullptr;
     accept();
 }
 
@@ -266,5 +288,11 @@ void testInfoEditor::on_sampleSiteSeclectBtn_clicked()
     break;
 
     }
+}
+
+
+void testInfoEditor::on_cancelBtn_clicked()
+{
+    reject();
 }
 

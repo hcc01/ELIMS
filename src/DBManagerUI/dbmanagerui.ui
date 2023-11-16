@@ -15,7 +15,14 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,9,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,9,0">
+     <item>
+      <widget class="QPushButton" name="RefreshBtn">
+       <property name="text">
+        <string>刷新</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">

@@ -18,7 +18,7 @@ enum TaskStatus{
 
 
 class QSqlReturnMsg;
-using DealFuc = std::function<void(const QSqlReturnMsg&)>;
+using DealFuc = std::function<void(const QSqlReturnMsg&)>;//sql返回数据的处理函数
 class QJsonCmd
 {
 public:
@@ -196,6 +196,14 @@ public:
     QString flowInfo()const{QJsonDocument doc(m_flowInfo);return doc.toJson(QJsonDocument::Compact);}
     QJsonObject object()const{return m_flowInfo;}
     void setValue(const QString&k,const QJsonValue&v){m_flowInfo[k]=v;}
+    QJsonValue value(const QString&key)const{return m_flowInfo.value(key);}
+    void setNode(int node){m_flowInfo["node"]=node;}
+    int node()const{return m_flowInfo.value("node").toInt();}
+    void setComment(const QString&comment){m_flowInfo["comment"]=comment;}
+    QString comment()const{return m_flowInfo.value("comment").toString();}
+    void setFlowID(int id){m_flowInfo["flowID"]=id;}
+    int flowID()const{return m_flowInfo.value("flowID").toInt();}
+    void reset(){m_flowInfo={};}
 private:
     QJsonObject m_flowInfo;
 };

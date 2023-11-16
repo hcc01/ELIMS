@@ -17,9 +17,9 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="loadMethodBtn">
        <property name="text">
-        <string>加载方法</string>
+        <string>重新加载方法</string>
        </property>
       </widget>
      </item>
@@ -46,11 +46,22 @@
     <widget class="MyTableView" name="tableView"/>
    </item>
    <item>
-    <widget class="QPushButton" name="OkBtn">
-     <property name="text">
-      <string>保存</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="OkBtn">
+       <property name="text">
+        <string>修改</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelBtn">
+       <property name="text">
+        <string>关闭</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

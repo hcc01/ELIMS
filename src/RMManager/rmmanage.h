@@ -33,7 +33,7 @@ public:
     void doAddRM(const QJsonObject& dbINfo);
     void setData(const QJsonArray &data);
     void onSqlReturn(const QSqlReturnMsg& jsCmd) override;
-    void dealProcess(const ProcessNoticeCMD& cmd) override;
+//    void dealProcess(const ProcessNoticeCMD& cmd) override;
     void test();
 signals:
 private slots:

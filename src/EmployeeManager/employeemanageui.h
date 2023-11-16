@@ -48,7 +48,7 @@ public:
     ~EmployeeManageUI();
 
     void initCMD()override;
-    void dealProcess(const ProcessNoticeCMD&)override{};//处理流程事件
+//    void dealProcess(const ProcessNoticeCMD&)override{};//处理流程事件
     void initMod() override;
 private:
     Ui::EmployeeManageUI *ui;
