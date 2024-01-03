@@ -177,7 +177,11 @@ public:
     QSqlReturnMsg(const QVariant &result/*操作语句*/, int flag/*操作类型标识，模块自定义*/, const QString& tytle/*模块窗体标识*/, bool error, int currentPage=0, int totalPage=1);
     QSqlReturnMsg(const QJsonObject& json);
     QVariant result()const;
+    int numRowsAffected()const{return result().toList().at(0).toInt();}
+    QStringList header()const{return result().toList().at(0).toStringList(); }
+    QList<QList<QVariant>> table()const;
     QString tytle() const;
+    QString errorMsg()const{return result().toString();}
     int flag() const;
     bool error() const;
     int currentPage()const;
@@ -186,24 +190,31 @@ public:
 private:
     QJsonObject _cmd;
 };
-class QFlowInfo{
+class QFlowInfo{//用于保存提交流程的一些信息，由各自的模块提交和负责识别。
 public:
     QFlowInfo(const QString&flowName,const QString&tabName){m_flowInfo["flowName"]=flowName;m_flowInfo["tabName"]=tabName;}
     QFlowInfo(const QJsonObject&info){m_flowInfo=info;}
-    QFlowInfo(const QString&flowInfo){m_flowInfo=QJsonDocument::fromJson(flowInfo.toUtf8()).object();}
-    QString flowName()const{return m_flowInfo.value("flowName").toString();}//流程名称
-    QString tabName()const{return m_flowInfo.value("tabName").toString();}//模块名称，用于指定操作模块去处理流程
+    QFlowInfo(const QString&flowInfo=""){m_flowInfo=QJsonDocument::fromJson(flowInfo.toUtf8()).object();}
+    QString flowName()const{return m_flowInfo.value("flowName").toString();}//流程名称，必须
+    QString tabName()const{return m_flowInfo.value("tabName").toString();}//模块名称，必须，用于指定操作模块去处理流程
+    QString flowAbs()const{return m_flowInfo.value("abstract").toString();}//流程摘要，用于显示在审核界面
+    void setFlowAbs(const QString&abstract){m_flowInfo["abstract"]=abstract;}    
+    void setNode(int node){m_flowInfo["node"]=node;}
+    int node()const{return m_flowInfo.value("node").toInt();}//当前节点
+    void setNextNode(int node){m_flowInfo["nextNode"]=node;}
+    int nextNode()const{return m_flowInfo.value("nextNode").toInt();}//下一节点
+    void setBackNode(int node){m_flowInfo["backNode"]=node;}
+    int backNode()const{return m_flowInfo.value("backNode").toInt();}//退回节点
+    void setComment(const QString&comment){m_flowInfo["comment"]=comment;}
+    QString comment()const{return m_flowInfo.value("comment").toString();}//审核意见
+    void setFlowID(int id){m_flowInfo["flowID"]=id;}
+    int flowID()const{return m_flowInfo.value("flowID").toInt();}//流程数据库flow_records ID
     QString flowInfo()const{QJsonDocument doc(m_flowInfo);return doc.toJson(QJsonDocument::Compact);}
     QJsonObject object()const{return m_flowInfo;}
-    void setValue(const QString&k,const QJsonValue&v){m_flowInfo[k]=v;}
+    void setValue(const QString&k,const QJsonValue&v){m_flowInfo[k]=v;}//一些其它设定
     QJsonValue value(const QString&key)const{return m_flowInfo.value(key);}
-    void setNode(int node){m_flowInfo["node"]=node;}
-    int node()const{return m_flowInfo.value("node").toInt();}
-    void setComment(const QString&comment){m_flowInfo["comment"]=comment;}
-    QString comment()const{return m_flowInfo.value("comment").toString();}
-    void setFlowID(int id){m_flowInfo["flowID"]=id;}
-    int flowID()const{return m_flowInfo.value("flowID").toInt();}
     void reset(){m_flowInfo={};}
+
 private:
     QJsonObject m_flowInfo;
 };

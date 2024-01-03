@@ -3,20 +3,20 @@
 
 #include <QMainWindow>
 #include"../Client/qjsoncmd.h"
+#include"../Client/tabwigetbase.h"
 namespace Ui {
 class TestTypeEditor;
 }
 
-class TestTypeEditor : public QMainWindow
+class TestTypeEditor : public QMainWindow,public SqlBaseClass
 {
     Q_OBJECT
 
 public:
-    explicit TestTypeEditor(QWidget *parent = nullptr);
+    explicit TestTypeEditor(TabWidgetBase*parent);
     ~TestTypeEditor();
     void init();
-signals:
-    void doSql(const QString&,DealFuc f=nullptr,int p=0,const QJsonArray&values={});
+
 private slots:
     void on_addBtn_clicked();
 

@@ -80,6 +80,13 @@ QVariant QSqlReturnMsg::result() const
     return _cmd.value("result").toVariant();
 }
 
+QList<QList<QVariant> > QSqlReturnMsg::table() const
+{
+    QList<QList<QVariant>>table=result().value<QList<QList<QVariant>>>();
+    table.removeFirst();
+    return table;
+}
+
 QString QSqlReturnMsg::tytle() const
 {
     return _cmd.value("tytle").toString();

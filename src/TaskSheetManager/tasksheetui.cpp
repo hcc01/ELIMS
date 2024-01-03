@@ -3,6 +3,7 @@
 #include"tasksheeteditor.h"
 #include<QMessageBox>
 #include<qexcel.h>
+#include"contractreviewdlg.h"
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::TaskSheetUI),
@@ -18,7 +19,7 @@ TaskSheetUI::TaskSheetUI(QWidget *parent) :
         int status=ui->tableView->cellFlag(row,6).toInt();
         if(user()->name()!=ui->tableView->value(row,1).toString()) return;//非本人不可编辑
         qDebug()<<status;
-        if(status!=0) {
+        if(status!=CREATE&&status!=MODIFY) {
             QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
             return;//提交审核后，任务单锁定不能编辑
         }
@@ -33,12 +34,51 @@ TaskSheetUI::TaskSheetUI(QWidget *parent) :
         if(row<0) return;
 
         taskNum=ui->tableView->value(row,0).toString();
-        TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::ViewMode);
-        sheet->load(taskNum);
-        sheet->show();
+        viewTaskSheet(taskNum);
 //        connect(sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     });
+    //合同评审的处理信号
+    connect(&m_contractReviewDlg,&ContractReviewDlg::reviewResult,[this](const QString&record,const QString&comments,bool passed){
+        QFlowInfo flowInfo=m_contractReviewDlg.flowInfo();
+        int flowID=flowInfo.flowID();
+        int taskSheetID=flowInfo.value("taskSheetID").toInt();
+        int node=flowInfo.node();
+        int backNode=flowInfo.backNode();
+        int nextNode=flowInfo.nextNode();
+        QString taskNum=flowInfo.value("taskNum").toString();
+        if(!taskSheetID){
+            QMessageBox::information(nullptr,"","处理流程时错误：无法获取任务单ID。");
+            return;
+        }
+        //考虑到有多人审核的情况，先检查下是否已经被其它人处理
 
+        QString sql;
+        QJsonArray values;
+        if(pushProcess(flowInfo,passed,comments)){
+            sql="update test_task_info set taskStatus=? where id=?";
+            if(passed){//同意，进入采样排单
+                //进入新流程（后面处理）
+                //更改任务单状态
+                values={nextNode,taskSheetID};
+            }
+            else{//拒绝，退回任务单修改
+                //更改任务单状态为“待修改”
+                values={backNode,taskSheetID};
+            }
+            doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        return notifySqlError("更改任务单状态时出错：",msg.errorMsg());
+                    }
+                },0,values);
+        }else{
+            QMessageBox::information(nullptr,"","无法推进流程。");
+            return;
+        }
+
+    });
+    connect(&m_contractReviewDlg,&ContractReviewDlg::getTaskInfo,[this](){
+        viewTaskSheet(m_contractReviewDlg.flowInfo().value("taskNum").toString());
+    });
 }
 
 TaskSheetUI::~TaskSheetUI()
@@ -59,28 +99,64 @@ void TaskSheetUI::submitProcess(int node)
 
 void TaskSheetUI::dealProcess(const QFlowInfo &flowInfo,int operateFlag)
 {
+    qDebug()<<"TaskSheetUI::dealProcess正在处理流程审批:"<<flowInfo.object();
     int flowID=flowInfo.flowID();
     int taskSheetID=flowInfo.value("taskSheetID").toInt();
+    int node=flowInfo.node();
+    int backNode=flowInfo.backNode();
+    int nextNode=flowInfo.nextNode();
+    QString taskNum=flowInfo.value("taskNum").toString();
     if(!taskSheetID){
         QMessageBox::information(nullptr,"","处理流程时错误：无法获取任务单ID。");
         return;
     }
+    //进行合同评审
+    m_contractReviewDlg.setFlowInfo(flowInfo);
+    m_contractReviewDlg.show();
+    return;
+    //流程管理改变，以下先放着
     QString sql;
     switch(operateFlag){
     case VIEWINFO:
     {
-
+        switch (node) {
+        case REVIEW:
+            viewTaskSheet(taskNum);
+            break;
+        default:
+            break;
+        }
     }
     break;
     case AGREE://流程同意，更新任务单状态
     {
-        sql="update test_task_info set taskStatus=taskStatus+1 where id=?;set @taskStatus (select taskStatus from test_task where id=?); insert into task_status(taskSheetID,taskStatus, flowID) values(?,@taskStatus,?);";
-        QJsonArray values;
-        values={taskSheetID,taskSheetID,taskSheetID, flowID};
+        sql="update test_task_info set taskStatus=? where id=?";
+        doSqlQuery(sql,[](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更新流程节点时出错：",msg.errorMsg());
+                return;
+            }
+        },0,{nextNode,taskSheetID});
     }
     break;
     case REJECT:
     {
+        //流程拒绝，将流程更新到退回节点
+        sql="update test_task_info set taskStatus=? where id=?";
+        doSqlQuery(sql,[](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更新流程节点时出错：",msg.errorMsg());
+                return;
+            }
+        },0,{backNode,taskSheetID});
+        switch (node) {
+        case REVIEW:
+            //流程拒绝，退到修改。
+
+            break;
+        default:
+            break;
+        }
 
     }
     break;
@@ -244,6 +320,20 @@ void TaskSheetUI::initMod()
             return;
         }
     });
+    //合同评审记录表：
+    sql="CREATE TABLE IF NOT EXISTS contract_review_info("
+          "id int AUTO_INCREMENT primary key, "//
+          "taskSheetID int not null,"//任务单ID
+          "reviewRecord  VARCHAR(255), "         //合同评审表记录，目前以“是、是、否、是……”按顺序对各要点的评审情况进行保存
+          "reviewor  VARCHAR(16), " //评审员
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"contract_review_info error",msg.result().toString());
+            return;
+        }
+    });
     //任务单自动编号计数表
     sql="CREATE TABLE IF NOT EXISTS tasknumber("
            "taskdate varchar(10) primary key, "//
@@ -258,7 +348,7 @@ void TaskSheetUI::initMod()
     });
 }
 
-void TaskSheetUI::initCMD()
+void TaskSheetUI::initCMD()//初始化和刷新
 {
     ui->tableView->clear();
     QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
@@ -286,16 +376,17 @@ void TaskSheetUI::on_newSheetBtn_clicked()
     sheet->show();
 }
 
-void TaskSheetUI::submitReview(int sheetID)
+void TaskSheetUI::submitReview(int sheetID,const QString&taskNum)
 {
 
     QFlowInfo flowInfo("任务单审核",tabName());
-    flowInfo.setValue("taskSheetID",sheetID);//标记需要处理的流程ID
-    flowInfo.setNode(REVIEW);
-    QEventLoop loop;
-    connect(this,&TaskSheetUI::sqlFinished,&loop,&QEventLoop::quit);
-
+    flowInfo.setValue("taskSheetID",sheetID);//标记
+    flowInfo.setValue("taskNum",taskNum);//标记
+    flowInfo.setNode(REVIEW);//
+    flowInfo.setBackNode(MODIFY);
+    flowInfo.setNextNode(SCHEDULING);
     QList<int>operateorIDs;//操作人员的ID列表
+    //找到任务单审核人员，由技术负责人或质量负责人或实验室主管负责审核任务单
     doSqlQuery("select id from (select name from users where position & ?) as A left join sys_employee_login as B on A.name=B.name ;",[this,&operateorIDs](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询操作人员时出错：",msg.result().toString());
@@ -307,17 +398,19 @@ void TaskSheetUI::submitReview(int sheetID)
             operateorIDs.append(r.at(i).toList().first().toInt());
         }
         emit sqlFinished();
-    },0,{CUser::TechnicalManager | CUser::QualityManager | CUser::LabSupervisor});//由技术负责人或质量负责人或实验室主管负责审核任务单
-    loop.exec();
+    },0,{CUser::TechnicalManager | CUser::QualityManager | CUser::LabSupervisor});
+    waitForSql();
     if(!operateorIDs.count()){
         QMessageBox::information(nullptr,"添加操作人员时出错：","未获取到有效的可操作人员。");
         return;
     }
+    //任务单审核提交到流利管理
     int flowID=submitFlow(flowInfo,operateorIDs);//提交到流程登记
     if(!flowID){
         QMessageBox::information(nullptr,"创建流程出错：","未获取到有效的流程ID。");
         return;
     }
+    //关联任务单的审核流程ID
     doSqlQuery("insert into task_status (taskSheetID, taskStatus, flowID) values(?,?,?) ",[this](const QSqlReturnMsg&msg){//更新任务单状态
         if(msg.error()){
             QMessageBox::information(nullptr,"插入流程时出错：",msg.result().toString());
@@ -326,15 +419,13 @@ void TaskSheetUI::submitReview(int sheetID)
         }
         emit sqlFinished();
     },0,{sheetID,REVIEW,flowID});
-    loop.exec();
+    waitForSql();
     updateTaskStatus(sheetID,REVIEW);
     initCMD();
 }
 bool TaskSheetUI::updateTaskStatus(int taskID, int status)
 {
     bool ret=false;
-    QEventLoop loop;
-    connect(this,&TaskSheetUI::sqlFinished,&loop,&QEventLoop::quit);
     doSqlQuery("UPDATE test_task_info set taskStatus=? where id=?",[this, &ret](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"updateTaskStatus error",msg.result().toString());
@@ -344,21 +435,54 @@ bool TaskSheetUI::updateTaskStatus(int taskID, int status)
         ret=true;
         emit sqlFinished();
     },0,{status,taskID});
-    loop.exec();
+    waitForSql();
     return ret;
 }
 
 TaskSheetEditor *TaskSheetUI::sheetEditorDlg(int openMode)
 {
-    if(!m_sheet){
-        m_sheet=new TaskSheetEditor(this,openMode);
-        m_sheet->init();
-        connect(m_sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
-    }
-    else{
-        m_sheet->setOpenMode(openMode);        
-    }
-    m_sheet->reset();
+//    if(!m_sheet){
+//        m_sheet=new TaskSheetEditor(this,openMode);
+//        m_sheet->init();
+//        connect(m_sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
+//    }
+//    else{
+//        m_sheet->setOpenMode(openMode);
+//    }
+//    m_sheet->reset();
+//    return m_sheet;
+    if(m_sheet) delete m_sheet;
+    m_sheet=new TaskSheetEditor(this,openMode);
+    m_sheet->init();
+    connect(m_sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     return m_sheet;
+}
+
+void TaskSheetUI::viewTaskSheet(const QString& taskSheetNum)
+{
+    TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::ViewMode);
+    if(!sheet){
+        qDebug()<<"error: sheet is null, taskSheetNum:"<<taskSheetNum;
+    }
+    sheet->load(taskSheetNum);
+    sheet->show();
+}
+
+void TaskSheetUI::editTaskSheet(const QString &taskSheetNum)
+{
+    TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::EditMode);
+    sheet->load(taskSheetNum);
+    sheet->show();
+}
+
+
+void TaskSheetUI::on_refleshBtn_clicked()
+{
+    initCMD();
+}
+
+void TaskSheetUI::doContractReview(const QFlowInfo &flowInfo, const QString &record, const QString &comments, bool passed)
+{
+
 }
 

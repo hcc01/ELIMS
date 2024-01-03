@@ -2,8 +2,9 @@
 #include "ui_testtypeeditor.h"
 #include<QMessageBox>
 #include<QInputDialog>
-TestTypeEditor::TestTypeEditor(QWidget *parent) :
+TestTypeEditor::TestTypeEditor(TabWidgetBase *parent) :
     QMainWindow(parent),
+    SqlBaseClass(parent),
     ui(new Ui::TestTypeEditor)
 {
     ui->setupUi(this);
@@ -16,7 +17,7 @@ TestTypeEditor::~TestTypeEditor()
 
 void TestTypeEditor::init()
 {
-    emit doSql("SELECT testField from test_field where deleted=0;",[&](const QSqlReturnMsg&msg){
+    doSql("SELECT testField from test_field where deleted=0;",[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -37,7 +38,7 @@ void TestTypeEditor::on_addBtn_clicked()//增加样品类型
         return;
     }
     QString sql=QString("INSERT INTO sample_type(testTypeID, sampleType) values((select id from test_type where testType='%1'), '%2') ;").arg(ui->testTypeBox->currentText()).arg(name);
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -74,7 +75,7 @@ void TestTypeEditor::on_FieldModifyBtn_clicked()
     QString newName=QInputDialog::getText(this,"请输入领域名称：","");
     if(newName.isEmpty()) return;
     QString sql=QString("UPDATE test_field SET testField='%1' where testField='%2';").arg(newName).arg(oldName);
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -90,7 +91,7 @@ void TestTypeEditor::on_fieldBox_currentIndexChanged(int index)
     qDebug()<<"on_fieldBox_currentIndexChanged";    QString fieldName=ui->fieldBox->itemText(index);
     QString sql=QString("SELECT testType from test_type where testFieldID=(select id from test_field where testField='%1');").arg(fieldName);
     qDebug()<<fieldName;
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -113,7 +114,7 @@ void TestTypeEditor::on_testTypeAddBtn_clicked()
         return;
     }
     QString sql=QString("INSERT INTO test_type(testFieldID, testType) values((select id from test_field where testField='%1'), '%2') ;").arg(ui->fieldBox->currentText()).arg(name);
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -128,7 +129,7 @@ void TestTypeEditor::on_testTypeBox_currentIndexChanged(int index)
 {
     QString typeName=ui->testTypeBox->itemText(index);
     QString sql=QString("SELECT sampleType from sample_type where testTypeID=(select id from test_type where testType='%1');").arg(typeName);
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;
@@ -149,7 +150,7 @@ void TestTypeEditor::on_testTypeModifyBtn_clicked()
     QString newName=QInputDialog::getText(this,"请输入检测类型名称：","");
     if(newName.isEmpty()) return;
     QString sql=QString("UPDATE test_type SET testType='%1' where testType='%2';").arg(newName).arg(oldName);
-    emit doSql(sql,[&](const QSqlReturnMsg&msg){
+    doSql(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
             return;

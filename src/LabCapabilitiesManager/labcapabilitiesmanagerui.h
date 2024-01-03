@@ -24,7 +24,7 @@ private slots:
 
 private:
     Ui::LabCapabilitiesManagerUI *ui;
-    TestTypeEditor m_testTypeEdt;
+    TestTypeEditor* m_testTypeEdt;
 };
 
 #endif // LABCAPABILITIESMANAGERUI_H

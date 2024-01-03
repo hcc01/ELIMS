@@ -27,7 +27,7 @@ public:
     void updateTestInfoView();
 private:
 signals:
-    void submitReview(int);
+    void submitReview(int, const QString&);
 private slots:
     void on_inspectedComBox_currentIndexChanged(int index);
 

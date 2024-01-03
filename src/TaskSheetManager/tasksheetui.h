@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "TaskSheetManager_global.h"
 #include"../Client/tabwigetbase.h"
+#include "contractreviewdlg.h"
 #include "tasksheeteditor.h"
 namespace Ui {
 class TaskSheetUI;
@@ -29,14 +30,19 @@ public:
     //end
     bool updateTaskStatus(int taskID, int status);
     TaskSheetEditor* sheetEditorDlg(int openMode=TaskSheetEditor::NewMode);
+    void viewTaskSheet(const QString &taskSheetNum);
+    void editTaskSheet(const QString &taskSheetNum);
 private:
 
 private slots:
     void on_newSheetBtn_clicked();
-    void submitReview(int sheetID);
+    void submitReview(int taskSheetID,const QString &taskNum);
+    void on_refleshBtn_clicked();
+    void doContractReview(const QFlowInfo &flowInfo, const QString&record, const QString&comments, bool passed);
 private:
     Ui::TaskSheetUI *ui;
     TaskSheetEditor* m_sheet;
+    ContractReviewDlg m_contractReviewDlg;
 };
 
 #endif // TASKSHEETUI_H

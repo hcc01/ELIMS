@@ -13,8 +13,6 @@ void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
 {
 
     int flag=jsCmd.flag();
-    qDebug()<<jsCmd.jsCmd();
-    qDebug()<<"flag"<<flag;
     auto func = m_fucMap.value(flag);
     m_fucMap.remove(flag);//使用完后直接删除，避免越来越多
     if (func) {
@@ -28,6 +26,95 @@ void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
 
 void TabWidgetBase::dealProcess(const QFlowInfo &flowInfo,int operateFlag)
 {
+    qDebug()<<"TabWidgetBase::dealProcess";
+}
+
+bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& comments)
+{
+    int flowID=flowInfo.flowID();
+    qDebug()<<flowInfo.object();
+    int taskSheetID=flowInfo.value("taskSheetID").toInt();
+    int node=flowInfo.node();
+    int backNode=flowInfo.backNode();
+    int nextNode=flowInfo.nextNode();
+    //考虑到有多人审核的情况，先检查下是否已经被其它人处理
+    //目前先不处理需要多人共同审批的情况
+    QString sql;
+    sql="select id from flow_records where id=? and status=0;";
+    bool ok=false;
+    QJsonArray values;
+    values.append(flowID);
+    doSqlQuery(sql,[this,&ok](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            return notifySqlError("查询流程审核记录出错",msg.result().toString());
+        }
+        ok=msg.result().toList().count()==2;
+        qDebug()<<msg.result();
+        emit sqlFinished();
+    },0,values);
+    waitForSql();
+    if(!ok){
+        QMessageBox::information(nullptr,"","流程已经被其它人处理完成。");
+//            removeTodo(row);
+        return false;
+    }
+//    if(passed){
+//        QString sql="update flow_records set operatorCountPassed=operatorCountPassed+1 where id=? and status=0;";//通过人数+1；0为待审核状态，如果没有，说明已经审核完成
+        sql="update flow_records set status=? where id=? ;";//通过人数+1；0为待审核状态，如果没有，说明已经审核完成
+
+    values={passed?1:2,flowID};
+        qDebug()<<values;
+        //检查是否全部通过
+        ok=false;
+//        sql="update flow_records set status=1 where id=? and operatorCountPassed=operatorCountNeeded;";
+        doSqlQuery(sql,[this,&ok](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                return notifySqlError("更新流程审核记录出错",msg.result().toString());
+            }
+            ok=msg.numRowsAffected();
+            qDebug()<<"msg.numRowsAffected();"<<msg.numRowsAffected();
+            qDebug()<<msg.result();
+            emit sqlFinished();
+        },0,values);
+        waitForSql();
+        if(!ok) {
+            QMessageBox::information(nullptr,"取消其它审批人时出错：","");
+            return false;
+        }
+            //流程处理完成
+//            emit dealFLow(flowInfo,AGREE);//当前节点通过，发出信号，由各自模块处理下一步流程
+            //通知发起人审批结果
+
+            //对于多人审批的，检查流程是否审批完成，如果完成，则取消其它人的审批。(直接删除数据）
+            sql="delete from flow_operate_records  where flowID=? and operateStatus=0 and (select status from flow_records where id=?)=1; ";
+            values={flowID,flowID};
+            doSqlQuery(sql, [](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"取消其它审批人时出错：",msg.result().toString());
+                    return;
+                }
+
+            },0,values);
+
+
+      //更新操作记录
+        sql="update flow_operate_records set operateStatus=? ,operateComments=?, operateTime=NOW() where operateStatus=0 and operatorID=(select id from sys_employee_login where name=?);";
+        values={passed?1:2,comments,user()->name()};
+
+            doSqlQuery(sql, [](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"更新操作记录出错：",msg.result().toString());
+                    return;
+                }
+
+            },0,values);
+        //更新待办
+//        removeTodo(row);
+        //若其它人的审批被取消，更新其它人的待办（这个不操作了，麻烦）
+        emit processOk(passed);//通知主窗口更新待办
+        return true;
+
+
 }
 
 void TabWidgetBase::initMod()
@@ -51,7 +138,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
 
 
 }
-
+//流程操作：提交到流程
 int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, int operatorCount)
 {
     int ret=0;
@@ -65,8 +152,6 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         sql+="insert into flow_operate_records(flowID,operatorID) values(@flowID,?);";
         values.append(id);
     }
-    QEventLoop loop;
-    connect(this,&TabWidgetBase::sqlFinished,&loop,&QEventLoop::quit);
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"新建流程出错：",msg.result().toString());
@@ -75,7 +160,7 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         }
         emit sqlFinished();
     },0,values);
-    loop.exec();
+    waitForSql();
 
     sql="select @flowID;";
 
@@ -94,7 +179,7 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         ret=r.at(1).toList().first().toInt();
         emit sqlFinished();
     });
-    loop.exec();
+    waitForSql();
     //通知操作人员待办消息
 
     return ret;//传回所建流程ID，让发送者进行下一步处理
@@ -104,6 +189,11 @@ void TabWidgetBase::waitForSql(const QString &msg)
 {
     m_dlg.setMsg(msg);
     m_dlg.exec();
+}
+
+void TabWidgetBase::sqlEnd()
+{
+    m_dlg.accept();
 }
 
 
@@ -120,7 +210,8 @@ void SqlBaseClass::doSql(const QString &sql, DealFuc f, int p, const QJsonArray 
 
 void SqlBaseClass::sqlFinished()
 {
-    m_tabWiget->sqlFinished();
+//    m_tabWiget->sqlFinished();
+    m_tabWiget->sqlEnd();
 }
 
 void SqlBaseClass::waitForSql(const QString &msg)

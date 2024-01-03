@@ -165,13 +165,6 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
     QJsonArray table;
     QSqlRecord record=query.record();
     QJsonArray row;
-    for(int i=0;i<record.count();i++){
-        QString name=record.fieldName(i);
-//        doTranslate(name);
-        row.append(name);
-
-    }
-    table.append(row);
     int columns=query.record().count();
     int rows=query.size();
     int page=sqlCmd.queryPage();
@@ -179,39 +172,41 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
     int pages=(rows-1)/ITEMS_PER_PAGE+1;
     int start=(page-1)*ITEMS_PER_PAGE+1;
     int end=start+ITEMS_PER_PAGE-1;
-    if(!page){//不分页显示
-        start=1;
-        pages=1;
-        end=rows;
+    qDebug()<<query.lastQuery().toStdString();
+    qDebug()<<query.numRowsAffected();
+    if(query.size()==-1)//非查询，返回影响的行数
+    {
+        table={query.numRowsAffected()};
     }
-    if(pages>=1){
-        if(page>pages) page=pages-1;
-    }
-//    query.seek(start-1);
-////    for(int i=0;i<10&&query.next();i++){
-////        QJsonArray row;
-////        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
-////        table.append(row);
-////    }
-//    do{
-//        if(query.at()>=end) break;
-//        QJsonArray row;
-//        for(int i=0;i<columns;i++) row.append(query.value(i).toString());
-//        table.append(row);
+    else{
+        for(int i=0;i<record.count();i++){
+            QString name=record.fieldName(i);
+            //        doTranslate(name);
+            row.append(name);//获取列名
 
-//    }
-//    while(query.next());
-
-    query.seek(start-2);
-
-    // 逐行获取查询结果，并将数据添加到 JSON 数组中
-    while (query.next() && query.at() < end) {
-        QJsonArray row;
-        for (int i = 0; i < columns; i++) {
-            row.append(query.value(i).toString());
         }
         table.append(row);
+
+        if(!page){//不分页显示
+            start=1;
+            pages=1;
+            end=rows;
+        }
+        if(pages>=1){
+            if(page>pages) page=pages-1;
+        }
+        query.seek(start-2);
+
+        // 逐行获取查询结果，并将数据添加到 JSON 数组中
+        while (query.next() && query.at() < end) {
+            QJsonArray row;
+            for (int i = 0; i < columns; i++) {
+                row.append(query.value(i).toString());
+            }
+            table.append(row);
+        }
     }
+
     return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,pages);
 }
 

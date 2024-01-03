@@ -50,14 +50,14 @@
      <item>
       <widget class="QPushButton" name="OkBtn">
        <property name="text">
-        <string>修改</string>
+        <string>完成</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="cancelBtn">
        <property name="text">
-        <string>关闭</string>
+        <string>取消</string>
        </property>
       </widget>
      </item>

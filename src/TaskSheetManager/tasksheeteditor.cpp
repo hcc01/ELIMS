@@ -96,7 +96,8 @@ void TaskSheetEditor::init()
     m_infoEditor.init();
     connect(&m_infoEditor,&testInfoEditor::accepted,[this](){//修改时，更新。添加时，需要在添加菜单里处理数据后更新。
         m_bTestInfoModified=true;
-        qDebug()<<"m_bTestInfoModified";
+        m_bMethodModified=false;//检测项目更改时，为了提醒用户重新做方法选择，这个强制把方法更改设为否。
+        qDebug()<<"m_bTestInfoModified=true";
         updateTestInfoView();
     });
     connect(m_MethodDlg,&MethodSelectDlg::accepted,[this](){//修改时，更新。添加时，需要在添加菜单里处理数据后更新。
@@ -194,11 +195,14 @@ void TaskSheetEditor::doSave()
                     }
                 }
             }
-            m_bMethodModified=true;//同时修改和保存方法表，保存后将方法修改标为非。
+//            m_bMethodModified=true;//同时修改和保存方法表，保存后将方法修改标为非。
+            if(!m_bMethodModified){
+                int a=QMessageBox::question(nullptr,"","检测到监测信息有变更，但检测方法未做更改，是否继续保存？");
+                if(a==QMessageBox::No) return;
+            }
         }
         if(m_bMethodModified){
             //更新方法
-            qDebug()<<"m_bMethodModified, saving methods";
             saveMethod();
         }
         if(sql.isEmpty()) {
@@ -298,22 +302,26 @@ bool TaskSheetEditor::saveMethod()
             bool error=false;
             MethodMorePtr mm=m_MethodDlg->getMethod(testTypeID,parameterID);//按检测类型和参数确认方法
             if(mm.isNull()) {
-                qDebug()<<QString("no mehtod find,参数：%1，类型%2").arg(info->monitoringParameters.at(info->parametersIDs.indexOf(parameterID))).arg(info->sampleType);
+                QMessageBox::information(nullptr,"保存方法时出错：",QString("no mehtod find,参数：%1(%2)，类型:%3(%4)").arg(info->monitoringParameters.at(info->parametersIDs.indexOf(parameterID))).arg(parameterID).arg(info->sampleType).arg(testTypeID));
                 return true;
             }
             if(mm->testMethodName.isEmpty()) continue;//没方法的项目，跳过
             values={mm->methodID,mm->testMethodName,mm->subpackage,mm->subpackageDesc,m_taskSheetID, testTypeID,parameterID};
 
+            qDebug()<<"正在保存方法";
             doSql(sql,[this,&error,mm](const QSqlReturnMsg&msg){
+                    qDebug()<<QString("数据处理中%1(%2)：").arg(mm->testMethodName).arg(mm->methodID),msg.result().toString();
                 if(msg.error()){
                     QMessageBox::information(nullptr,QString("更新方法%1(%2)时错误：").arg(mm->testMethodName).arg(mm->methodID),msg.result().toString());
                     error=true;
-                    emit sqlFinished();
+                    sqlFinished();
                     return ;
                 }
-                emit sqlFinished();
+                sqlFinished();
+                qDebug()<<"保存完成";
             },0,values);
-            waitForSql();
+            waitForSql("正在保存方法……");
+
             if(error) {
                 return false;
             }
@@ -366,7 +374,6 @@ void TaskSheetEditor::load(const QString &taskNum)
         m_userOpereate=true;
         sqlFinished();
     });
-//    m_loop.exec();
     waitForSql();
     //处理检测信息
     sql=QString("SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, standardName,standardNum, tableName, classNum, testFieldID from"
@@ -462,6 +469,11 @@ void TaskSheetEditor::load(const QString &taskNum)
             else{
                 methodTable.append({row.at(1),row.at(2),row.at(3),row.at(4).toInt()?"是":"否",row.at(5).toInt()?"是":"否",row.at(6)});
                 parametersRows[typeID][parameterID]=methodTable.count()-1;
+                MethodMore* mm=new MethodMore;
+                mm->testMethodName=row.at(3).toString();//这里用于方法选择时载入已选的方法，不用保存ID
+                mm->subpackage=row.at(5).toInt();
+                mm->subpackageDesc=row.at(6).toString();
+                m_MethodDlg->addMethod(typeID,parameterID,mm);//已选的方法，用于方法加载时，自动选用已经确认的方法。
             }
         }
         m_MethodDlg->showMethods(methodTable);
@@ -493,6 +505,7 @@ void TaskSheetEditor::reset()
 //    m_bSaved=false;
 //    ui->testInfoTableView->clear();
 //    m_mthds.clear();
+    m_status=0;
     m_testInfo.clear();
     ui->testInfoTableView->clear();
     m_isSaving=false;
@@ -510,6 +523,7 @@ void TaskSheetEditor::reset()
     ui->clientContactsBox->setCurrentText("");
     ui->clientAddrEdit->setText("");
     ui->clientContactsPhoneEdit->setText("");
+    m_MethodDlg->reset();
 }
 
 void TaskSheetEditor::updateTestInfoView()//在视图中更新检测信息
@@ -706,7 +720,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
         QMessageBox::information(this,"error","数据正在处理中，请稍候。");
         return;
     }
-    if(m_status!=0){//限制在创建阶段才能保存
+    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY){//限制在创建阶段才能保存
         QMessageBox::information(this,"error","任务单已提交，无法保存。");
         return;
     }
@@ -738,7 +752,8 @@ void TaskSheetEditor::on_saveBtn_clicked()
                     }
                     m_taskNum=QString("SST%1%2").arg(date).arg("001");
                     setWindowTitle("任务单："+m_taskNum);
-                    doSave();
+                    sqlFinished();
+//                    doSave();在这里保存会卡在等待界面
                 });
             }
             else{
@@ -753,15 +768,17 @@ void TaskSheetEditor::on_saveBtn_clicked()
                         m_isSaving=false;
                         return;
                     }
-                    doSave();
+//                    doSave();
+                    sqlFinished();
                 });
             }
         });
+        waitForSql();
+        doSave();
     }
     else{
         doSave();
     }
-
 }
 
 
@@ -855,11 +872,11 @@ void TaskSheetEditor::on_submitBtn_clicked()
         QMessageBox::information(nullptr,"error","请先保存任务单。");
         return;
     }
-    if(m_status!=0){
+    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY){
         QMessageBox::information(nullptr,"error","审核流程已经提交过了。");
         return;
     }
-    emit submitReview(m_taskSheetID);
+    emit submitReview(m_taskSheetID,m_taskNum);
     this->close();
 }
 

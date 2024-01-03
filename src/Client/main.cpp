@@ -83,5 +83,8 @@ int main(int argc, char *argv[])
     QObject::connect(quitAction, &QAction::triggered, &a, &QApplication::quit);
     QObject::connect(trayIcon,&QSystemTrayIcon::activated,&w,&MainWindow::show);
     a.setQuitOnLastWindowClosed(false);
+    QObject::connect(&w,&MainWindow::notice,[trayIcon](const QString&msg){
+        trayIcon->showMessage("Notification", msg, QSystemTrayIcon::Information, 0);
+    });
     return a.exec();
 }

@@ -28,9 +28,10 @@ signals:
     void Connected();
     void loginResult(int result);
     void changeSkin(int);
+    void notice(const QString&);//任务栏通知消息
 private:
-    TabWidgetBase *getTabWidget(const QString& widgetText)const;
-
+    TabWidgetBase *getTabWidget(const QString& widgetText)const;//模块的操作窗口
+    TabWidgetBase *getModule(const QString& widgetText);//主要用于流程处理等非交互操作的地方，如果有窗口，直接返回操作窗口。
 private slots:
     void sendData(const QJsonObject& json);
     void onNestMsg(netmsg_DataHeader* header);
@@ -62,6 +63,7 @@ private:
     bool isLogined;
     QDialog _waitDlg;
     CUser* m_user;
+    QHash<QString,TabWidgetBase*>m_modules;//模块集，对于非交互界面的模块操作，创建的模块放在这里。
 
 };
 #endif // MAINWINDOW_H

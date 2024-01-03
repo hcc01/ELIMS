@@ -87,11 +87,9 @@ MainWindow::MainWindow(QWidget *parent)
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
     if(todoUI){
         connect(todoUI,&ToDoUI::dealFLow,[this](const QFlowInfo&flowInfo,int operateFlag){
-            TabWidgetBase* tab=getTabWidget(flowInfo.tabName());
-            if(!tab){
-                QMessageBox::critical(nullptr,"error","无法获取模块窗口.");
-                return;
-            }
+            TabWidgetBase* tab=getModule(flowInfo.tabName());
+            qDebug()<<"接收到流程处理信息"<<flowInfo.object();
+            qDebug()<<"调用模块"<<tab<<tab->tabName();
             tab->dealProcess(flowInfo,operateFlag);
         });
     }
@@ -196,7 +194,7 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
     {
         QSqlReturnMsg jsCmd(json);
         QString tabText=jsCmd.tytle();
-        TabWidgetBase*w= getTabWidget(tabText);
+        TabWidgetBase*w= getModule(tabText);
         if(w) w->onSqlReturn(jsCmd);//返回信息的处理交由各窗口处理。
         else {
             if(jsCmd.error()){
@@ -287,7 +285,6 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
 
 void MainWindow::onOpenTab()
 {
-
     QPushButton* bt=static_cast<QPushButton*>(sender()) ;
     if(!bt) return;
     QString text=bt->text();
@@ -297,7 +294,11 @@ void MainWindow::onOpenTab()
             return;
         }
     }
-    TabWidgetBase *tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
+
+    TabWidgetBase *tab;
+    tab=m_modules.value(text);//如果模块里面有创建过，直接移到界面
+    m_modules[text]=nullptr;
+    if(!tab) tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
     if(!tab) {
         qDebug()<<"无法创建窗体："<<text;
         return;
@@ -320,6 +321,29 @@ TabWidgetBase *MainWindow::getTabWidget(const QString &widgetText) const
         if(ui->tabWidget->tabText(i)==widgetText) return static_cast<TabWidgetBase *>( ui->tabWidget->widget(i));
     }
     return nullptr;
+}
+
+TabWidgetBase *MainWindow::getModule(const QString &widgetText)
+{
+    TabWidgetBase *tab;
+    tab=getTabWidget(widgetText);//先确认下有没交互的模块窗口
+    if(tab) return tab;
+    tab= m_modules.value(widgetText);
+    if(tab) return tab;
+    //都没有，创建一个
+    tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(widgetText,this));
+    if(!tab) {
+        qDebug()<<"无法创建窗体："<<widgetText;
+        return nullptr;
+    }
+    tab->setUser(m_user);
+    tab->setTabName(widgetText);
+    connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
+        QJsonObject j=sqlCmd;
+        j["tytle"]=widgetText;//标识下处理窗口
+        sendData(j);
+    });
+    m_modules[widgetText]=tab;//加在模块列表里面
 }
 
 

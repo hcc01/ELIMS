@@ -3,9 +3,52 @@
 
 #include <QTableView>
 #include"mymodel.h"
+#include "qcombobox.h"
+#include "qstyleditemdelegate.h"
 #include<QAction>
 #include<QMenu>
 using ActionFuc = std::function<void()>;
+class ComboBoxDelegate : public QStyledItemDelegate {
+public:
+    ComboBoxDelegate(QTableView* view, const QStringList&items={}) : QStyledItemDelegate(view),m_items(items) {}
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+        QComboBox* editor = new QComboBox(parent);
+        QPair<int,int> p=QPair<int, int>(index.row(),index.column());
+
+        if(m_CellItems.contains(p)){
+            editor->addItems(m_CellItems.value(p));
+        }
+        else{
+            editor->addItems(m_items);
+        }
+
+        editor->setCurrentIndex(0);
+        return editor;
+    }
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
+        QString text = index.model()->data(index, Qt::EditRole).toString();
+        QComboBox* comboBox = static_cast<QComboBox*>(editor);
+        comboBox->setCurrentText(text);
+    }
+
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override {
+        QComboBox* comboBox = static_cast<QComboBox*>(editor);
+        model->setData(index, comboBox->currentText(), Qt::EditRole);
+    }
+
+    void setCellItems(int row,int column,QStringList items){//让不同单元格有不同的选择器.BUG: 当VIEW清空后，选择器还在！！！需要一个清空动作。
+        m_CellItems.insert(QPair<int, int>(row,column),items);
+    }
+    void clearCellItems(){m_CellItems.clear();}
+    QHash<QPair<int,int>,QStringList>cellItems()const {return m_CellItems;}
+private:
+    QStringList m_items;
+    QHash<QPair<int,int>,QStringList>m_CellItems;
+
+};
+
 class MyTableView : public QTableView
 {
     Q_OBJECT

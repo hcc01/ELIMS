@@ -9,6 +9,7 @@ MethodSelectDlg::MethodSelectDlg(TabWidgetBase *tabWiget) :
     m_methodLoad(false)
 {
     ui->setupUi(this);
+    ui->OkBtn->setDisabled(true);
     ui->tableView->setHeader({"检测类型","检测项目","检测方法","CMA资质","是否分包","分包原因"});
     m_methodBox=new ComboBoxDelegate(ui->tableView,{});
     ui->tableView->setItemDelegateForColumn(2,m_methodBox);
@@ -42,6 +43,13 @@ void MethodSelectDlg::showMethods(const QList<QList<QVariant> > &table)
     }
 }
 
+void MethodSelectDlg::reset()
+{
+    m_methodLoad=false;
+    m_methodBox->clearCellItems();
+    ui->OkBtn->setDisabled(true);
+}
+
 QList<QList<QVariant> > MethodSelectDlg::methodTable() const
 {
     return ui->tableView->data();
@@ -50,8 +58,9 @@ QList<QList<QVariant> > MethodSelectDlg::methodTable() const
 void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
 {
     if(m_methodLoad) return;
+    ui->OkBtn->setDisabled(false);
     m_methodLoad=true;
-    ui->tableView->clear();//先清空视图
+    ui->tableView->clear();//先清空视图，因为可能涉及项目改变
     m_methodBox->clearCellItems();//一定要清空方法数据
     QString sql;
     //根据检测信息，查找各参数的检测方法
@@ -63,9 +72,11 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
     int row=0;
     for(auto info:m_testInfo){
         testTypeID=info->testTypeID;//当前处理的检测类型
+        m_typeIDs[info->sampleType]=testTypeID;//保存下类型对应的id，用于后面从VIEW中识别样品类型ID
         int typeBit=-1;
+
         if(!typeBits.contains(testTypeID)){//新的检测类型，选择方法时需要确认适用范围，需要检索检测类型的位标识
-            m_typeIDs[info->sampleType]=testTypeID;//保存下类型对应的id，用于后面从VIEW中识别样品类型ID
+
             sql=QString("select bitNum from test_type where id=%1").arg(testTypeID);
             doSql(sql,[this,&typeBit](const QSqlReturnMsg&msg){//查找本任务单的检测类型和检测参数，合并相同的类型
                 if(msg.error()){
@@ -95,6 +106,9 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
 
         for(int i=0;i<info->parametersIDs.count();i++){//开始对每个项目选择方法(先保存的VIEW中)
             int parameterID=info->parametersIDs.at(i);//当前检测参数的ID
+            QString sampleType=info->sampleType;
+            QString parameter=info->monitoringParameters.at(i);
+            m_parameterIDs[testTypeID][parameter]=parameterID;//保存参数ID，用于后面从VIEW中识别参数ID
             if(allTypeParameters.value(testTypeID).contains(parameterID)){//当前类型的检测参数已经处理过了
 //                row++;//到底加不加？
                 int r=allTypeParameters.value(testTypeID).value(parameterID);
@@ -107,10 +121,8 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
             //开始查找合适的方法
             sql="select A.id, methodName, methodNumber, CMA, non_stdMethod,labPriority,typePriority ,coverage, extendCoverage from (select * from method_parameters where parameterID=?) as A "
                   "join (select * from test_methods where (coverage&? or extendCoverage&?) and testFieldID=? ) as B on A.methodID= B.id;";
-            QString sampleType=info->sampleType;
-            QString parameter=info->monitoringParameters.at(i);
-            m_parameterIDs[testTypeID][parameter]=parameterID;//保存参数ID，用于后面从VIEW中识别参数ID
-            doSql(sql,[this,row,sampleType,parameter,typeBit,&methodAppearedTimes,&methodScore](const QSqlReturnMsg&msg){//每个项目可能有多个方法，进行方法选择
+
+            doSql(sql,[this,row,sampleType,parameter,typeBit,&methodAppearedTimes,&methodScore,testTypeID,parameterID](const QSqlReturnMsg&msg){//每个项目可能有多个方法，进行方法选择
                 if(msg.error()){
                     QMessageBox::information(nullptr,"select method error",msg.result().toString());
                     emit sqlFinished();
@@ -129,6 +141,13 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                     m_methodIDs[method]=(row.at(0).toInt());//记录方法ID表，用于后面VIEW中识别方法ID
                     maps.insert(method,cma);
                     methodAppearedTimes[method]+=1;
+                    methodScore[method]=0;
+                    if(getMethod(testTypeID,parameterID)){
+                        if(method==getMethod(testTypeID,parameterID)->testMethodName){
+                            methodScore[method]+=1000;//用户确认的方法，设置为最优先
+                        }
+
+                    }
                     if(typeBit&row.at(7).toInt()) methodScore[method]+=20;//类型匹配，加20分
                     else if(!(typeBit&row.at(8).toInt())) methodScore[method]-=20;//类型不适用，-100分
                     int labPriority=row.at(5).toInt();
@@ -138,8 +157,9 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                 }
                 m_methodBox->setCellItems(row,2,methods);//将所有可选的方法加入选择框
                 ui->tableView->append({sampleType,parameter,"","","",""});//视图增加一行
-                ui->tableView->setMappingCell(row-1,3,row-1,2,maps);//设置关联单元格
-                ui->tableView->setCellFlag(row-1,2,QVariant::fromValue(methodToID));//记录方法ID映射，用以查找方法信息
+                ui->tableView->setMappingCell(row,3,row,2,maps);//设置关联单元格
+                qDebug()<<row-1<<maps;
+                ui->tableView->setCellFlag(row,2,QVariant::fromValue(methodToID));//记录方法ID映射，用以查找方法信息
 //                if(methods.count()) {//多个方法的情况
 //                    if(m_methodTable.count()>row&&m_methodTable.at(row-1).at(0)==sampleType&&m_methodTable.at(row-1).at(1)==parameter&&!m_methodTable.at(row-1).at(2).toString().isEmpty()){//如果之前有选择方法，使用之前的方法
 //                        ui->tableView->setData(row-1,2,m_methodTable.at(row-1).at(2));
@@ -168,13 +188,11 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                 continue;
             }
             std::sort(items.begin(),items.end(),[&methodScore,&methodAppearedTimes](const QString&a,const QString&b){
-                int t=methodAppearedTimes.value(a)-methodAppearedTimes.value(b)>0?1:-1;
+                int t=methodAppearedTimes.value(a)-methodAppearedTimes.value(b)>0?1:0;
                 return methodScore.value(a)+t*40>methodScore.value(b);
             });
             m_methodBox->setCellItems(it.key().first,it.key().second,items);
-            if(ui->tableView->value(it.key().first,it.key().second).toString().isEmpty()){
-                ui->tableView->setData(it.key().first,it.key().second,items.first());
-            }
+            ui->tableView->setData(it.key().first,it.key().second,items.first());//使用第一个方法
         }
     }
 }
@@ -185,10 +203,13 @@ void MethodSelectDlg::on_OkBtn_clicked()
     //保存方法到QHash<int,QHash<int,MethodMore>>m_methods【类型ID，【参数ID，方法信息】】
     auto table=ui->tableView->data();
     m_methods.clear();
+    qDebug()<<"table.count"<<table.count();
     for(int i=0;i<table.count();i++){
         int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
         int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
+
         QString methodName=ui->tableView->value(i,"检测方法").toString();
+                             qDebug()<<QString("正在保存%1-%2-%3。").arg(ui->tableView->value(i,0).toString().split("/").first()).arg(ui->tableView->value(i,"检测项目").toString()).arg(methodName)<<testTypeID<<parameterID;
         int methodID=m_methodIDs.value(methodName);
         MethodMore *mm=new MethodMore;
         mm->methodID=methodID;
@@ -197,7 +218,6 @@ void MethodSelectDlg::on_OkBtn_clicked()
         mm->subpackageDesc=ui->tableView->value(i,"分包原因").toString();
         addMethod(testTypeID,parameterID,mm);
     }
-    qDebug()<<m_methods;
     if(!m_methodLoad) this->hide();//没有加载方法，就没有改变方法。
     else accept();//accept会通知任方法有变更，保存时会保存方法。
 }

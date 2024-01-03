@@ -7,7 +7,7 @@ LabCapabilitiesManagerUI::LabCapabilitiesManagerUI(QWidget *parent) :
     ui(new Ui::LabCapabilitiesManagerUI)
 {
     ui->setupUi(this);
-    connect(&m_testTypeEdt,&TestTypeEditor::doSql,this,&TabWidgetBase::doSqlQuery);
+    m_testTypeEdt=new TestTypeEditor(this);
 }
 
 LabCapabilitiesManagerUI::~LabCapabilitiesManagerUI()
@@ -204,7 +204,8 @@ void LabCapabilitiesManagerUI::initMod()
 
 void LabCapabilitiesManagerUI::on_testTypeEditBtn_clicked()
 {
-    m_testTypeEdt.init();
-    m_testTypeEdt.show();
+    m_testTypeEdt->init();
+
+    m_testTypeEdt->show();
 }
 

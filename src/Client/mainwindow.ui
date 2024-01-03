@@ -57,6 +57,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="btnSubmited_2">
+          <property name="text">
+           <string>项目管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="btTaskSheet">
           <property name="text">
            <string>任务单管理</string>
@@ -64,9 +71,51 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="btTaskSheet_2">
+          <property name="text">
+           <string>采样任务管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btTaskSheet_3">
+          <property name="text">
+           <string>样品管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btTaskSheet_4">
+          <property name="text">
+           <string>分析任务管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btTaskSheet_5">
+          <property name="text">
+           <string>报告管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="btRMManage">
           <property name="text">
            <string>标准物质管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btRMManage_2">
+          <property name="text">
+           <string>设备管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btRMManage_3">
+          <property name="text">
+           <string>溯源管理</string>
           </property>
          </widget>
         </item>

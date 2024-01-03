@@ -38,6 +38,7 @@ public:
     virtual ~TabWidgetBase(){}
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
     virtual void dealProcess(const QFlowInfo&, int operateFlag);//处理流程事件
+    virtual bool pushProcess(QFlowInfo flowInfo, bool passed, const QString &comments);//推进流程
     virtual void initMod();//新增模块时初始化操作，建表等。
     virtual void initCMD(){}//初次调用模块窗口时需要进行的初始化操作。
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
@@ -47,10 +48,16 @@ public:
     CUser* user()const{return m_user;}
     QString tabName()const{return m_tabName;}
     void waitForSql(const QString&msg=QStringLiteral("数据处理中……"));
+    void notifySqlError(const QString&tytle,const QString&errorMsg){//用于查找出错时快速返回并自动发送查询完成信号：return notifySqlError();
+        QMessageBox::information(nullptr,tytle,errorMsg);
+        emit sqlFinished();
+    }
+    void sqlEnd();
 private:
 signals:
     void sendData(const QJsonObject&);
     void sqlFinished();
+    void processOk(bool);
 private:
     QString m_tabName;
     //保存流程数据的函数地址，在需要处理流程时，在服务器中保存编号，客户端根据编号对应处理函数。
@@ -67,8 +74,9 @@ public:
     void doSql(const QString&sql,DealFuc f=nullptr,int p=0,const QJsonArray&values={});
     CUser* user(){return m_tabWiget->user();}
     TabWidgetBase* tabWiget(){return m_tabWiget;}
-    void sqlFinished();
+
     void waitForSql(const QString&msg=QStringLiteral("数据处理中……"));
+    void sqlFinished();
 private:
     TabWidgetBase* m_tabWiget;
 

@@ -19,6 +19,7 @@ SOURCES += \
     ../Client/tabwigetbase.cpp \
     clientmanagerdlg.cpp \
     clineteditor.cpp \
+    contractreviewdlg.cpp \
     implementingstandardselectdlg.cpp \
     methodselectdlg.cpp \
     tasksheeteditor.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     TaskSheetManager_global.h \
     clientmanagerdlg.h \
     clineteditor.h \
+    contractreviewdlg.h \
     implementingstandardselectdlg.h \
     methodselectdlg.h \
     tasksheeteditor.h \
@@ -52,6 +54,7 @@ unix {
 FORMS += \
     clientmanagerdlg.ui \
     clineteditor.ui \
+    contractreviewdlg.ui \
     implementingstandardselectdlg.ui \
     methodselectdlg.ui \
     tasksheeteditor.ui \

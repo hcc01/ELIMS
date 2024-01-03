@@ -518,10 +518,10 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                         query.prepare("update method_parameters set subParameterIDs=:subParameterIDs, MDL=:MDL, unit=:unit, CMA=:CMA, LabMDL=:LabMDL, non_stdMethod=:non_stdMethod, labPriority=:labPriority, typePriority=:typePriority "
                                       "where id=:id;");
 
-                        bool CMA=false;
+                        int CMA=0;
                         int n=labParameterList.indexOf(parameter);
                         if(n>=0) {
-                            CMA=true;
+                            CMA=1;
                             labParameterList2.removeOne(parameter);
                         }
                         double mdl;

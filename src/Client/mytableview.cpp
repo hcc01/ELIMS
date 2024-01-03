@@ -21,6 +21,7 @@ MyTableView::MyTableView(QWidget *parent)
         m_contextMenu->exec(mapToGlobal(pos));
     });
     //    m_contextMenu->addAction(m_infoAction);
+
 }
 
 void MyTableView::init(const QVariant &data)
