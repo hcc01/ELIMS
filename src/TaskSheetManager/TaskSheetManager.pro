@@ -22,6 +22,7 @@ SOURCES += \
     contractreviewdlg.cpp \
     implementingstandardselectdlg.cpp \
     methodselectdlg.cpp \
+    reportmanagerui.cpp \
     tasksheeteditor.cpp \
     tasksheetui.cpp \
     testinfoeditor.cpp
@@ -41,6 +42,7 @@ HEADERS += \
     contractreviewdlg.h \
     implementingstandardselectdlg.h \
     methodselectdlg.h \
+    reportmanagerui.h \
     tasksheeteditor.h \
     tasksheetui.h \
     testinfoeditor.h
@@ -57,6 +59,7 @@ FORMS += \
     contractreviewdlg.ui \
     implementingstandardselectdlg.ui \
     methodselectdlg.ui \
+    reportmanagerui.ui \
     tasksheeteditor.ui \
     tasksheetui.ui \
     testinfoeditor.ui
@@ -71,3 +74,10 @@ CONFIG(debug,debug|release){
     TARGET = TaskSheetManager
 }
 INCLUDEPATH += $$PWD/../Client
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleuid
+else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
+
+INCLUDEPATH += $$PWD/../sqlPageControleUI
+DEPENDPATH += $$PWD/../sqlPageControleUI

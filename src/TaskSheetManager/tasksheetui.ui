@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_3">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
@@ -135,9 +135,18 @@
      </item>
     </layout>
    </item>
+   <item>
+    <widget class="SqlPageControleUI" name="pageCtrl" native="true"/>
+   </item>
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>SqlPageControleUI</class>
+   <extends>QWidget</extends>
+   <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>

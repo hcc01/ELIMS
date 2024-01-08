@@ -1,14 +1,15 @@
 #include "sqlpagecontroleui.h"
 #include"ui_pageControler.h"
 #include<QDebug>
-SqlPageControleUI::SqlPageControleUI(QWidget *parent):
-    QWidget(parent),
+SqlPageControleUI::SqlPageControleUI(QWidget *tab):
+    QWidget(tab),
     ui(new Ui::SqlPageControleUI),
-    m_currentPage(1)
+    m_currentPage(1),
+    m_dealFuc(nullptr)
 {
     ui->setupUi(this);
-    this->setVisible(false);
-
+//    this->setVisible(false);
+    m_sqlClass=(nullptr);
     ui->lineEdit->setValidator(&_vali);
 }
 
@@ -35,28 +36,111 @@ void SqlPageControleUI::setCurrentPage(int page)
     ui->currentPage->setText(QString::number(page));
 }
 
+void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, QJsonArray v, DealFuc f)
+{
+    m_sqlClass=tab;
+    m_sql=sql;m_currentPage=p;m_values=v;m_dealFuc=f;
+    qDebug()<<"数据库查询页面控件收到sql:"<<sql;
+    tab->doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"error",msg.errorMsg());
+                return;
+            }
+            int pages=msg.totalPage();
+            setTotalPage(pages);
+            qDebug()<<msg.jsCmd();
+            m_dealFuc(msg);
+        },p,v);
+}
+
+void SqlPageControleUI::updatePage()
+{
+    ui->currentPage->setText(QString::number(m_currentPage));
+    ui->totalPage->setText(QString::number(_totalPage));
+}
+
+void SqlPageControleUI::dealSqlReturn(const QSqlReturnMsg&msg)
+{
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"error",msg.errorMsg());
+                    return;
+                }
+                int pages=msg.totalPage();
+                setTotalPage(pages);
+                setCurrentPage(m_currentPage);
+                m_dealFuc(msg);
+
+}
 
 void SqlPageControleUI::on_btNext_clicked()
 {
+    qDebug()<<"on_btNext_clicked";
+    if(!m_sqlClass&&m_dealFuc){
+        qDebug()<<"error:未设定模块。";
+        return;
+    }
+    if(m_sql.isEmpty()){
+        qDebug()<<"errror:未初始化语句。";
+        return;
+    }
     if(!_totalPage) return;
     if(m_currentPage+1 >_totalPage) return;
     m_currentPage++;
-    emit pageChanged(m_sql,m_currentPage);
+
+    if(!m_dealFuc){
+        emit pageChanged(m_sql,m_currentPage);
+    }
+    else{
+        m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
+                dealSqlReturn(msg);
+                },m_currentPage,m_values);
+    }
 }
 
 void SqlPageControleUI::on_btPre_clicked()
 {
+    if(!m_sqlClass&&m_dealFuc){
+        qDebug()<<"error:未设定模块。";
+        return;
+    }
+    if(m_sql.isEmpty()){
+        qDebug()<<"errror:未初始化语句。";
+        return;
+    }
     if(!_totalPage) return;
     if(m_currentPage<=1) return;
     m_currentPage--;
-    emit pageChanged(m_sql,m_currentPage);
+    if(!m_dealFuc) {
+        emit pageChanged(m_sql,m_currentPage);
+    }
+    else{
+        m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
+                dealSqlReturn(msg);
+            },m_currentPage,m_values);
+    }
 }
 
 void SqlPageControleUI::on_btGo_clicked()
 {
+    if(!m_sqlClass&&m_dealFuc){
+        qDebug()<<"error:未设定模块。";
+        return;
+    }
+    if(m_sql.isEmpty()){
+        qDebug()<<"errror:未初始化语句。";
+        return;
+    }
     if(ui->lineEdit->text().isEmpty()) return;
     int p=ui->lineEdit->text().toUInt();
     if(p>_totalPage) return;
     m_currentPage=p;
-    emit pageChanged(m_sql,m_currentPage);
+    if(!m_dealFuc) {
+        emit pageChanged(m_sql,m_currentPage);
+    }
+    else{
+        m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
+                dealSqlReturn(msg);
+            },m_currentPage,m_values);
+
+    }
 }

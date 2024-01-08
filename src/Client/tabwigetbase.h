@@ -74,7 +74,7 @@ public:
     void doSql(const QString&sql,DealFuc f=nullptr,int p=0,const QJsonArray&values={});
     CUser* user(){return m_tabWiget->user();}
     TabWidgetBase* tabWiget(){return m_tabWiget;}
-
+    void setTabWidget(TabWidgetBase* tab){m_tabWiget=tab;}
     void waitForSql(const QString&msg=QStringLiteral("数据处理中……"));
     void sqlFinished();
 private:

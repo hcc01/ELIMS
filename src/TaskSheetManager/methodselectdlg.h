@@ -48,7 +48,7 @@ private slots:
 
 private:
     Ui::MethodSelectDlg *ui;
-    ComboBoxDelegate* m_methodBox;
+    ComboBoxDelegate* m_methodBox;//方法单元格
     bool m_methodLoad;
     QList<TestInfo*>m_testInfo;//保存任务单的监测信息，这里的TestInfo*是任务单中的变量，不能去删除
     QHash<QString,int>m_typeIDs;//类型-ID映射表

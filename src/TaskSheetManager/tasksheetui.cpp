@@ -79,6 +79,7 @@ TaskSheetUI::TaskSheetUI(QWidget *parent) :
     connect(&m_contractReviewDlg,&ContractReviewDlg::getTaskInfo,[this](){
         viewTaskSheet(m_contractReviewDlg.flowInfo().value("taskNum").toString());
     });
+    ui->pageCtrl->setTabWidget(this);
 }
 
 TaskSheetUI::~TaskSheetUI()
@@ -353,26 +354,39 @@ void TaskSheetUI::initCMD()//初始化和刷新
     ui->tableView->clear();
     QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
     if(user()->name()=="admin") sql="SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info ORDER BY createDate DESC;";
-    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+    DealFuc f=[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
                 return;
             }
             QList<QVariant> r=msg.result().toList();
+            ui->tableView->clear();
             for(int i=1;i<r.count();i++){
                 QList<QVariant>row=r.at(i).toList();
                 int status=row.at(6).toInt();
                 row[6]=StatusName.value(status);
-                ui->tableView->append(row);                
+                ui->tableView->append(row);
                 ui->tableView->setCellFlag(i-1,6,status);
             }
-        },1);
+            qDebug()<<msg.jsCmd();
+    };
+    ui->pageCtrl->startSql(this,sql,1,{},f);
+
+//    doSqlQuery(sql,f,1);
 }
 
 
 void TaskSheetUI::on_newSheetBtn_clicked()
 {
+
     TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::NewMode);
+    QString taskNum;
+    int row=ui->tableView->selectedRow();
+    if(row>=0) {
+        taskNum=ui->tableView->value(row,0).toString();
+        sheet->load(taskNum);
+    }
+
     sheet->show();
 }
 
@@ -453,7 +467,7 @@ TaskSheetEditor *TaskSheetUI::sheetEditorDlg(int openMode)
 //    return m_sheet;
     if(m_sheet) delete m_sheet;
     m_sheet=new TaskSheetEditor(this,openMode);
-    m_sheet->init();
+    if(openMode!=TaskSheetEditor::ViewMode) m_sheet->init();
     connect(m_sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     return m_sheet;
 }

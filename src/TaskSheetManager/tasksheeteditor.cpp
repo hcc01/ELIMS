@@ -134,7 +134,7 @@ void TaskSheetEditor::init()
 void TaskSheetEditor::doSave()
 {
 //保存任务单，需要保存采样检测任务表test_task_info、点位监测信息表site_monitoring_info、检测方法评审表task_methods、任务单状态表task_status
-    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY){//保存仅限于创建和修改状态(后续有其它需求再处理）
+    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//保存仅限于创建和修改状态(后续有其它需求再处理）
         QMessageBox::information(nullptr,"error","当前状态无法修改。");
         return;
     }
@@ -267,25 +267,30 @@ void TaskSheetEditor::doSave()
         doSql(sql,[this](const QSqlReturnMsg&msg){
                 if(msg.error()){
                     QMessageBox::information(this,"error",msg.result().toString());
+                    sqlFinished();
                     return;
                 }
+                sqlFinished();
+
+            },0,values);
+        waitForSql();
                 //保存完成后，改为修改模式，以便用户继续修改。
                 m_mode=EditMode;
-                if(saveMethod()) QMessageBox::information(nullptr,"","保存完成。");//保存方法在监测信息更新完后才能进行
                 //新任务单保存后，记录任务单ID
                 doSql(QString("select id from test_task_info where taskNum='%1'").arg(m_taskNum),[this](const QSqlReturnMsg&msg){
                     if(msg.error()){
                         QMessageBox::information(this,"查询任务单ID时出错",msg.result().toString());
                         return;
                     }
+                    qDebug()<<msg.result().toList();
                     if(msg.result().toList().count()!=2){
                         QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
                         return;
                     }
                      m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
                 });
+                if(saveMethod()) QMessageBox::information(nullptr,"","保存完成。");//保存方法在监测信息更新完后才能进行
 
-            },0,values);
     }
 }
 
@@ -332,14 +337,16 @@ bool TaskSheetEditor::saveMethod()
 
 void TaskSheetEditor::load(const QString &taskNum)
 {
+    qDebug()<<"load threadID:"<<QThread::currentThreadId();
     m_taskNum=taskNum;
     m_userOpereate=false;
     setWindowTitle("任务单："+m_taskNum);
     QString sql;
     sql=QString("SELECT contractNum, salesRepresentative, clientName, clientAddr, clientContact, clientPhone, inspectedEentityName, inspectedEentityContact, "
           "inspectedEentityPhone, inspectedProject, projectAddr, reportPurpos, reportPeriod, sampleDisposal, reprotCopies, methodSource, "
-                  "subpackage, otherRequirements, id,taskStatus ,creator from test_task_info where taskNum='%1'").arg(taskNum);
+                  "subpackage, otherRequirements, id,taskStatus ,creator from test_task_info where taskNum=?;");
     doSql(sql,[this](const QSqlReturnMsg&msg){
+         qDebug()<<"载入任务信息 threadID:"<<QThread::currentThreadId();
         if(msg.error()){
             QMessageBox::information(this,"载入任务信息时错误",msg.result().toString());
             emit sqlFinished();
@@ -373,16 +380,19 @@ void TaskSheetEditor::load(const QString &taskNum)
         m_createor=r.at(20).toString();
         m_userOpereate=true;
         sqlFinished();
-    });
-    waitForSql();
+    },0,{taskNum});
+    waitForSql("载入任务信息...");
     //处理检测信息
     sql=QString("SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, standardName,standardNum, tableName, classNum, testFieldID from"
                   "(SELECT testTypeID, sampleType, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, id from site_monitoring_info "
-                  "where taskSheetID=%1) as A "
-                  "left join implementing_standards on A.limitValueID = implementing_standards.id left join test_type on A.testTypeID= test_type.id;").arg(m_taskSheetID);
+                  "where taskSheetID=?) as A "
+                  "left join implementing_standards on A.limitValueID = implementing_standards.id left join test_type on A.testTypeID= test_type.id;");
+    qDebug()<<"m_taskSheetID"<<m_taskSheetID;
     doSql(sql,[this](const QSqlReturnMsg&msg){
+        qDebug()<<"处理检测信息";
         if(msg.error()){
             QMessageBox::information(this,"载入检测信息时错误",msg.result().toString());
+            sqlFinished();
             return;
         }
         QList<QVariant>r=msg.result().toList();
@@ -395,6 +405,7 @@ void TaskSheetEditor::load(const QString &taskNum)
             doSql(sql,[this, r,i, row](const QSqlReturnMsg&msg){
                 if(msg.error()){
                     QMessageBox::information(nullptr,"载入项目信息时错误",msg.result().toString());
+                    sqlFinished();
                     return;
                 }
                 QList<QVariant>parameters=msg.result().toList();
@@ -433,11 +444,14 @@ void TaskSheetEditor::load(const QString &taskNum)
                     ui->testInfoTableView->clear();
                     for(auto info:m_testInfo)
                         ui->testInfoTableView->append(info->infoList());
+
+                    sqlFinished();
                 }
             });
         }
 
-    });
+    },0,{m_taskSheetID});
+//    waitForSql("载入检测信息...");
     //加载方法
 
     sql=QString("SELECT A.testTypeID, sampleType, parameterName, testMethodName, CMA, subpackage, subpackageDesc,parameterID from "
@@ -446,6 +460,7 @@ void TaskSheetEditor::load(const QString &taskNum)
     doSql(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"载入方法信息时错误",msg.result().toString());
+            sqlFinished();
             return;
         }
         QList<QVariant>methods=msg.result().toList();
@@ -477,7 +492,9 @@ void TaskSheetEditor::load(const QString &taskNum)
             }
         }
         m_MethodDlg->showMethods(methodTable);
+        sqlFinished();
     });
+    waitForSql("载入方法信息...");
     //    m_bSaved=true;
 }
 
@@ -720,7 +737,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
         QMessageBox::information(this,"error","数据正在处理中，请稍候。");
         return;
     }
-    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY){//限制在创建阶段才能保存
+    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//限制在创建阶段才能保存
         QMessageBox::information(this,"error","任务单已提交，无法保存。");
         return;
     }
@@ -773,7 +790,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
                 });
             }
         });
-        waitForSql();
+        waitForSql("确认任务单号...");
         doSave();
     }
     else{

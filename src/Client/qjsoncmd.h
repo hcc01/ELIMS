@@ -214,7 +214,6 @@ public:
     void setValue(const QString&k,const QJsonValue&v){m_flowInfo[k]=v;}//一些其它设定
     QJsonValue value(const QString&key)const{return m_flowInfo.value(key);}
     void reset(){m_flowInfo={};}
-
 private:
     QJsonObject m_flowInfo;
 };

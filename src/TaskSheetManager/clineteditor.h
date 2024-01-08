@@ -1,6 +1,7 @@
 #ifndef CLINETEDITOR_H
 #define CLINETEDITOR_H
 
+
 #include <QWidget>
 
 namespace Ui {

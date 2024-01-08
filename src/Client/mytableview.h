@@ -1,6 +1,6 @@
 ﻿#ifndef MYTABLEVIEW_H
 #define MYTABLEVIEW_H
-
+#include<QDebug>
 #include <QTableView>
 #include"mymodel.h"
 #include "qcombobox.h"
@@ -9,11 +9,23 @@
 #include<QMenu>
 using ActionFuc = std::function<void()>;
 class ComboBoxDelegate : public QStyledItemDelegate {
+    Q_OBJECT
 public:
     ComboBoxDelegate(QTableView* view, const QStringList&items={}) : QStyledItemDelegate(view),m_items(items) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QComboBox* editor = new QComboBox(parent);
+        connect(editor,&QComboBox::currentTextChanged,[this, index](const QString&text){
+
+//            if(text==preText) return;
+//            if(preText.isEmpty()){
+//                preText=text;return;
+//            }
+//            qDebug()<<text<<preText<<index.row()<<index.column();
+
+            emit selectChanged(text,index);
+//            preText=text;
+        });
         QPair<int,int> p=QPair<int, int>(index.row(),index.column());
 
         if(m_CellItems.contains(p)){
@@ -43,9 +55,12 @@ public:
     }
     void clearCellItems(){m_CellItems.clear();}
     QHash<QPair<int,int>,QStringList>cellItems()const {return m_CellItems;}
+    QStringList boxItems(int row,int column)const{return m_CellItems.value(QPair<int, int>(row,column));}
+signals:
+    void selectChanged(const QString&text,const QModelIndex& )const;
 private:
     QStringList m_items;
-    QHash<QPair<int,int>,QStringList>m_CellItems;
+    QHash<QPair<int,int>,QStringList>m_CellItems;//保存不同单元格的选择项目列表
 
 };
 
@@ -58,6 +73,7 @@ public:
     void setHeader(const QStringList& header);    //设置列名，初始化表格。
     void addContextAction(const QString&action, ActionFuc f);//添加右键命令
     void append(const QList<QVariant> &);//添加一行数据
+    int rowCount()const{return m_model->rowCount();}
     QModelIndex getIndex(int row, int column);
     QList<QList<QVariant>> data()const;//获取全部数据
     QVariant value(int row,int column)const;

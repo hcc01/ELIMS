@@ -17,6 +17,8 @@
 #include"standardsmanager.h"
 #include"persnaldatamanagerui.h"
 #include<QTimer>
+#include<QThread>
+#include"reportmanagerui.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -47,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(LabCapabilitiesManagerUI,ui->btLabCapability);
     ADD_MODULE(StandardsManager,ui->standardsManagerBtn);
     ADD_MODULE(PersnalDataManagerUI,ui->btPersonalInfo);
+    ADD_MODULE(ReportManagerUI,ui->reportManagerBtn);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
@@ -87,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
     if(todoUI){
         connect(todoUI,&ToDoUI::dealFLow,[this](const QFlowInfo&flowInfo,int operateFlag){
+
             TabWidgetBase* tab=getModule(flowInfo.tabName());
             qDebug()<<"接收到流程处理信息"<<flowInfo.object();
             qDebug()<<"调用模块"<<tab<<tab->tabName();
@@ -149,10 +153,10 @@ void MainWindow::sendData(const QJsonObject &json)
 
 void MainWindow::onNestMsg(netmsg_DataHeader *header)
 {
-    if(_waitDlg.isModal()){
-        qDebug()<<"_waitDlg.isModal()";
-        _waitDlg.accept();
-    }
+//    if(_waitDlg.isModal()){
+//        qDebug()<<"_waitDlg.isModal()";
+//        _waitDlg.accept();
+//    }
     switch (header->cmd) {
     case CMD_S2C_HEART:
     {
@@ -326,6 +330,7 @@ TabWidgetBase *MainWindow::getTabWidget(const QString &widgetText) const
 TabWidgetBase *MainWindow::getModule(const QString &widgetText)
 {
     TabWidgetBase *tab;
+
     tab=getTabWidget(widgetText);//先确认下有没交互的模块窗口
     if(tab) return tab;
     tab= m_modules.value(widgetText);
@@ -344,6 +349,7 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
         sendData(j);
     });
     m_modules[widgetText]=tab;//加在模块列表里面
+    return tab;
 }
 
 

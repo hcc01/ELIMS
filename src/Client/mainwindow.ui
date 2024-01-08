@@ -92,7 +92,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="btTaskSheet_5">
+         <widget class="QPushButton" name="reportManagerBtn">
           <property name="text">
            <string>报告管理</string>
           </property>

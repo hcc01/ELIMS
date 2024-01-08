@@ -10,9 +10,9 @@ TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
 }
 
 void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
-{
-
+{    
     int flag=jsCmd.flag();
+    qDebug()<<QString("收到sql处理结果，处理函数ID：%1").arg(flag);
     auto func = m_fucMap.value(flag);
     m_fucMap.remove(flag);//使用完后直接删除，避免越来越多
     if (func) {
@@ -130,6 +130,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
     if(bindValues.count()){
         cmd.bindValue(bindValues);
     }
+    qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2").arg(sql).arg(flag);
     m_fucMap.insert(flag,f);//标识下处理结果返回的函数
     flag++;
 

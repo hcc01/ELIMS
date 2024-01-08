@@ -12,7 +12,31 @@ MethodSelectDlg::MethodSelectDlg(TabWidgetBase *tabWiget) :
     ui->OkBtn->setDisabled(true);
     ui->tableView->setHeader({"检测类型","检测项目","检测方法","CMA资质","是否分包","分包原因"});
     m_methodBox=new ComboBoxDelegate(ui->tableView,{});
-    ui->tableView->setItemDelegateForColumn(2,m_methodBox);
+//    ui->tableView->setItemDelegateForColumn(2,m_methodBox);这个在重新加载方法后设置，不然没数据，会出现原方法点击后消失的问题。
+    //当用户改变方法时，检查其它项目是否也存在这种方法并确认是否同时改变
+    connect(m_methodBox,&ComboBoxDelegate::selectChanged,[this](const QString&text,const QModelIndex& index){
+        QString preText=ui->tableView->value(index.row(),index.column()).toString();
+        if(preText==text) return;
+        qDebug()<<QString("%1 -> %2").arg(preText).arg(text);
+        int n=0;
+        for(int i=0;i<ui->tableView->rowCount();i++){
+            if(ui->tableView->value(i,2).toString()==preText&&m_methodBox->boxItems(i,2).contains(text)) {
+                n++;
+            }
+            if(n==2) break;
+        }
+        qDebug()<<n;
+        if(n==2){
+            int a=QMessageBox::question(nullptr,"","是否应用到其它项目？");
+            if(a==QMessageBox::Yes){
+                for(int i=0;i<ui->tableView->rowCount();i++){
+                    if(ui->tableView->value(i,2).toString()==preText&&m_methodBox->boxItems(i,2).contains(text)) {
+                        ui->tableView->setData(i,2,text);
+                    }
+                }
+            }
+        }
+    });
     ComboBoxDelegate* subpackageEditor=new ComboBoxDelegate(ui->tableView,{"否","是"});
     ui->tableView->setItemDelegateForColumn(4,subpackageEditor);
     ui->tableView->setEditableColumn(2);
@@ -61,6 +85,7 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
     ui->OkBtn->setDisabled(false);
     m_methodLoad=true;
     ui->tableView->clear();//先清空视图，因为可能涉及项目改变
+    ui->tableView->setItemDelegateForColumn(2,m_methodBox);
     m_methodBox->clearCellItems();//一定要清空方法数据
     QString sql;
     //根据检测信息，查找各参数的检测方法
