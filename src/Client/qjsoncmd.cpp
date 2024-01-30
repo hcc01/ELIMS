@@ -82,7 +82,13 @@ QVariant QSqlReturnMsg::result() const
 
 QList<QList<QVariant> > QSqlReturnMsg::table() const
 {
-    QList<QList<QVariant>>table=result().value<QList<QList<QVariant>>>();
+    QList<QVariant> row = result().toList();
+    QList<QList<QVariant>> table;
+
+    foreach (const QVariant& variant, row) {
+        QList<QVariant> innerList = variant.toList();
+        table.append(innerList);
+    }
     table.removeFirst();
     return table;
 }

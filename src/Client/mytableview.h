@@ -85,11 +85,13 @@ public:
     void setCellFlag(int row,int colunm,const QVariant &value);
     int selectedRow()const;//当前选中的行
     void setEditableColumn(int colunm);//设置可编辑的列
+    void setEdiableColumns(QList<int>columns){m_model->setEditableColumns(columns);}
     void setMappingCell(int row, int column, int relatedToRow, int relatedTocolumn, QHash<QString, QVariant> relatedData);//设置单元格的数据关联到另一单元格
     void deleteRow(int row);
 signals:
     void info(const QList<QVariant>&);//发送行数据（这个是用于任务单显示监测信息）
     void rowChanged(int row);
+    void dataChanged(int row,int column,const QVariant& value);
 private:
     MyModel* m_model;
     QAction* m_removeAction;

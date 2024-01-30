@@ -15,6 +15,9 @@ class TaskSheetEditor : public QMainWindow,public SqlBaseClass
     Q_OBJECT
 
 public:
+    enum{
+        SamplingTest,DeliveryTest
+    };
     explicit TaskSheetEditor( TabWidgetBase* tabWiget,int openMode=NewMode);
     ~TaskSheetEditor();
     void init();
@@ -25,9 +28,11 @@ public:
     void setOpenMode(int mode);
     void reset();
     void updateTestInfoView();
+    void setEntrustType(bool deliveryTest=true);
+    void closeEvent(QCloseEvent *event)override;
 private:
 signals:
-    void submitReview(int, const QString&);
+    void submitReview(int, const QString&,bool DeliveryTest);
 private slots:
     void on_inspectedComBox_currentIndexChanged(int index);
 
@@ -59,29 +64,15 @@ private slots:
 
     void on_submitBtn_clicked();
 
-    void on_contractEdit_editingFinished();
-
     void on_salesRepresentativeBox_currentTextChanged(const QString &arg1);
 
     void on_reportPurposEdit_currentTextChanged(const QString &arg1);
 
     void on_clientBox_currentTextChanged(const QString &arg1);
 
-    void on_clientAddrEdit_editingFinished();
-
-    void on_clientContactsPhoneEdit_editingFinished();
-
     void on_inspectedComBox_currentTextChanged(const QString &arg1);
 
-    void on_inspectedAddrEdit_editingFinished();
-
     void on_inspectedContactsBox_currentTextChanged(const QString &arg1);
-
-    void on_inspectedPhoneEidt_editingFinished();
-
-    void on_projectNameEdit_editingFinished();
-
-    void on_projectAddrEdit_editingFinished();
 
     void on_reportPeriodBox_textChanged(const QString &arg1);
 
@@ -93,7 +84,33 @@ private slots:
 
     void on_subpackageBox_currentTextChanged(const QString &arg1);
 
-    void on_otherRequirementsEdit_editingFinished();
+    void on_sampleSourceBox_currentIndexChanged(int index);
+
+    void on_addClientAction_triggered();
+
+    void on_ClientEditBtn_clicked();
+
+    void on_ClientEditCancelBtn_clicked();
+
+    void on_ClientEditAction_triggered();
+
+    void on_addContactBtn_clicked();
+
+    void on_otherRequirementsEdit_textChanged(const QString &arg1);
+
+    void on_projectAddrEdit_textChanged(const QString &arg1);
+
+    void on_projectNameEdit_textChanged(const QString &arg1);
+
+    void on_inspectedPhoneEidt_textChanged(const QString &arg1);
+
+    void on_inspectedAddrEdit_textChanged(const QString &arg1);
+
+    void on_clientAddrEdit_textChanged(const QString &arg1);
+
+    void on_clientContactsPhoneEdit_textChanged(const QString &arg1);
+
+    void on_contractEdit_textChanged(const QString &arg1);
 
 private:
     Ui::TaskSheetEditor *ui;
@@ -119,6 +136,7 @@ private:
     QHash<QString,int>m_testTypeIDs;//类型映射表
     QHash<int,QHash<QString,int>>m_parameterIDs;//所有类型的参数ID表;
     QString m_createor;//记录录单员(暂时没用了）
+    int m_copiedRow;//用于复制粘贴
 };
 
 #endif // TASKSHEETEDITOR_H

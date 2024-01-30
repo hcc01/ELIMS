@@ -73,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect(a,&QAction::triggered,this,&MainWindow::onSkinChanged);
     }
     //根据权限过滤模块
+    qDebug()<<m_user->name()<<m_user->phone()<<m_user->position();
     if(m_user->name()!="admin") for(int i=0;i<ui->toolBox->count();i++){
         for(auto w:ui->toolBox->widget(i)->findChildren<QWidget*>()){
             w->setVisible(false);
@@ -97,6 +98,8 @@ MainWindow::MainWindow(QWidget *parent)
             tab->dealProcess(flowInfo,operateFlag);
         });
     }
+
+    loadUser();//登录返回人员名和职位，其它人员信息在这里载入
 }
 
 MainWindow::~MainWindow()
@@ -352,6 +355,15 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
     return tab;
 }
 
+void MainWindow::loadUser()//在我在待办模块中操作
+{
+    ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
+    qDebug()<<" ui->tabWidget->count()"<< ui->tabWidget->count();
+    if(!todoUI) qDebug()<<"error:todoUI is 0";
+    return;
+    todoUI->loadUser(m_user);
+}
+
 
 void MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
@@ -431,7 +443,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版v0.110");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.2.3");
 }
 
 

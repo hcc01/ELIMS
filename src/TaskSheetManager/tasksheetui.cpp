@@ -4,37 +4,21 @@
 #include<QMessageBox>
 #include<qexcel.h>
 #include"contractreviewdlg.h"
+#include<QInputDialog>
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::TaskSheetUI),
     m_sheet(nullptr)
 {
     ui->setupUi(this);
-    ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态"});
+    ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态","委托类型"});
     ui->tableView->addContextAction("编辑",[this](){
 
-        QString taskNum;
-        int row=ui->tableView->selectedRow();
-        if(row<0) return;
-        int status=ui->tableView->cellFlag(row,6).toInt();
-        if(user()->name()!=ui->tableView->value(row,1).toString()) return;//非本人不可编辑
-        qDebug()<<status;
-        if(status!=CREATE&&status!=MODIFY) {
-            QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
-            return;//提交审核后，任务单锁定不能编辑
-        }
-        taskNum=ui->tableView->value(row,0).toString();
-        TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::EditMode);
-        sheet->load(taskNum);
-        sheet->show();        
+        on_tasksheetEditBtn_clicked();
     });
     ui->tableView->addContextAction("查看",[this](){
-        QString taskNum;
-        int row=ui->tableView->selectedRow();
-        if(row<0) return;
+        on_tasksheetViewBtn_clicked();
 
-        taskNum=ui->tableView->value(row,0).toString();
-        viewTaskSheet(taskNum);
 //        connect(sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     });
     //合同评审的处理信号
@@ -227,6 +211,7 @@ void TaskSheetUI::initMod()
            "clientPhone varchar(32),"
            "inspectedEentityID int, "   //受检单位ID
            "inspectedEentityName VARCHAR(255),"
+          "inspectedEentityAddr VARCHAR(255),"
            "inspectedEentityContact VARCHAR(32),"
            "inspectedEentityPhone VARCHAR(32),"
            "inspectedProject  VARCHAR(255), "    //项目名称，
@@ -242,6 +227,10 @@ void TaskSheetUI::initMod()
            "taskStatus  int, "          //任务状态
            "creator  varchar(32),"//创建人
           "createDate datetime, "//创建时间
+          "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
+          "delReason varchar(255),"//删除原因
+          "noteMsg varchar(255),"//备忘信息
+          "sampleSource TINYINT NOT NULL DEFAULT 0,"//样品来源（采样/送样）
           "FOREIGN KEY (clientID) REFERENCES client_info (id), "
            "FOREIGN KEY (inspectedEentityID) REFERENCES client_info (id)"
            ");";
@@ -270,6 +259,7 @@ void TaskSheetUI::initMod()
         }
     });
 
+
     //点位监测项目信息
     sql="CREATE TABLE IF NOT EXISTS site_monitoring_info("
            "id int AUTO_INCREMENT primary key, "
@@ -282,7 +272,12 @@ void TaskSheetUI::initMod()
            "samplingPeriod int not null default 1, "    //监测周期，
            "limitValueID int, "         //限值ID
            "remark  VARCHAR(255), "          //备注
-           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          //送样的相关信息
+          "sampleName varchar(255), "//样品名称
+          "sampleDesc varchar(255), "//样品状态
+          "sampleCount int not null default 1, "//样品数量
+
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
            "FOREIGN KEY (testTypeID) REFERENCES test_type (id) "
 //           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
            ");";
@@ -352,8 +347,8 @@ void TaskSheetUI::initMod()
 void TaskSheetUI::initCMD()//初始化和刷新
 {
     ui->tableView->clear();
-    QString sql=QString("SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info where creator='%1' ORDER BY createDate DESC;").arg(user()->name());
-    if(user()->name()=="admin") sql="SELECT taskNum, creator, salesRepresentative, clientName, inspectedEentityName, inspectedProject, taskStatus from test_task_info ORDER BY createDate DESC;";
+    QString sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus , sampleSource from (select * from test_task_info where creator='%1' and deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;").arg(user()->name());
+    if(user()->name()=="admin") sql="SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus ,sampleSource from (select * from test_task_info where deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;";
     DealFuc f=[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
@@ -365,6 +360,10 @@ void TaskSheetUI::initCMD()//初始化和刷新
                 QList<QVariant>row=r.at(i).toList();
                 int status=row.at(6).toInt();
                 row[6]=StatusName.value(status);
+                if(row.at(7).toBool()){
+                    row[7]="送样检测";
+                }
+                else row[7]="采样检测";
                 ui->tableView->append(row);
                 ui->tableView->setCellFlag(i-1,6,status);
             }
@@ -390,7 +389,7 @@ void TaskSheetUI::on_newSheetBtn_clicked()
     sheet->show();
 }
 
-void TaskSheetUI::submitReview(int sheetID,const QString&taskNum)
+void TaskSheetUI::submitReview(int sheetID,const QString&taskNum,bool DeliveryTest)
 {
 
     QFlowInfo flowInfo("任务单审核",tabName());
@@ -398,7 +397,8 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum)
     flowInfo.setValue("taskNum",taskNum);//标记
     flowInfo.setNode(REVIEW);//
     flowInfo.setBackNode(MODIFY);
-    flowInfo.setNextNode(SCHEDULING);
+    if(DeliveryTest) flowInfo.setNextNode(TESTING);//送样分析，直接到分析节点
+    else flowInfo.setNextNode(SCHEDULING);//采样分析，下一步采样安排
     QList<int>operateorIDs;//操作人员的ID列表
     //找到任务单审核人员，由技术负责人或质量负责人或实验室主管负责审核任务单
     doSqlQuery("select id from (select name from users where position & ?) as A left join sys_employee_login as B on A.name=B.name ;",[this,&operateorIDs](const QSqlReturnMsg&msg){
@@ -413,7 +413,7 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum)
         }
         emit sqlFinished();
     },0,{CUser::TechnicalManager | CUser::QualityManager | CUser::LabSupervisor});
-    waitForSql();
+    waitForSql("正在处理操作人员……");
     if(!operateorIDs.count()){
         QMessageBox::information(nullptr,"添加操作人员时出错：","未获取到有效的可操作人员。");
         return;
@@ -433,7 +433,7 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum)
         }
         emit sqlFinished();
     },0,{sheetID,REVIEW,flowID});
-    waitForSql();
+    waitForSql("正在创建审批流程……");
     updateTaskStatus(sheetID,REVIEW);
     initCMD();
 }
@@ -498,5 +498,71 @@ void TaskSheetUI::on_refleshBtn_clicked()
 void TaskSheetUI::doContractReview(const QFlowInfo &flowInfo, const QString &record, const QString &comments, bool passed)
 {
 
+}
+
+
+bool TaskSheetUI::on_tasksheetEditBtn_clicked()//编辑任务单
+{
+    QString taskNum;
+    int row=ui->tableView->selectedRow();
+    if(row<0) return false;
+    int status=ui->tableView->cellFlag(row,6).toInt();
+    if(user()->name()!=ui->tableView->value(row,1).toString()) return false;//非本人不可编辑
+    qDebug()<<status;
+    if(status!=CREATE&&status!=MODIFY) {
+        QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
+        return false;//提交审核后，任务单锁定不能编辑
+    }
+    taskNum=ui->tableView->value(row,0).toString();
+    TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::EditMode);
+    sheet->load(taskNum);
+    sheet->show();
+    return true;
+}
+
+
+void TaskSheetUI::on_tasksheetViewBtn_clicked()
+{
+    QString taskNum;
+    int row=ui->tableView->selectedRow();
+    if(row<0) return;
+
+    taskNum=ui->tableView->value(row,0).toString();
+    viewTaskSheet(taskNum);
+}
+
+
+void TaskSheetUI::on_tableView_doubleClicked(const QModelIndex &index)
+{
+    if(!on_tasksheetEditBtn_clicked()) on_tasksheetViewBtn_clicked();
+}
+
+
+void TaskSheetUI::on_deleteBtn_clicked()
+{
+    QString taskNum;
+    int row=ui->tableView->selectedRow();
+    if(row<0) return ;
+    int status=ui->tableView->cellFlag(row,6).toInt();
+    if(user()->name()!=ui->tableView->value(row,1).toString()) return ;//非本人不可编辑
+    qDebug()<<status;
+    if(status!=CREATE&&status!=MODIFY) {
+        QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
+        return ;//提交审核后，任务单锁定不能编辑
+    }
+    taskNum=ui->tableView->value(row,0).toString();
+    int a=QMessageBox::question(nullptr,"",QString("确认删除任务单%1").arg(taskNum));
+    if(a!=QMessageBox::Yes) return;
+    QString reason=QInputDialog::getText(nullptr,"","请输入删除原因");
+    QString sql;
+    sql="update test_task_info set deleted=1, delReason=? where taskNum=?";
+    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"删除任务单时出错：",msg.errorMsg());
+            return;
+        }
+        initCMD();
+    },0,{reason,taskNum});
+    return ;
 }
 

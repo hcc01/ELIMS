@@ -25,8 +25,12 @@ class WaitDlg:public QDialog{
 public:
     explicit WaitDlg(QWidget *parent = nullptr);
     void setMsg(const QString&msg){m_msg->setText(msg);}
+    void wait(){m_execFlag++;qDebug()<<"msg:"<< m_msg->text() <<"waitCount:"<<m_execFlag;exec();}
+    void end(){if(!m_execFlag) return;m_execFlag--;if(!m_execFlag) accept();}
+
 private:
     QLabel* m_msg;
+    int m_execFlag;
 };
 
 class TabWidgetBase : public QWidget
@@ -50,13 +54,15 @@ public:
     void waitForSql(const QString&msg=QStringLiteral("数据处理中……"));
     void notifySqlError(const QString&tytle,const QString&errorMsg){//用于查找出错时快速返回并自动发送查询完成信号：return notifySqlError();
         QMessageBox::information(nullptr,tytle,errorMsg);
-        emit sqlFinished();
+//        emit sqlFinished();
+        sqlEnd();
     }
     void sqlEnd();
+    void sqlFinished(){sqlEnd();};
 private:
 signals:
     void sendData(const QJsonObject&);
-    void sqlFinished();
+//    void sqlFinished();
     void processOk(bool);
 private:
     QString m_tabName;

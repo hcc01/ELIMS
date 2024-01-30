@@ -6,7 +6,7 @@
 TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
 {
     qDebug()<<m_tabName;
-    connect(this,&TabWidgetBase::sqlFinished,&m_dlg,&QDialog::accept);
+//    connect(this,&TabWidgetBase::sqlFinished,&m_dlg,&QDialog::accept);
 }
 
 void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
@@ -33,14 +33,14 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
 {
     int flowID=flowInfo.flowID();
     qDebug()<<flowInfo.object();
-    int taskSheetID=flowInfo.value("taskSheetID").toInt();
+
     int node=flowInfo.node();
     int backNode=flowInfo.backNode();
     int nextNode=flowInfo.nextNode();
     //考虑到有多人审核的情况，先检查下是否已经被其它人处理
     //目前先不处理需要多人共同审批的情况
     QString sql;
-    sql="select id from flow_records where id=? and status=0;";
+    sql="select * from flow_records where id=? and status=0;";//确认这条流程还未完成审批
     bool ok=false;
     QJsonArray values;
     values.append(flowID);
@@ -50,7 +50,8 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
         }
         ok=msg.result().toList().count()==2;
         qDebug()<<msg.result();
-        emit sqlFinished();
+//        emit sqlFinished();
+        sqlEnd();
     },0,values);
     waitForSql();
     if(!ok){
@@ -60,25 +61,21 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
     }
 //    if(passed){
 //        QString sql="update flow_records set operatorCountPassed=operatorCountPassed+1 where id=? and status=0;";//通过人数+1；0为待审核状态，如果没有，说明已经审核完成
-        sql="update flow_records set status=? where id=? ;";//通过人数+1；0为待审核状态，如果没有，说明已经审核完成
+        sql="update flow_records set status=? where id=? ;";//状态1为通过，2为驳回
 
     values={passed?1:2,flowID};
-        qDebug()<<values;
-        //检查是否全部通过
         ok=false;
-//        sql="update flow_records set status=1 where id=? and operatorCountPassed=operatorCountNeeded;";
         doSqlQuery(sql,[this,&ok](const QSqlReturnMsg&msg){
             if(msg.error()){
                 return notifySqlError("更新流程审核记录出错",msg.result().toString());
             }
             ok=msg.numRowsAffected();
-            qDebug()<<"msg.numRowsAffected();"<<msg.numRowsAffected();
             qDebug()<<msg.result();
-            emit sqlFinished();
+            sqlEnd();
         },0,values);
         waitForSql();
         if(!ok) {
-            QMessageBox::information(nullptr,"取消其它审批人时出错：","");
+            QMessageBox::information(nullptr,"","更新流程审核记录出错，0条修改成功");
             return false;
         }
             //流程处理完成
@@ -86,7 +83,7 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
             //通知发起人审批结果
 
             //对于多人审批的，检查流程是否审批完成，如果完成，则取消其它人的审批。(直接删除数据）
-            sql="delete from flow_operate_records  where flowID=? and operateStatus=0 and (select status from flow_records where id=?)=1; ";
+            sql="delete from flow_operate_records  where flowID=? and operateStatus=0 and (select status from flow_records where id=?)!=0; ";
             values={flowID,flowID};
             doSqlQuery(sql, [](const QSqlReturnMsg&msg){
                 if(msg.error()){
@@ -98,8 +95,8 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
 
 
       //更新操作记录
-        sql="update flow_operate_records set operateStatus=? ,operateComments=?, operateTime=NOW() where operateStatus=0 and operatorID=(select id from sys_employee_login where name=?);";
-        values={passed?1:2,comments,user()->name()};
+        sql="update flow_operate_records set operateStatus=? ,operateComments=?, operateTime=NOW() where operateStatus=0 and operatorID=(select id from sys_employee_login where name=?) and flowID=?;";
+        values={passed?1:2,comments,user()->name(),flowID};
 
             doSqlQuery(sql, [](const QSqlReturnMsg&msg){
                 if(msg.error()){
@@ -130,7 +127,16 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
     if(bindValues.count()){
         cmd.bindValue(bindValues);
     }
-    qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2").arg(sql).arg(flag);
+    QString sqlinfo=sql;
+    int p=sqlinfo.indexOf("?");
+    int i=0;
+    while(p>0){
+        sqlinfo.replace(p,1,bindValues.at(i).toVariant().toString());
+        p=sqlinfo.indexOf("?");
+        i++;
+    }
+    qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2").arg(sqlinfo).arg(flag);
+
     m_fucMap.insert(flag,f);//标识下处理结果返回的函数
     flag++;
 
@@ -156,10 +162,12 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"新建流程出错：",msg.result().toString());
-            emit sqlFinished();
+//            emit sqlFinished();
+            sqlEnd();
             return;
         }
-        emit sqlFinished();
+//        emit sqlFinished();
+        sqlEnd();
     },0,values);
     waitForSql();
 
@@ -168,17 +176,20 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
     doSqlQuery(sql,[this, &ret](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"获取流程ID出错：",msg.result().toString());
-            emit sqlFinished();
+//            emit sqlFinished();
+            sqlEnd();
             return;
         }
         QList<QVariant>r=msg.result().toList();
         if(r.count()!=2){
             QMessageBox::information(nullptr,"获取流程ID出错：","无法获取ID。");
-            emit sqlFinished();
+//            emit sqlFinished();
+            sqlEnd();
             return;
         }
         ret=r.at(1).toList().first().toInt();
-        emit sqlFinished();
+//        emit sqlFinished();
+        sqlEnd();
     });
     waitForSql();
     //通知操作人员待办消息
@@ -189,12 +200,15 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
 void TabWidgetBase::waitForSql(const QString &msg)
 {
     m_dlg.setMsg(msg);
-    m_dlg.exec();
+//    m_dlg.exec();
+    m_dlg.wait();
+
 }
 
 void TabWidgetBase::sqlEnd()
 {
-    m_dlg.accept();
+//    m_dlg.accept();
+    m_dlg.end();
 }
 
 
@@ -221,7 +235,7 @@ void SqlBaseClass::waitForSql(const QString &msg)
 }
 
 
-WaitDlg::WaitDlg(QWidget *parent): QDialog(parent)
+WaitDlg::WaitDlg(QWidget *parent): QDialog(parent),m_execFlag(0)
 {
     setWindowFlags(Qt::FramelessWindowHint);
     setFixedSize(200,20);

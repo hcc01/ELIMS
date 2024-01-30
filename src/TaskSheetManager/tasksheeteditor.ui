@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0,0,0,1">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0,0,0,1,0,0">
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
@@ -81,6 +81,27 @@
         </item>
        </widget>
       </item>
+      <item>
+       <widget class="QLabel" name="label_23">
+        <property name="text">
+         <string>委托方式：</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="sampleSourceBox">
+        <item>
+         <property name="text">
+          <string>采样检测</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>送样检测</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -89,6 +110,16 @@
        <string>委托单位信息</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1,0,1">
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="clientAddrEdit">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
@@ -96,15 +127,8 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>委托单位地址：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="3">
-        <widget class="QLineEdit" name="clientAddrEdit">
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="clientContactsPhoneEdit">
          <property name="enabled">
           <bool>true</bool>
          </property>
@@ -120,23 +144,6 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>委托单位联系电话：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="3">
-        <widget class="QLineEdit" name="clientContactsPhoneEdit">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="readOnly">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="1">
         <widget class="MyComboBox" name="clientBox">
          <property name="editable">
@@ -144,10 +151,45 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>委托单位联系电话：</string>
+         </property>
+        </widget>
+       </item>
        <item row="1" column="1">
         <widget class="QComboBox" name="clientContactsBox">
          <property name="editable">
           <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>委托单位地址：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QPushButton" name="ClientEditBtn">
+         <property name="text">
+          <string>确认添加</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QPushButton" name="ClientEditCancelBtn">
+         <property name="text">
+          <string>取消</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="addContactBtn">
+         <property name="text">
+          <string>添加新联系人</string>
          </property>
         </widget>
        </item>
@@ -160,15 +202,50 @@
        <string>受检单位信息</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="2" column="3">
-        <widget class="QLineEdit" name="inspectedPhoneEidt">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="readOnly">
-          <bool>false</bool>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBox">
+         <property name="text">
+          <string>与委托单位一致</string>
          </property>
         </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>受检单位地址：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_11">
+         <property name="text">
+          <string>项目名称：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QComboBox" name="inspectedContactsBox">
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>受检单位联系电话：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>项目地址：</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="3">
+        <widget class="QLineEdit" name="projectAddrEdit"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_8">
@@ -180,8 +257,8 @@
        <item row="3" column="1">
         <widget class="QLineEdit" name="projectNameEdit"/>
        </item>
-       <item row="1" column="3">
-        <widget class="QLineEdit" name="inspectedAddrEdit">
+       <item row="2" column="3">
+        <widget class="QLineEdit" name="inspectedPhoneEidt">
          <property name="enabled">
           <bool>true</bool>
          </property>
@@ -190,10 +267,13 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>受检单位地址：</string>
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="inspectedAddrEdit">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -207,48 +287,10 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>项目地址：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2">
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>受检单位联系电话：</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_6">
          <property name="text">
           <string>受检单位名称：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_11">
-         <property name="text">
-          <string>项目名称：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="3">
-        <widget class="QLineEdit" name="projectAddrEdit"/>
-       </item>
-       <item row="2" column="1">
-        <widget class="QComboBox" name="inspectedContactsBox">
-         <property name="editable">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QCheckBox" name="checkBox">
-         <property name="text">
-          <string>与委托单位一致</string>
          </property>
         </widget>
        </item>
@@ -545,20 +587,20 @@
     <property name="title">
      <string>编辑</string>
     </property>
-    <addaction name="action"/>
-    <addaction name="action_2"/>
+    <addaction name="addClientAction"/>
+    <addaction name="ClientEditAction"/>
    </widget>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action">
+  <action name="addClientAction">
    <property name="text">
     <string>添加委托单位</string>
    </property>
   </action>
-  <action name="action_2">
+  <action name="ClientEditAction">
    <property name="text">
-    <string>添加受检单位</string>
+    <string>修改委托单位信息</string>
    </property>
   </action>
  </widget>

@@ -17,11 +17,11 @@ class TASKSHEETMANAGER_EXPORT TaskSheetUI : public TabWidgetBase
 public:
     explicit TaskSheetUI(QWidget *parent = nullptr);
     enum TaskStatus{
-        CREATE, REVIEW, MODIFY,SCHEDULING,SCHEDUL_CONFIRM, WAIT_SAMPLING, SAMPLING,
+        CREATE, REVIEW, MODIFY,SCHEDULING,SCHEDUL_CONFIRM, WAIT_SAMPLING, SAMPLING,TESTING,
     };
     const QHash<int,QString> StatusName={{CREATE,"新建"},{REVIEW,"审核"},{MODIFY,"退回修改"},
         {SCHEDULING,"排单"}, {SCHEDUL_CONFIRM,"等待排单确认"}, {WAIT_SAMPLING,"等待采样"},
-        {SAMPLING,"采样"}};
+        {SAMPLING,"采样"},{TESTING,"分析"},};
     ~TaskSheetUI();
     void submitProcess(int node);//流程推进
     virtual void dealProcess(const QFlowInfo&, int operateFlag)override;//处理流程事件
@@ -36,9 +36,17 @@ private:
 
 private slots:
     void on_newSheetBtn_clicked();
-    void submitReview(int taskSheetID,const QString &taskNum);
+    void submitReview(int taskSheetID, const QString &taskNum, bool DeliveryTest);
     void on_refleshBtn_clicked();
     void doContractReview(const QFlowInfo &flowInfo, const QString&record, const QString&comments, bool passed);
+    bool on_tasksheetEditBtn_clicked();
+
+    void on_tasksheetViewBtn_clicked();
+
+    void on_tableView_doubleClicked(const QModelIndex &index);
+
+    void on_deleteBtn_clicked();
+
 private:
     Ui::TaskSheetUI *ui;
     TaskSheetEditor* m_sheet;

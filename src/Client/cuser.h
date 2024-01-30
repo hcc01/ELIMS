@@ -33,6 +33,8 @@ public:
     void reset(const QString&name,int position){m_name=name;m_position=position;}
     QString name()const{return m_name;}
     int position()const{return m_position;}
+    QString phone()const{return m_phone;}
+    void setPhone(const QString&phone){m_phone=phone;}
 signals:
 private:
     QString m_name;

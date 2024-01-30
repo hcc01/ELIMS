@@ -6,6 +6,9 @@ MyTableView::MyTableView(QWidget *parent)
     setSelectionBehavior(QAbstractItemView::SelectRows);
     m_model=new MyModel({""},this);
     setModel(m_model);
+    connect(m_model,&MyModel::dataChanged,this,[this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = QVector<int>()){
+        emit dataChanged(topLeft.row(),topLeft.column(),topLeft.data());
+    });
     m_contextMenu=new QMenu(this);
     //    m_removeAction = new QAction(tr("删除"), this);
     //    connect(m_removeAction,&QAction::triggered,this,[&](){
@@ -92,8 +95,12 @@ void MyTableView::clear()
 
 bool MyTableView::setData(int row, int colunm, const QVariant &value, int role)
 {
-    emit rowChanged(row);
-    return m_model->setData(row,colunm,value,role);
+
+    if(m_model->setData(row,colunm,value,role)){
+        emit rowChanged(row);
+        return true;
+    }
+    return false;
 }
 
 void MyTableView::setBackgroundColor(int row, int colunm, const QColor &color)

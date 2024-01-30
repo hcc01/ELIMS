@@ -24,6 +24,7 @@ public:
     void removeAll();
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     void setEditableColumn(int colunm);//设置可编辑的列
+    void setEditableColumns(QList<int>columns){m_editableColumns=columns;}
     void setReatedData(const QModelIndex&mapToCell, const QModelIndex& mapSourseCell, const QHash<QString, QVariant> &mapData);
     void setRelatedData(int row, int column, int sourseRow, int sourseColumn, QHash<QString, QVariant> relatedData);//用于数据关联，主要用于可选数据（检测方法选择时），当前的单元格数据与指定的单元格数据相关，相关性用HASH对应。
 signals:

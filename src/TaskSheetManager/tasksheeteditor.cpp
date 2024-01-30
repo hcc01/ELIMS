@@ -10,18 +10,22 @@
 #include<QThread>
 #include"QExcel.h"
 #include<QTimer>
+#include<QShortcut>
+#include<QCloseEvent>
 TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     QMainWindow(tabWiget),
     SqlBaseClass(tabWiget),
     ui(new Ui::TaskSheetEditor),
-    m_infoEditor(nullptr,0),
+    m_infoEditor(nullptr,this->tabWiget()),
     m_userOpereate(false),
     m_isSaving(false),
 //    m_bSaved(false),
     m_bTasksheetModified(false),
     m_bTestInfoModified(false),
+    m_bMethodModified(false),
     m_status(0),
-    m_mode(openMode)
+    m_mode(openMode),
+    m_copiedRow(-1)
 {
     ui->setupUi(this);
     ui->widget->hide();
@@ -38,13 +42,49 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
         ui->saveBtn->hide();
         ui->submitBtn->hide();
     }
-
+    connect(ui->testInfoTableView,&MyTableView::dataChanged,[this](int row,int column,const QVariant& value){
+        m_bTestInfoModified=true;
+        switch(column){
+        case 0:
+        {
+            m_testInfo[row]->sampleType=value.toString();
+        }
+        break;
+        case 1:
+        {
+            if(ui->sampleSourceBox->currentIndex()){//送样，为样品名称
+                 m_testInfo[row]->sampleName=value.toString();
+            }
+            m_testInfo[row]->samplingSites=value.toString();
+        }
+        break;
+        case 3:
+        {
+             m_testInfo[row]->sampleCount=value.toInt();
+        }
+        break;
+        case 4:
+        {
+              m_testInfo[row]->sampleDesc=value.toString();
+        }
+        break;
+        case 5:
+        {
+             m_testInfo[row]->remark=value.toString();
+        }
+        break;
+        }
+    });
     ui->testInfoTableView->setHeader({"样品类型","检测点位","检测项目","检测频次","执行标准","备注"});
+//    ui->testInfoTableView->setEditableColumn(0);
+    ui->testInfoTableView->setEditableColumn(1);
+    ui->testInfoTableView->setEditableColumn(5);
     ui->testInfoTableView->addContextAction("修改",[this](){
         if(!m_testInfo.count()) return;
         int row=ui->testInfoTableView->selectedRow();
         if(row<0) return;
         auto info=m_testInfo.at(row);
+        info->delieveryTest=ui->sampleSourceBox->currentIndex();
         m_infoEditor.load(info);
         m_infoEditor.show();
     });
@@ -61,13 +101,16 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     });
     ui->testInfoTableView->addContextAction("添加",[this](){
         TestInfo* info=new TestInfo;
+        info->delieveryTest=ui->sampleSourceBox->currentIndex();
         m_infoEditor.load(info);
-        testInfoEditor ie(info);
+        testInfoEditor ie(info,this->tabWiget());
+        ie.setWindowTitle(info->delieveryTest?"添加送样样品信息": "添加采样点位信息");
         int r=m_infoEditor.exec();
         if(r==QDialog::Accepted){
             m_testInfo.append(info);
 //            ui->testInfoTableView->append(info->infoList());
 //            m_bTestInfoModified=true;
+            ui->sampleSourceBox->setDisabled(true);
             updateTestInfoView();
         }
         else{
@@ -80,6 +123,31 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     ui->testInfoTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->testInfoTableView->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
     ui->testInfoTableView->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Custom);
+
+    //添加复制粘贴快捷键，用于监测信息的快速复制修改
+    // 创建复制快捷键（Ctrl+C）
+    QShortcut *copyShortcut = new QShortcut(QKeySequence::Copy, this);
+    connect(copyShortcut, &QShortcut::activated, this, [this](){
+        if(!m_testInfo.count()) return;
+        int row=ui->testInfoTableView->selectedRow();
+        if(row<0) return;
+        m_copiedRow=row;
+    });
+
+    // 创建粘贴快捷键（Ctrl+V）
+    QShortcut *pasteShortcut = new QShortcut(QKeySequence::Paste, this);
+    connect(pasteShortcut, &QShortcut::activated, this, [this](){
+        if(m_copiedRow<0) return;
+        ui->testInfoTableView->append(ui->testInfoTableView->data().at(m_copiedRow));
+        TestInfo* info=new TestInfo(m_testInfo.at(m_copiedRow));
+       // info=m_testInfo.at(m_copiedRow);//如此添加的是指针，显然不行
+        m_testInfo.append(info);
+    });
+
+
+    ui->ClientEditBtn->hide();
+    ui->ClientEditCancelBtn->hide();
+    ui->addContactBtn->hide();
 }
 
 TaskSheetEditor::~TaskSheetEditor()
@@ -92,7 +160,8 @@ TaskSheetEditor::~TaskSheetEditor()
 
 void TaskSheetEditor::init()
 {
-    connect(&m_infoEditor,&testInfoEditor::doSql,this->tabWiget(),&TabWidgetBase::doSqlQuery);
+//    connect(&m_infoEditor,&testInfoEditor::doSql,this->tabWiget(),&TabWidgetBase::doSqlQuery);
+
     m_infoEditor.init();
     connect(&m_infoEditor,&testInfoEditor::accepted,[this](){//修改时，更新。添加时，需要在添加菜单里处理数据后更新。
         m_bTestInfoModified=true;
@@ -104,9 +173,27 @@ void TaskSheetEditor::init()
         m_bMethodModified=true;
         qDebug()<<"m_bMethodModified";
     });
+    doSql("select name from users where position=?",[this](const QSqlReturnMsg& msg){
+        if(msg.error()){
+            QMessageBox::information(this,"error",msg.result().toString());
+            sqlFinished();
+            return;
+        }
+        ui->salesRepresentativeBox->clear();
+
+        for(auto s:msg.table()){
+
+            qDebug()<<s;
+            ui->salesRepresentativeBox->addItem(s.at(0).toString());
+        }
+        sqlFinished();
+    },0,{CUser::salesRepresentative});
+    waitForSql();
      doSql("select  clientName,id, address from client_info where deleted=0;",[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
+            sqlFinished();
+            return;
         }
         QList<QVariant> clients=msg.result().toList();
         for(int i=1;i<clients.count();i++){
@@ -114,8 +201,14 @@ void TaskSheetEditor::init()
         }
         ui->clientBox->init(m_clients.keys());
         ui->inspectedComBox->init(m_clients.keys());
+        ui->inspectedAddrEdit->setText("");
+        ui->inspectedComBox->setCurrentIndex(-1);
+        ui->inspectedContactsBox->setCurrentIndex(-1);
+        ui->inspectedPhoneEidt->setText("");
         m_userOpereate=true;//代码的改变选择框完成
+        sqlFinished();
     });
+    waitForSql();
 //    doSql("select  clientName,id, address from client_info where deleted=0;",[&](const QSqlReturnMsg&msg){
 //        if(msg.error()){
 //            QMessageBox::information(this,"error",msg.result().toString());
@@ -140,155 +233,253 @@ void TaskSheetEditor::doSave()
     }
     QString sql;
     QJsonArray values;
-    if(m_mode==EditMode){//修改模式，更新数据库
+    if(m_mode==EditMode){//修改模式，更新数据库;目前修改模式不改委托方式
+
         if(m_bTasksheetModified){
-            qDebug()<<"m_bTasksheetModified,saving sheetinfo";
+            bool ok=false;
+            int salerID;
+            doSql("select id from users where name=?;",[&salerID, this, &ok](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"查询业务人员时出错：",msg.errorMsg());
+                    sqlFinished();
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+                if(r.count()==1){
+                    QMessageBox::information(nullptr,"error","业务人员不存在，请确认。");
+                    sqlFinished();
+                    return;
+                }
+                salerID=r.at(1).toList().at(0).toInt();
+                ok=true;
+                sqlFinished();
+            },0,{ui->salesRepresentativeBox->currentText()});
+            waitForSql();
+            if(!ok) return;
             //进行基本信息保存
             sql="update test_task_info set contractNum=?,clientID=?, clientName=?,clientAddr=?,clientContact=?,clientPhone=?,"
-                  "inspectedEentityID=?,inspectedEentityName=?,inspectedEentityContact=?,inspectedEentityPhone=?,inspectedProject=?,projectAddr=?,"
-                  "reportPurpos=?,reportPeriod=?,sampleDisposal=?,reprotCopies=?,methodSource=?,subpackage=?,otherRequirements=? "
+                  "inspectedEentityName=?,inspectedEentityContact=?,inspectedEentityPhone=?,inspectedProject=?,projectAddr=?,"
+                  "reportPurpos=?,reportPeriod=?,sampleDisposal=?,reprotCopies=?,methodSource=?,subpackage=?,otherRequirements=? ,inspectedEentityAddr=?,salesRepresentative=?  "
                   "where taskNum=?;";
             values={ui->contractEdit->text(),m_clients.value(ui->clientBox->currentText()).ID,ui->clientBox->currentText(),ui->clientAddrEdit->text(),ui->clientContactsBox->currentText(),ui->clientContactsPhoneEdit->text(),
-                      m_inspectedEentityID,ui->inspectedComBox->currentText(),ui->inspectedContactsBox->currentText(),ui->inspectedPhoneEidt->text(),ui->projectNameEdit->text(),ui->projectAddrEdit->text(),
+                      ui->inspectedComBox->currentText(),ui->inspectedContactsBox->currentText(),ui->inspectedPhoneEidt->text(),ui->projectNameEdit->text(),ui->projectAddrEdit->text(),
                       ui->reportPurposEdit->currentText(),ui->reportPeriodBox->value(),ui->sampleDisposalBox->currentText(),ui->reportCopiesBox->value(),ui->methodSourseBox->currentIndex(),ui->subpackageBox->currentIndex(),
-                      ui->otherRequirementsEdit->text(),m_taskNum};
+                      ui->otherRequirementsEdit->text(),ui->inspectedAddrEdit->text(),salerID,m_taskNum};
+            qDebug()<<"m_taskNum"<<m_taskNum;
+            doSql(sql,[this](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        QMessageBox::information(nullptr,"保存任务单信息时出错：",msg.errorMsg());
+                        sqlFinished();
+                        return;
+                    }
+                    m_bTasksheetModified=false;
+                    sqlFinished();
+                },0,values);
+            waitForSql("正在保存任务单信息...");
         }
         if(m_bTestInfoModified){
             qDebug()<<"m_bTestInfoModified, saving testInfo";
             //保存检测信息
-            sql+="delete from task_methods where taskSheetID= ?;delete from site_monitoring_info where taskSheetID=?;";//删除点位监测信息表和检测方法表
-            values.append(m_taskSheetID);values.append(m_taskSheetID);//保存时用到m_taskSheetID，要确保任务单ID得到正确获取
-            foreach (auto info, m_testInfo) {//保存监测信息
-                for (int i = 0; i < info->samplingSiteCount;i++) { // 将合并的点位拆开保存
-                    sql += "INSERT INTO site_monitoring_info (taskSheetID, testTypeID, "
-                           "samplingSiteName, samplingFrequency, samplingPeriod, "
-                           "limitValueID, remark, sampleType) "
-                           "VALUES (?, ?,?,?,?,?,?,?);SET @site_id = "
-                           "LAST_INSERT_ID();";
-                    QString smaplingSite;
-                    if (info->samplingSiteCount == info->samplingSites.count())
-                        smaplingSite = info->samplingSites.at(i);
-                    values.append(m_taskSheetID);
-                    values.append(info->testTypeID);
-                    values.append(smaplingSite);
-                    values.append(info->samplingFrequency);
-                    values.append(info->samplingPeriod);
-                    values.append(info->limitStandardID ? info->limitStandardID : QJsonValue::Null);
-                    values.append(info->remark);
-                    values.append(info->sampleType);
+//            if(!ui->sampleSourceBox->currentIndex()){//采样任务单的保存
 
-                    sql += "INSERT INTO task_methods ( monitoringInfoID, taskSheetID, "
-                           "testTypeID, parameterID, parameterName) "
-                           "VALUES ";
-                    // 开始保存点位监测项目
-
-                    for (int i = 0; i < info->monitoringParameters.count(); i++) {
-                        sql += "(@site_id,?, ?, ?, ?)";
-                        if (i == info->monitoringParameters.count() - 1) {
-                            sql += ";";
-                        } else
-                            sql += ",";
+                sql="delete from task_methods where taskSheetID= ?;delete from site_monitoring_info where taskSheetID=?;";//删除点位监测信息表和检测方法表
+            values={m_taskSheetID,m_taskSheetID};//保存时用到m_taskSheetID，要确保任务单ID得到正确获取
+                foreach (auto info, m_testInfo) {//保存监测信息
+                    bool siteMatched=false;
+                    QStringList sites=info->samplingSites.split("、");//检查点位数量与名称的匹配性，如果匹配，识别点位名称，否则不识别，全部保存
+                    if(sites.count()==info->samplingSiteCount){
+                        siteMatched=true;
+                    }
+                    for (int i = 0; i < info->samplingSiteCount;i++) { // 将合并的点位拆开保存(当为送样单时，samplingSiteCount=1，也会进入保存）
+                        sql += "INSERT INTO site_monitoring_info (taskSheetID, testTypeID, "
+                               "samplingSiteName, samplingFrequency, samplingPeriod, "
+                               "limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
+                               "VALUES (?, ?,?,?,?,?,?,?,?,?,?);SET @site_id = "
+                               "LAST_INSERT_ID();";
+                        QString smaplingSite;
+                        if(siteMatched) smaplingSite=sites.at(i);
+                        else smaplingSite=info->samplingSites;
                         values.append(m_taskSheetID);
                         values.append(info->testTypeID);
-                        values.append(info->parametersIDs.at(i));
-                        values.append(info->monitoringParameters.at(i));
+                        values.append(smaplingSite);
+                        values.append(info->samplingFrequency);
+                        values.append(info->samplingPeriod);
+                        values.append(info->limitStandardID ? info->limitStandardID : QJsonValue::Null);
+                        values.append(info->remark);
+                        values.append(info->sampleType);
+                        //补充了送样信息的保存
+                        values.append(info->sampleName);
+                        values.append(info->sampleCount);
+                        values.append(info->sampleDesc);
+
+                        sql += "INSERT INTO task_methods ( monitoringInfoID, taskSheetID, "
+                               "testTypeID, parameterID, parameterName) "
+                               "VALUES ";
+                        // 开始保存点位监测项目
+
+                        for (int i = 0; i < info->monitoringParameters.count(); i++) {
+                            sql += "(@site_id,?, ?, ?, ?)";
+                            if (i == info->monitoringParameters.count() - 1) {
+                                sql += ";";
+                            } else
+                                sql += ",";
+                            values.append(m_taskSheetID);
+                            values.append(info->testTypeID);
+                            values.append(info->parametersIDs.at(i));
+                            values.append(info->monitoringParameters.at(i));
+                        }
                     }
                 }
-            }
+//            }
+//            else{//送样任务单的保存
+//                qDebug()<<"送样单的保存";
+//            }
+
 //            m_bMethodModified=true;//同时修改和保存方法表，保存后将方法修改标为非。
             if(!m_bMethodModified){
-                int a=QMessageBox::question(nullptr,"","检测到监测信息有变更，但检测方法未做更改，是否继续保存？");
+                int a=QMessageBox::question(nullptr,"","检测到监测信息有变更，但检测方法未重新确认，是否继续保存（方法表将为空）？");
                 if(a==QMessageBox::No) return;
             }
+            doSql(sql,[this](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        QMessageBox::information(nullptr,"保存监测信息时出错：",msg.errorMsg());
+                        sqlFinished();
+                        return;
+                    }
+                    m_bTestInfoModified=false;
+                    sqlFinished();
+                },0,values);
+            waitForSql("正在保存监测信息...");
         }
+
         if(m_bMethodModified){
-            //更新方法
             saveMethod();
         }
-        if(sql.isEmpty()) {
-
-            return;
-        }
-        m_isSaving=true;//准备发送数据，在完成前，防止重复操作。
-        doSql(sql,[this](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(this,"保存出错：",msg.result().toString());
-                    return;
-                }
-
-//                m_bSaved=true;
-                m_isSaving=false;
-                m_bMethodModified=false;
-                m_bTasksheetModified=false;
-                m_bTestInfoModified=false;
-                //            m_taskID=msg.result().toList().at(1).toList().at(0).toInt();
-                QMessageBox::information(nullptr,"","保存完成。");
-
-            },0,values);
+        QMessageBox::information(nullptr,"","保存完成。");
         return;//修改操作完成，返回，下面是新建操作。
     }
     //保存新任务单
     else if(m_mode==NewMode){
+        bool ok=false;
+        int salerID;
+        doSql("select id from users where name=?;",[&salerID, this, &ok](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"查询业务人员时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            QList<QVariant>r=msg.result().toList();
+            if(r.count()==1){
+                QMessageBox::information(nullptr,"error","业务人员不存在，请确认。");
+                sqlFinished();
+                return;
+            }
+            salerID=r.at(1).toList().at(0).toInt();
+            ok=true;
+            sqlFinished();
+        },0,{ui->salesRepresentativeBox->currentText()});
+        waitForSql();
+        if(!ok) return;
         sql="INSERT INTO test_task_info (taskNum,contractNum,clientID,clientName,clientAddr,clientContact,clientPhone,"
-              "inspectedEentityID,inspectedEentityName,inspectedEentityContact,inspectedEentityPhone,inspectedProject,projectAddr,"
-              "reportPurpos,reportPeriod,sampleDisposal,reprotCopies,methodSource,subpackage,otherRequirements, creator, createDate) "
-              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW());SET @task_id = LAST_INSERT_ID();";
+              "inspectedEentityName,inspectedEentityContact,inspectedEentityPhone,inspectedProject,projectAddr,"
+              "reportPurpos,reportPeriod,sampleDisposal,reprotCopies,methodSource,subpackage,otherRequirements, creator, createDate,sampleSource,inspectedEentityAddr,salesRepresentative) "
+              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(),?,?,?);";
         values={m_taskNum,ui->contractEdit->text(),m_clients.value(ui->clientBox->currentText()).ID,ui->clientBox->currentText(),ui->clientAddrEdit->text(),ui->clientContactsBox->currentText(),ui->clientContactsPhoneEdit->text(),
-                  m_inspectedEentityID,ui->inspectedComBox->currentText(),ui->inspectedContactsBox->currentText(),ui->inspectedPhoneEidt->text(),ui->projectNameEdit->text(),ui->projectAddrEdit->text(),
+                  ui->inspectedComBox->currentText(),ui->inspectedContactsBox->currentText(),ui->inspectedPhoneEidt->text(),ui->projectNameEdit->text(),ui->projectAddrEdit->text(),
                   ui->reportPurposEdit->currentText(),ui->reportPeriodBox->value(),ui->sampleDisposalBox->currentText(),ui->reportCopiesBox->value(),ui->methodSourseBox->currentIndex(),ui->subpackageBox->currentIndex(),
-                  ui->otherRequirementsEdit->text(),user()->name()};
-        //开始保存点位监测信息
-        foreach(auto info,m_testInfo){
-            for(int i=0;i<info->samplingSiteCount;i++){//将合并的点位拆开保存
-                sql+="INSERT INTO site_monitoring_info (taskSheetID, testTypeID, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, sampleType) "
-                       "VALUES (@task_id , ?,?,?,?,?,?,?);SET @site_id = LAST_INSERT_ID();";
-                QString smaplingSite;
-                if(info->samplingSiteCount==info->samplingSites.count()) smaplingSite=info->samplingSites.at(i);
-                QJsonArray a={info->testTypeID,smaplingSite,info->samplingFrequency,info->samplingPeriod,info->limitStandardID?info->limitStandardID:QJsonValue::Null,info->remark,info->sampleType};
+                  ui->otherRequirementsEdit->text(),user()->name(),ui->sampleSourceBox->currentIndex(),ui->inspectedAddrEdit->text(),salerID};
+        doSql(sql,[this](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"插入任务单信息时出错：",msg.errorMsg());
+                    sqlFinished();
+                    return;
+                }
+                m_bTasksheetModified=false;
+                sqlFinished();
+            },0,values);
+        waitForSql("正在保存任务单信息...");
 
-                foreach(auto x,a) values.append(x);
+        //开始保存点位监测信息
+        //先获取任务单ID
+        doSql("select id from test_task_info where taskNum=?",[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"获取任务单ID时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            if(msg.result().toList().count()!=2){
+                QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
+                sqlFinished();
+                return;
+            }
+            m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
+
+            sqlFinished();
+        },0,{m_taskNum});
+        waitForSql("正在获取任务单ID...");
+        //逐条保存监测信息
+        foreach(auto info,m_testInfo){
+            bool siteMatched=false;
+            QStringList sites=info->samplingSites.split("、");//检查点位数量与名称的匹配性，如果匹配，识别点位名称，否则不识别，全部保存
+            if(sites.count()==info->samplingSiteCount){
+                siteMatched=true;
+            }
+
+            for(int i=0;i<info->samplingSiteCount;i++){//将合并的点位拆开保存，按点位保存检测信息
+                sql="INSERT INTO site_monitoring_info (taskSheetID, testTypeID, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
+                       "VALUES (?, ?,?,?,?,?,?,?,?,?,?);SET @site_id = LAST_INSERT_ID();";
+                QString smaplingSite;
+                if(siteMatched) smaplingSite=sites.at(i);
+                else smaplingSite=info->samplingSites;
+
+                values={m_taskSheetID,info->testTypeID,smaplingSite,info->samplingFrequency,info->samplingPeriod,info->limitStandardID?info->limitStandardID:QJsonValue::Null,info->remark,info->sampleType,info->sampleName,info->sampleCount,info->sampleDesc};
+
                 sql+="INSERT INTO task_methods ( monitoringInfoID, taskSheetID, testTypeID, parameterID, parameterName) "
                        "VALUES ";
 
                 //开始保存点位监测项目
                 for(int i=0;i<info->monitoringParameters.count();i++){
-                    sql+="(@site_id,@task_id, ?, ?, ?)";
+                    sql+="(@site_id,?, ?, ?, ?)";
                     if(i==info->monitoringParameters.count()-1){
                         sql+=";";
                     }
                     else sql+=",";
-                    QJsonArray a={info->testTypeID,info->parametersIDs.at(i),info->monitoringParameters.at(i)};
+                    QJsonArray a={m_taskSheetID, info->testTypeID,info->parametersIDs.at(i),info->monitoringParameters.at(i)};
                     foreach(auto x,a) values.append(x);
                 }
+                doSql(sql,[this](const QSqlReturnMsg&msg){
+                        if(msg.error()){
+                            QMessageBox::information(this,"error",msg.result().toString());
+                            sqlFinished();
+                            return;
+                        }
+                        m_bTestInfoModified=false;
+                        sqlFinished();
+
+                    },0,values);
+
+                waitForSql();
             }
 
-        }
-        m_isSaving=true;//准备发送数据，在完成前，防止重复操作。
-        doSql(sql,[this](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(this,"error",msg.result().toString());
-                    sqlFinished();
-                    return;
-                }
-                sqlFinished();
 
-            },0,values);
-        waitForSql();
+        }
+
                 //保存完成后，改为修改模式，以便用户继续修改。
                 m_mode=EditMode;
-                //新任务单保存后，记录任务单ID
-                doSql(QString("select id from test_task_info where taskNum='%1'").arg(m_taskNum),[this](const QSqlReturnMsg&msg){
-                    if(msg.error()){
-                        QMessageBox::information(this,"查询任务单ID时出错",msg.result().toString());
-                        return;
-                    }
-                    qDebug()<<msg.result().toList();
-                    if(msg.result().toList().count()!=2){
-                        QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
-                        return;
-                    }
-                     m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
-                });
+//                //新任务单保存后，记录任务单ID
+//                doSql(QString("select id from test_task_info where taskNum='%1'").arg(m_taskNum),[this](const QSqlReturnMsg&msg){
+//                    if(msg.error()){
+//                        QMessageBox::information(this,"查询任务单ID时出错",msg.result().toString());
+//                        return;
+//                    }
+//                    qDebug()<<msg.result().toList();
+//                    if(msg.result().toList().count()!=2){
+//                        QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
+//                        return;
+//                    }
+//                     m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
+//                });
+
                 if(saveMethod()) QMessageBox::information(nullptr,"","保存完成。");//保存方法在监测信息更新完后才能进行
 
     }
@@ -328,23 +519,30 @@ bool TaskSheetEditor::saveMethod()
             waitForSql("正在保存方法……");
 
             if(error) {
+                QMessageBox::information(nullptr,"","保存方法时出错。");
                 return false;
             }
         }
     }
+    m_bMethodModified=false;
     return true;
 }
 
 void TaskSheetEditor::load(const QString &taskNum)
 {
-    qDebug()<<"load threadID:"<<QThread::currentThreadId();
+
     m_taskNum=taskNum;
-    m_userOpereate=false;
     setWindowTitle("任务单："+m_taskNum);
+    ui->sampleSourceBox->setDisabled(true);
+    qDebug()<<"开始载入任务信息……";
+
+    m_userOpereate=false;
+
     QString sql;
-    sql=QString("SELECT contractNum, salesRepresentative, clientName, clientAddr, clientContact, clientPhone, inspectedEentityName, inspectedEentityContact, "
+    sql=QString("SELECT contractNum, users.name, clientName, clientAddr, clientContact, clientPhone, inspectedEentityName, inspectedEentityContact, "
           "inspectedEentityPhone, inspectedProject, projectAddr, reportPurpos, reportPeriod, sampleDisposal, reprotCopies, methodSource, "
-                  "subpackage, otherRequirements, id,taskStatus ,creator from test_task_info where taskNum=?;");
+                  "subpackage, otherRequirements, A.id,taskStatus ,creator, sampleSource,inspectedEentityAddr from (select * from test_task_info where taskNum=?) as A left join users on A.salesRepresentative=users.id;");
+
     doSql(sql,[this](const QSqlReturnMsg&msg){
          qDebug()<<"载入任务信息 threadID:"<<QThread::currentThreadId();
         if(msg.error()){
@@ -353,6 +551,7 @@ void TaskSheetEditor::load(const QString &taskNum)
             return;
         }
         QList<QVariant>r=msg.result().toList().at(1).toList();
+        ui->sampleSourceBox->setCurrentIndex(r.at(21).toInt());
         ui->contractEdit->setText(r.at(0).toString());
         ui->salesRepresentativeBox->setCurrentText(r.at(1).toString());
         ui->clientBox->setCurrentText(r.at(2).toString());
@@ -361,9 +560,10 @@ void TaskSheetEditor::load(const QString &taskNum)
         ui->clientContactsBox->setCurrentText(r.at(4).toString());
 
         ui->clientContactsPhoneEdit->setText(r.at(5).toString());
-        ui->inspectedComBox->setCurrentIndex(ui->clientBox->findText(r.at(6).toString()));
-        ui->inspectedAddrEdit->setText(m_clients.value(ui->inspectedComBox->currentText()).clientAddr);
-        qDebug()<<m_clients.keys();
+//        ui->inspectedComBox->setCurrentIndex(ui->clientBox->findText(r.at(6).toString()));
+        ui->inspectedComBox->setCurrentText(r.at(6).toString());
+//        ui->inspectedAddrEdit->setText(m_clients.value(ui->inspectedComBox->currentText()).clientAddr);
+        ui->inspectedAddrEdit->setText(r.at(22).toString());
         ui->inspectedContactsBox->setCurrentText(r.at(7).toString());
         ui->inspectedPhoneEidt->setText(r.at(8).toString());
         ui->projectNameEdit->setText(r.at(9).toString());
@@ -378,30 +578,38 @@ void TaskSheetEditor::load(const QString &taskNum)
         m_taskSheetID=r.at(18).toInt();
         m_status=r.at(19).toInt();
         m_createor=r.at(20).toString();
-        m_userOpereate=true;
         sqlFinished();
     },0,{taskNum});
     waitForSql("载入任务信息...");
-    //处理检测信息
-    sql=QString("SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, standardName,standardNum, tableName, classNum, testFieldID from"
-                  "(SELECT testTypeID, sampleType, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, id from site_monitoring_info "
+
+
+    m_userOpereate=true;
+    QList<QVariant>r;
+    sql=QString("SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, standardName,standardNum, tableName, classNum, testFieldID, A.sampleName,A.sampleCount,A.sampleDesc from"
+                  "(SELECT testTypeID, sampleType, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, id ,sampleName,sampleCount,sampleDesc from site_monitoring_info "
                   "where taskSheetID=?) as A "
                   "left join implementing_standards on A.limitValueID = implementing_standards.id left join test_type on A.testTypeID= test_type.id;");
     qDebug()<<"m_taskSheetID"<<m_taskSheetID;
-    doSql(sql,[this](const QSqlReturnMsg&msg){
+    doSql(sql,[this,&r](const QSqlReturnMsg&msg){
         qDebug()<<"处理检测信息";
         if(msg.error()){
             QMessageBox::information(this,"载入检测信息时错误",msg.result().toString());
             sqlFinished();
             return;
         }
-        QList<QVariant>r=msg.result().toList();
+        r=msg.result().toList();
+        sqlFinished();
+
+    },0,{m_taskSheetID});
+    waitForSql("载入检测信息...");
+    qDebug()<<"处理检测信息...";
+    qDebug()<<r;
         m_testInfo.clear();
         for(int i=1;i<r.count();i++){
             QList<QVariant>row=r.at(i).toList();
             int monitorID=row.at(7).toInt();
 
-            QString sql=QString("SELECT parameterID, parameterName, testMethodID, testMethodName from task_methods where monitoringInfoID='%1' ;").arg(monitorID);
+            QString sql=QString("SELECT parameterID, parameterName, testMethodID, testMethodName from task_methods where monitoringInfoID=? ;").arg(monitorID);
             doSql(sql,[this, r,i, row](const QSqlReturnMsg&msg){
                 if(msg.error()){
                     QMessageBox::information(nullptr,"载入项目信息时错误",msg.result().toString());
@@ -415,30 +623,35 @@ void TaskSheetEditor::load(const QString &taskNum)
                     parameterIDs.append(parameters.at(i).toList().at(0).toInt());
                     monitoringParameters.append(parameters.at(i).toList().at(1).toStringList());
                 }
-                if(!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
+                if(ui->sampleSourceBox->currentIndex()||!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
                                     ||m_testInfo.last()->sampleType!=row.at(1).toString()
                                     ||m_testInfo.last()->samplingFrequency!=row.at(3).toInt()
                                     ||m_testInfo.last()->samplingPeriod!=row.at(4).toInt()
                                     ||m_testInfo.last()->limitStandardID!=row.at(5).toInt()
                                     ||m_testInfo.last()->remark!=row.at(6).toString())){
                     TestInfo* info=new TestInfo;
+                    info->delieveryTest=ui->sampleSourceBox->currentIndex();
                     info->testTypeID=row.at(0).toInt();
                     info->testFieldID=row.at(12).toInt();
                     info->sampleType=row.at(1).toString();
-                    if(!row.at(2).toString().isEmpty()) info->samplingSites.append(row.at(2).toString());
+//                    if(!row.at(2).toString().isEmpty()) info->samplingSites.append(row.at(2).toString());
+                    info->samplingSites=row.at(2).toString();
                     info->samplingFrequency=row.at(3).toInt();
                     info->samplingPeriod=row.at(4).toInt();
                     info->limitStandardID=row.at(5).toInt();
                     info->remark=row.at(6).toString();
                     info->monitoringParameters=monitoringParameters;
                     info->parametersIDs=parameterIDs;
+                    info->sampleName=row.at(13).toString();
+                    info->sampleCount=row.at(14).toInt();
+                    info->sampleDesc=row.at(15).toString();
                     info->limitStandard=QString("%1(%2)%3%4").arg(row.at(8).toString()).arg(row.at(9).toString()).arg(row.at(10).toString()).arg(row.at(11).toString());
                     m_testInfo.append(info);
 
                 }
                 else{//合并监测指标相同的点位
                     m_testInfo.last()->samplingSiteCount++;
-                    if(!row.at(2).toString().isEmpty()) m_testInfo.last()->samplingSites.append(row.at(2).toString());
+                    if(row.at(2).toString()!=m_testInfo.last()->samplingSites) m_testInfo.last()->samplingSites+="、"+row.at(2).toString();
                 }
                 if(i==r.count()-1){
                     ui->testInfoTableView->clear();
@@ -447,11 +660,9 @@ void TaskSheetEditor::load(const QString &taskNum)
 
                     sqlFinished();
                 }
-            });
+            },0,{monitorID});
         }
-
-    },0,{m_taskSheetID});
-//    waitForSql("载入检测信息...");
+        waitForSql();
     //加载方法
 
     sql=QString("SELECT A.testTypeID, sampleType, parameterName, testMethodName, CMA, subpackage, subpackageDesc,parameterID from "
@@ -551,9 +762,38 @@ void TaskSheetEditor::updateTestInfoView()//在视图中更新检测信息
     }
 }
 
+void TaskSheetEditor::setEntrustType(bool deliveryTest)
+{
+    if(deliveryTest){
+        qDebug()<<"送样检测";
+         ui->testInfoTableView->setHeader({"样品类型","样品名称","检测项目","样品数量","样品状态","备注"});
+//        ui->testInfoTableView->setEditableColumn(0);
+         ui->testInfoTableView->setEdiableColumns({1,3,4,5});
+        return;
+    }
+    qDebug()<<"采样检测";
+    ui->testInfoTableView->setHeader({"样品类型","检测点位","检测项目","检测频次","执行标准","备注"});
+//    ui->testInfoTableView->setEditableColumn(0);
+    ui->testInfoTableView->setEdiableColumns({1,5});
+}
+
+void TaskSheetEditor::closeEvent(QCloseEvent *event)
+{
+    qDebug()<<m_bTasksheetModified<<m_bMethodModified<<m_bTestInfoModified;
+    if(m_bTasksheetModified||m_bMethodModified||m_bTestInfoModified){
+        if (QMessageBox::question(this, "", tr("任务单有变更未作保存，你确定要退出应用程序吗？"))!=QMessageBox::Yes) {
+            // 如果用户选择“否”，则不关闭窗口
+            event->ignore();
+            return;
+        }
+    }
+
+}
+
 
 void TaskSheetEditor::on_inspectedComBox_currentIndexChanged(int index)
 {
+    if(!m_userOpereate) return;
     QString clientName=ui->inspectedComBox->currentText();
     if(clientName.isEmpty()) return;
     m_inspectedEentityID=m_clients.value(clientName).ID;
@@ -577,6 +817,7 @@ void TaskSheetEditor::on_inspectedComBox_currentIndexChanged(int index)
 
 void TaskSheetEditor::on_clientBox_currentIndexChanged(int index)
 {
+
     if(!m_userOpereate) return;
     QString clientName=ui->clientBox->currentText();
     if(clientName.isEmpty()) return;
@@ -641,24 +882,24 @@ void TaskSheetEditor::on_clientContactsBox_currentIndexChanged(int index)
     if(!m_userOpereate) return;
     QString contact=ui->clientContactsBox->currentText();
     if(contact.isEmpty()) return;
-    if(!m_contacts.contains(contact)){
-        if(QMessageBox::question(nullptr,"","该联系人不存在，是否新增联系人？","确认","取消")) return;
-        QString phone=QInputDialog::getText(nullptr,"请输入联系电话:","");
-        if(phone.isEmpty()) return;
-        int id=m_clients.value(ui->clientBox->currentText()).ID;
-        QString sql="insert into client_contacts(clientID, name, phoneNum) values(?,?,?);";
-        doSql(sql,[this,contact,phone](const QSqlReturnMsg&msg){
-            if(msg.error()){
-                QMessageBox::information(nullptr,"插入客户数据时错误：",msg.result().toString());
-                return;
-            }
+//    if(!m_contacts.contains(contact)){
+//        if(QMessageBox::question(nullptr,"","该联系人不存在，是否新增联系人？","确认","取消")) return;
+//        QString phone=QInputDialog::getText(nullptr,"请输入联系电话:","");
+//        if(phone.isEmpty()) return;
+//        int id=m_clients.value(ui->clientBox->currentText()).ID;
+//        QString sql="insert into client_contacts(clientID, name, phoneNum) values(?,?,?);";
+//        doSql(sql,[this,contact,phone](const QSqlReturnMsg&msg){
+//            if(msg.error()){
+//                QMessageBox::information(nullptr,"插入客户数据时错误：",msg.result().toString());
+//                return;
+//            }
 
-                ui->clientContactsBox->addItem(contact);
-                m_contacts[contact]=phone;
+//                ui->clientContactsBox->addItem(contact);
+//                m_contacts[contact]=phone;
 
-        },0,{id,contact,phone});
-        return;
-    }
+//        },0,{id,contact,phone});
+//        return;
+//    }
     ui->clientContactsPhoneEdit->setText(m_contacts.value(contact));
 }
 
@@ -667,10 +908,13 @@ void TaskSheetEditor::on_clientContactsBox_currentTextChanged(const QString &con
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_clientContactsBox_currentTextChanged"<<contact;
 }
 
 void TaskSheetEditor::on_inspectedContactsBox_currentIndexChanged(int index)
 {
+    if(!m_userOpereate) return;
+    m_bTasksheetModified=true;
     ui->inspectedPhoneEidt->setText(m_contacts.value(ui->inspectedContactsBox->currentText()));
 }
 
@@ -733,10 +977,10 @@ void TaskSheetEditor::on_checkBox_stateChanged(int arg1)
 void TaskSheetEditor::on_saveBtn_clicked()
 {
 
-    if(m_isSaving){
-        QMessageBox::information(this,"error","数据正在处理中，请稍候。");
-        return;
-    }
+//    if(m_isSaving){
+//        QMessageBox::information(this,"error","数据正在处理中，请稍候。");
+//        return;
+//    }
     if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//限制在创建阶段才能保存
         QMessageBox::information(this,"error","任务单已提交，无法保存。");
         return;
@@ -744,6 +988,11 @@ void TaskSheetEditor::on_saveBtn_clicked()
 
     if(!m_testInfo.count()){
         QMessageBox::information(this,"error","请添加检测信息。");
+        m_isSaving=false;
+        return;
+    }
+    if(!m_clients.contains(ui->clientBox->currentText())){
+        QMessageBox::information(this,"error","检测到新的委托单位，请先点击添加客户。");
         m_isSaving=false;
         return;
     }
@@ -803,8 +1052,11 @@ void TaskSheetEditor::on_exportBtn_clicked()
 {
     QString sql;
     statusBar->showMessage("正在打开EXCEL……");
+    bool deliveryTest=ui->sampleSourceBox->currentIndex();
     qApp->processEvents();
-    QAxObject*book;book=EXCEL.Open(".\\采样任务单.xlsm",QVariant(),true);
+    QAxObject*book;
+    if(deliveryTest) book=EXCEL.Open(".\\送样任务单.xlsm",QVariant(),true);
+    else book=EXCEL.Open(".\\采样任务单.xlsm",QVariant(),true);
     EXCEL.setScreenUpdating(false);
     if(!book){
         QMessageBox::information(nullptr,"错误","无法打开采样任务单。");
@@ -813,65 +1065,133 @@ void TaskSheetEditor::on_exportBtn_clicked()
     statusBar->showMessage("正在写入数据……");
     qApp->processEvents();
     QAxObject *sheet=EXCEL.ActiveSheet(book);
-    EXCEL.writeRange(ui->contractEdit->text(),"C3");
-    EXCEL.writeRange(ui->salesRepresentativeBox->currentText(),"C4",sheet);
-    EXCEL.writeRange(m_taskNum,"J3",sheet);
-    EXCEL.writeRange(user()->name(),"F4",sheet);
-    EXCEL.writeRange(ui->clientBox->currentText(),"C7",sheet);
-    EXCEL.writeRange(ui->clientAddrEdit->text(),"J7",sheet);
-    EXCEL.writeRange(ui->clientContactsBox->currentText(),"C8",sheet);
-    EXCEL.writeRange(ui->clientContactsPhoneEdit->text(),"J8",sheet);
-    EXCEL.writeRange(ui->inspectedComBox->currentText(),"C9",sheet);
-    EXCEL.writeRange(ui->inspectedAddrEdit->text(),"J9",sheet);
-    EXCEL.writeRange(ui->inspectedContactsBox->currentText(),"C10",sheet);
-    EXCEL.writeRange(ui->inspectedPhoneEidt->text(),"J10",sheet);
-    EXCEL.writeRange(ui->projectNameEdit->text(),"C11",sheet);
-    EXCEL.writeRange(ui->projectAddrEdit->text(),"J11",sheet);
-    auto testTable=ui->testInfoTableView->data();
-    QAxObject* range;
-    int startRow=22;
-    for(int i=0;i<testTable.count();i++){
+    if(deliveryTest){//处理送样单
+        EXCEL.writeRange(ui->contractEdit->text(),"C3",sheet);//合同编号
+        EXCEL.writeRange(ui->salesRepresentativeBox->currentText(),"C5",sheet);//业务员
+        EXCEL.writeRange(m_taskNum,"C4",sheet);//任务单号
+        EXCEL.writeRange(user()->name(),"F5",sheet);//录单员
+        EXCEL.writeRange(user()->phone(),"J5",sheet);//客服电话
+        EXCEL.writeRange(ui->clientBox->currentText(),"C7",sheet);//委托单位
+        EXCEL.writeRange(ui->clientAddrEdit->text(),"H7",sheet);//委托单位地址
+        EXCEL.writeRange(ui->clientContactsBox->currentText(),"C8",sheet);//委托单位联系人
+        EXCEL.writeRange(ui->clientContactsPhoneEdit->text(),"H8",sheet);//联系电话
+//        EXCEL.writeRange(ui->inspectedComBox->currentText(),"C9",sheet);//受检单位
+//        EXCEL.writeRange(ui->inspectedAddrEdit->text(),"H9",sheet);//受检单位地址
+//        EXCEL.writeRange(ui->inspectedContactsBox->currentText(),"C10",sheet);//联系人
+//        EXCEL.writeRange(ui->inspectedPhoneEidt->text(),"J10",sheet);//联系电话
+        EXCEL.writeRange(ui->projectNameEdit->text(),"C9",sheet);//项目名称
+        EXCEL.writeRange(ui->projectAddrEdit->text(),"H9",sheet);//项目地址
+        auto testTable=ui->testInfoTableView->data();
+        QAxObject* range;
+        int startRow=22;
+        for(int i=0;i<testTable.count();i++){
+            range=EXCEL.selectRow(startRow,sheet);
+            range->dynamicCall("copy()");
+            range->clear();
+            range=EXCEL.selectRow(startRow+1,sheet);
+            range->dynamicCall("insert()");
+            range->clear();
+            auto info=testTable.at(i);
+            EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(3),QString("K%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(4),QString("I%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(5),QString("L%1").arg(startRow),sheet);
+            startRow++;
+        }
         range=EXCEL.selectRow(startRow,sheet);
-        range->dynamicCall("copy()");
-        range->clear();
-        range=EXCEL.selectRow(startRow+1,sheet);
-        range->dynamicCall("insert()");
-        range->clear();
-        auto info=testTable.at(i);
-        EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(3),QString("K%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(5),QString("N%1").arg(startRow),sheet);
-        startRow++;
-    }
-    range=EXCEL.selectRow(startRow,sheet);
-    range->dynamicCall("delete()");
+        range->dynamicCall("delete()");
 
-    //处理方法表
-    statusBar->showMessage("正在填充方法……");
-    qApp->processEvents();
-    startRow+=8;
-    auto m_mthds=m_MethodDlg->methodTable();
-    for(int i=0;i<m_mthds.count();i++){
+        //处理方法表
+        statusBar->showMessage("正在填充方法……");
+        qApp->processEvents();
+        startRow+=4;
+        auto m_mthds=m_MethodDlg->methodTable();
+        for(int i=0;i<m_mthds.count();i++){
+            range=EXCEL.selectRow(startRow,sheet);
+            range->dynamicCall("copy()");
+            range->clear();
+            range=EXCEL.selectRow(startRow+1,sheet);
+            range->dynamicCall("insert()");
+            range->clear();
+            auto info=m_mthds.at(i);
+            EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(4),QString("K%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(5),QString("N%1").arg(startRow),sheet);
+            startRow++;
+        }
         range=EXCEL.selectRow(startRow,sheet);
-        range->dynamicCall("copy()");
-        range->clear();
-        range=EXCEL.selectRow(startRow+1,sheet);
-        range->dynamicCall("insert()");
-        range->clear();
-        auto info=m_mthds.at(i);
-        EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(4),QString("K%1").arg(startRow),sheet);
-        EXCEL.writeRange(info.at(5),QString("N%1").arg(startRow),sheet);
-        startRow++;
+        range->dynamicCall("delete()");
     }
-    range=EXCEL.selectRow(startRow,sheet);
-    range->dynamicCall("delete()");
+    else{//处理采样单
+        EXCEL.writeRange(ui->contractEdit->text(),"C3",sheet);//合同编号
+        EXCEL.writeRange(ui->salesRepresentativeBox->currentText(),"C4",sheet);//业务员
+        EXCEL.writeRange(m_taskNum,"J3",sheet);//任务单号
+        EXCEL.writeRange(user()->name(),"F4",sheet);//录单员
+        EXCEL.writeRange(user()->phone(),"L4",sheet);//客服电话
+        EXCEL.writeRange(ui->clientBox->currentText(),"C7",sheet);//委托单位
+        EXCEL.writeRange(ui->clientAddrEdit->text(),"J7",sheet);//委托单位地址
+        EXCEL.writeRange(ui->clientContactsBox->currentText(),"C8",sheet);//委托单位联系人
+        EXCEL.writeRange(ui->clientContactsPhoneEdit->text(),"J8",sheet);//联系电话
+        EXCEL.writeRange(ui->inspectedComBox->currentText(),"C9",sheet);//受检单位
+        EXCEL.writeRange(ui->inspectedAddrEdit->text(),"J9",sheet);//受检单位地址
+        EXCEL.writeRange(ui->inspectedContactsBox->currentText(),"C10",sheet);//联系人
+        EXCEL.writeRange(ui->inspectedPhoneEidt->text(),"J10",sheet);//联系电话
+        EXCEL.writeRange(ui->projectNameEdit->text(),"C11",sheet);//项目名称
+        EXCEL.writeRange(ui->projectAddrEdit->text(),"J11",sheet);//项目地址
+        auto testTable=ui->testInfoTableView->data();
+        QAxObject* range;
+        int startRow=22;
+        for(int i=0;i<testTable.count();i++){
+            range=EXCEL.selectRow(startRow,sheet);
+            range->dynamicCall("copy()");
+            range->clear();
+            range=EXCEL.selectRow(startRow+1,sheet);
+            range->dynamicCall("insert()");
+            range->clear();
+            auto info=testTable.at(i);
+            EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(3),QString("K%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(5),QString("N%1").arg(startRow),sheet);
+            startRow++;
+        }
+        range=EXCEL.selectRow(startRow,sheet);
+        range->dynamicCall("delete()");
+
+        //处理方法表
+        statusBar->showMessage("正在填充方法……");
+        qApp->processEvents();
+        startRow+=8;
+        auto m_mthds=m_MethodDlg->methodTable();
+        for(int i=0;i<m_mthds.count();i++){
+            range=EXCEL.selectRow(startRow,sheet);
+            range->dynamicCall("copy()");
+            range->clear();
+            range=EXCEL.selectRow(startRow+1,sheet);
+            range->dynamicCall("insert()");
+            range->clear();
+            auto info=m_mthds.at(i);
+            EXCEL.writeRange(i+1,QString("A%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(0),QString("B%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(1),QString("D%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(2),QString("E%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(4),QString("K%1").arg(startRow),sheet);
+            EXCEL.writeRange(info.at(5),QString("N%1").arg(startRow),sheet);
+            startRow++;
+        }
+        range=EXCEL.selectRow(startRow,sheet);
+        range->dynamicCall("delete()");
+    }
+
+
     EXCEL.setScreenUpdating(true);
     statusBar->showMessage("");
     QMessageBox::information(nullptr,"","导出完成。");
@@ -893,15 +1213,8 @@ void TaskSheetEditor::on_submitBtn_clicked()
         QMessageBox::information(nullptr,"error","审核流程已经提交过了。");
         return;
     }
-    emit submitReview(m_taskSheetID,m_taskNum);
+    emit submitReview(m_taskSheetID,m_taskNum,ui->sampleSourceBox->currentIndex());
     this->close();
-}
-
-
-void TaskSheetEditor::on_contractEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
 }
 
 
@@ -909,6 +1222,7 @@ void TaskSheetEditor::on_salesRepresentativeBox_currentTextChanged(const QString
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_salesRepresentativeBox_currentTextChanged"<<arg1;
 }
 
 
@@ -916,6 +1230,7 @@ void TaskSheetEditor::on_reportPurposEdit_currentTextChanged(const QString &arg1
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_reportPurposEdit_currentTextChanged"<<arg1;
 }
 
 
@@ -923,69 +1238,29 @@ void TaskSheetEditor::on_clientBox_currentTextChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_clientBox_currentTextChanged"<<arg1;
 }
-
-
-void TaskSheetEditor::on_clientAddrEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
-
-void TaskSheetEditor::on_clientContactsPhoneEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
 
 void TaskSheetEditor::on_inspectedComBox_currentTextChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_inspectedComBox_currentTextChanged"<<arg1;
 }
-
-
-void TaskSheetEditor::on_inspectedAddrEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
 
 void TaskSheetEditor::on_inspectedContactsBox_currentTextChanged(const QString &arg1)
 {
+     qDebug()<<"on_inspectedContactsBox_currentTextChanged:m_userOpereate"<<m_userOpereate;
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+     qDebug()<<"m_bTasksheetModified:on_inspectedContactsBox_currentTextChanged"<<arg1;
 }
-
-
-void TaskSheetEditor::on_inspectedPhoneEidt_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
-
-void TaskSheetEditor::on_projectNameEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
-
-void TaskSheetEditor::on_projectAddrEdit_editingFinished()
-{
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
-}
-
 
 void TaskSheetEditor::on_reportPeriodBox_textChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_reportPeriodBox_textChanged"<<arg1;
 }
 
 
@@ -993,6 +1268,7 @@ void TaskSheetEditor::on_reportCopiesBox_textChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_reportCopiesBox_textChanged"<<arg1;
 }
 
 
@@ -1000,6 +1276,7 @@ void TaskSheetEditor::on_sampleDisposalBox_currentTextChanged(const QString &arg
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_sampleDisposalBox_currentTextChanged"<<arg1;
 }
 
 
@@ -1007,6 +1284,7 @@ void TaskSheetEditor::on_methodSourseBox_currentTextChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_methodSourseBox_currentTextChanged"<<arg1;
 }
 
 
@@ -1014,12 +1292,255 @@ void TaskSheetEditor::on_subpackageBox_currentTextChanged(const QString &arg1)
 {
     if(!m_userOpereate) return;
     m_bTasksheetModified=true;
+    qDebug()<<"m_bTasksheetModified:on_subpackageBox_currentTextChanged"<<arg1;
+}
+
+void TaskSheetEditor::on_sampleSourceBox_currentIndexChanged(int index)
+{
+    setEntrustType(index);
 }
 
 
-void TaskSheetEditor::on_otherRequirementsEdit_editingFinished()
+void TaskSheetEditor::on_addClientAction_triggered()
 {
-    if(!m_userOpereate) return;
-    m_bTasksheetModified=true;
+    ui->ClientEditBtn->setText("确认添加");
+    ui->ClientEditBtn->show();
+    ui->ClientEditCancelBtn->show();
+}
+
+
+void TaskSheetEditor::on_ClientEditBtn_clicked()
+{
+    if(ui->ClientEditBtn->text()=="确认添加"){
+    QString clientName=ui->clientBox->currentText();
+    if(clientName.isEmpty()){
+        QMessageBox::information(nullptr,"","请输入委托单位");
+        return;
+    }
+    if(m_clients.contains(clientName)){
+        QMessageBox::information(nullptr,"","委托单位已经存在");
+        return;
+    }
+    QString clientAddr=ui->clientAddrEdit->text();
+    QString contact=ui->clientContactsBox->currentText();
+    if(contact.isEmpty()){
+        QMessageBox::information(nullptr,"","请输入联系人");
+        return;
+    }
+
+    QString phone=ui->clientContactsPhoneEdit->text();
+
+        QString sql="insert into client_info(clientName,address) values(?,?);set @clientID=LAST_INSERT_ID();";
+        sql+="insert into client_contacts(clientID, name, phoneNum) values(@clientID,?,?);";
+        doSql(sql,[this,clientName,clientAddr,contact,phone](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"插入客户数据时错误：",msg.result().toString());
+                return;
+            }
+            doSql("select @clientID;",[this,clientName,clientAddr,contact,phone](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"插入客户数据时错误：",msg.result().toString());
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+                int clientID=r.at(1).toList().at(0).toInt();
+                m_clients[clientName]={clientID,clientAddr};
+                ui->clientContactsBox->clear();
+                ui->clientContactsBox->addItem(contact);
+                m_contacts[contact]=phone;
+                ui->inspectedComBox->addItem(clientName);
+                ui->clientAddrEdit->setText(clientAddr);
+                ui->clientContactsBox->setCurrentText(contact);
+                ui->clientContactsPhoneEdit->setText(phone);
+                QMessageBox::information(nullptr,"","添加成功");
+                ui->ClientEditBtn->hide();
+                ui->ClientEditCancelBtn->hide();
+            });
+
+        },0,{clientName,clientAddr,contact,phone});
+    }
+    else if(ui->ClientEditBtn->text()=="保存修改"){
+        QString client=ui->clientBox->currentText();
+        QString oldClient=ui->clientBox->itemText(ui->clientBox->currentIndex());
+        int id=m_clients.value(oldClient).ID;
+        QJsonArray values;
+        bool first = false;
+        QString sql="update client_info set ";
+        if(client!=oldClient){
+            sql+="clientName=? ";
+            values.append(client);
+            first=true;
+        }
+        QString address=ui->clientAddrEdit->text();
+        if(address!=m_clients.value(oldClient).clientAddr){
+            if(first) sql+=", ";
+            sql+="address=?";
+            values.append(address);
+
+        }
+        bool error=false;
+        if(values.count()){
+
+            sql+=" where id=?";
+            values.append(id);
+            doSql(sql,[this, &error, client, address, id](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        QMessageBox::information(nullptr,"保存客户信息时出错：",msg.errorMsg());
+                        error=true;
+                        sqlFinished();
+                        return;
+                    }
+                    ui->clientBox->setItemText(ui->clientBox->currentIndex(),client);
+                    m_clients[client].clientAddr=address;
+                    m_clients[client].ID=id;
+                    sqlFinished();
+                    qDebug()<<" sqlFinished();";
+            },0,values);
+
+            waitForSql("在正保存客户信息……");
+        }
+        if(error) return;
+
+        QString contact=ui->clientContactsBox->currentText();
+        QString oldContact=ui->clientContactsBox->itemText(ui->clientContactsBox->currentIndex());
+        QString phone=ui->clientContactsPhoneEdit->text();
+        QString oldPhone=m_contacts.value(contact);
+        sql="update client_contacts set ";
+        values={};
+        first=false;
+        if(contact!=oldContact){
+            sql+="name=? ";
+            values.append(contact);
+            first=true;
+        }
+        if(phone!=oldPhone){
+            if(first) sql+=", ";
+            sql+="phoneNum=?";
+            values.append(phone);
+        }
+        if(values.count()){
+            sql+=" where name=?";
+            values.append(oldContact);
+            doSql(sql,[this, &error, contact, phone](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        QMessageBox::information(nullptr,"保存联系人时出错：",msg.errorMsg());
+                        error=true;
+                        sqlFinished();
+                        return;
+                    }
+                    ui->clientContactsBox->setItemText(ui->clientContactsBox->currentIndex(),contact);
+                    m_contacts[contact]=phone;
+                    sqlFinished();
+                    qDebug()<<" sqlFinished();";
+                },0,values);
+
+            waitForSql("正在保存联系人信息……");
+        }
+        if(!error){
+            QMessageBox::information(nullptr,"","修改成功");
+        }
+
+
+    }
+
+}
+
+
+void TaskSheetEditor::on_ClientEditCancelBtn_clicked()
+{
+        ui->ClientEditBtn->hide();
+        ui->ClientEditCancelBtn->hide();
+        ui->addContactBtn->hide();
+}
+
+
+void TaskSheetEditor::on_ClientEditAction_triggered()
+{
+        ui->ClientEditBtn->setText("保存修改");
+        ui->ClientEditBtn->show();
+        ui->addContactBtn->show();
+        ui->ClientEditCancelBtn->show();
+}
+
+
+void TaskSheetEditor::on_addContactBtn_clicked()
+{
+        QString contact=QInputDialog::getText(nullptr,"请输入联系人姓名:","");
+        if(contact.isEmpty()) return;
+        QString phone=QInputDialog::getText(nullptr,"请输入联系电话:","");
+        if(phone.isEmpty()) return;
+        int id=m_clients.value(ui->clientBox->currentText()).ID;
+        if(!id){
+            QMessageBox::information(nullptr,"error","未查到委托单位。");
+            return;
+        }
+        QString sql="insert into client_contacts(clientID, name, phoneNum) values(?,?,?);";
+        doSql(sql,[this,contact,phone](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"插入客户数据时错误：",msg.result().toString());
+                return;
+            }
+
+                ui->clientContactsBox->addItem(contact);
+                m_contacts[contact]=phone;
+
+        },0,{id,contact,phone});
+        return;
+}
+
+
+void TaskSheetEditor::on_otherRequirementsEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_projectAddrEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_projectNameEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_inspectedPhoneEidt_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_inspectedAddrEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_clientAddrEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_clientContactsPhoneEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
+}
+
+
+void TaskSheetEditor::on_contractEdit_textChanged(const QString &arg1)
+{
+        if(!m_userOpereate) return;
+        m_bTasksheetModified=true;
 }
 

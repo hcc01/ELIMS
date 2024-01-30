@@ -105,16 +105,23 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_3">
+        <widget class="QPushButton" name="tasksheetEditBtn">
          <property name="text">
           <string>修改</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_4">
+        <widget class="QPushButton" name="tasksheetViewBtn">
          <property name="text">
           <string>查看</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="deleteBtn">
+         <property name="text">
+          <string>删除</string>
          </property>
         </widget>
        </item>
@@ -142,15 +149,15 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>MyTableView</class>
+   <extends>QTableView</extends>
+   <header>mytableview.h</header>
+  </customwidget>
+  <customwidget>
    <class>SqlPageControleUI</class>
    <extends>QWidget</extends>
    <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>MyTableView</class>
-   <extends>QTableView</extends>
-   <header>mytableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

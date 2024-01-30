@@ -17,7 +17,7 @@ CUser* CLoginManager::doLogin(CELLClient *pClient, const QString &name, const QS
        return nullptr;
     }
     QSqlQuery query(dbManager.database());
-    QString sql(QString("select * from sys_employee_login left join (select position ,name from users where name='%1') as B on sys_employee_login.name=B.name where sys_employee_login.name='%1' and sys_employee_login.password='%2' ").arg(name).arg(passwd));
+    QString sql(QString("select * from sys_employee_login left join (select position ,name , phone from users where name='%1') as B on sys_employee_login.name=B.name where sys_employee_login.name='%1' and sys_employee_login.password='%2' ").arg(name).arg(passwd));
     if(!query.exec(sql)){
         CELLLog::Info("Login error: %s",query.lastError().text());
         lr.result=DB_ERROR;
@@ -36,7 +36,8 @@ CUser* CLoginManager::doLogin(CELLClient *pClient, const QString &name, const QS
         strcpy(name_copy, name);  // 复制字符数组
         memcpy(lr.name, name_copy, name_len);  // 将复制的字符数组复制到 lr.name 所指向的内存区域中
         lr.name[name_len] = '\0';  // 确保字符串以 null 结尾
-        delete[] name_copy;  // 释放为复制的字符数组分配的内存
+        delete[] name_copy;  // 释放为复制的字符数组分配的内存  
+
        CUser* user=new CUser(query.value("id").toInt(),query.value("name").toString());
        if(_userMap.contains(user->id())) {
            CUser* oldUser=_userMap.value(user->id());
