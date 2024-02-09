@@ -145,7 +145,7 @@ void LabCapabilitiesManagerUI::initMod()
           "minAmount int, "//最小样品量（用于水样采样体积的估算)
           "sampleGroup varchar(32) , "//样品分组，同一组的样品只采一个。
           "sampleMedium  varchar(32) ,"//采样介质
-          "seriesConnection tinyint not null default 0, "//是否串联
+          "seriesConnection int not null default 0, "//是否串联
           "mediumPrepare tinyint not null default 0, "//采样介质准备，是否需要实验室准备。
           "preservatives varchar(64) ,"//固定剂
           "storageCondition  varchar(32) ,"//保存条件

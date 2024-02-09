@@ -11,6 +11,7 @@
  */
 #include"../Client/qjsoncmd.h"
 #include"cuser.h"
+#include "mytableview.h"
 #include "qlabel.h"
 #include <QWidget>
 #include<QJsonObject>
@@ -39,10 +40,11 @@ class TabWidgetBase : public QWidget
 public:
     explicit TabWidgetBase(QWidget *parent = nullptr);
     enum FlowOperateFlag{ VIEWINFO,AGREE,REJECT};
-    virtual ~TabWidgetBase(){}
+    virtual ~TabWidgetBase();
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
     virtual void dealProcess(const QFlowInfo&, int operateFlag);//处理流程事件
     virtual bool pushProcess(QFlowInfo flowInfo, bool passed, const QString &comments);//推进流程
+    virtual void showFlowInfo(const QSqlReturnMsg& flowIDsQueryMsg);
     virtual void initMod();//新增模块时初始化操作，建表等。
     virtual void initCMD(){}//初次调用模块窗口时需要进行的初始化操作。
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
@@ -58,7 +60,8 @@ public:
         sqlEnd();
     }
     void sqlEnd();
-    void sqlFinished(){sqlEnd();};
+    void sqlFinished(){sqlEnd();}
+
 private:
 signals:
     void sendData(const QJsonObject&);
@@ -68,9 +71,10 @@ private:
     QString m_tabName;
     //保存流程数据的函数地址，在需要处理流程时，在服务器中保存编号，客户端根据编号对应处理函数。
     QMap<int,DealFuc> m_fucMap;
+    int flag;
     CUser* m_user;
     WaitDlg m_dlg;
-
+    MyTableView *m_view;
 };
 
 class SqlBaseClass

@@ -44,13 +44,16 @@ void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, 
     tab->doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(nullptr,"error",msg.errorMsg());
+                m_sqlClass->sqlFinished();
                 return;
             }
             int pages=msg.totalPage();
             setTotalPage(pages);
-            qDebug()<<msg.jsCmd();
+//            qDebug()<<msg.jsCmd();
             m_dealFuc(msg);
+            m_sqlClass->sqlFinished();
         },p,v);
+    tab->waitForSql();
 }
 
 void SqlPageControleUI::updatePage()

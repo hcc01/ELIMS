@@ -12,6 +12,8 @@ CONFIG += c++17
 SOURCES += \
     ../Client/ctablemodel.cpp \
     ../Client/mycombobox.cpp \
+    ../Client/mymodel.cpp \
+    ../Client/mytableview.cpp \
     ../Client/qjsoncmd.cpp \
     ../Client/tabwigetbase.cpp \
     labcapabilitiesmanagerui.cpp \
@@ -20,6 +22,8 @@ SOURCES += \
 HEADERS += \
     ../Client/ctablemodel.h \
     ../Client/mycombobox.h \
+    ../Client/mymodel.h \
+    ../Client/mytableview.h \
     ../Client/qjsoncmd.h \
     ../Client/tabwigetbase.h \
     LabCapabilitiesManager_global.h \

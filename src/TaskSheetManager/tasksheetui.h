@@ -47,6 +47,8 @@ private slots:
 
     void on_deleteBtn_clicked();
 
+    void on_reviewCommentsBtn_clicked();
+
 private:
     Ui::TaskSheetUI *ui;
     TaskSheetEditor* m_sheet;

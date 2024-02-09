@@ -1,12 +1,21 @@
 #include "tabwigetbase.h"
+#include "mytableview.h"
 #include "qeventloop.h"
+#include "qthread.h"
 #include <QLabel>
 #include<QDialog>
 #include<QTimer>
-TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent)
+TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
-    qDebug()<<m_tabName;
-//    connect(this,&TabWidgetBase::sqlFinished,&m_dlg,&QDialog::accept);
+    m_view=new MyTableView;
+
+    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间"});
+    m_view->resize(800,400);
+}
+
+TabWidgetBase::~TabWidgetBase()
+{
+    if(m_view) delete m_view;
 }
 
 void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
@@ -61,7 +70,7 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
     }
 //    if(passed){
 //        QString sql="update flow_records set operatorCountPassed=operatorCountPassed+1 where id=? and status=0;";//通过人数+1；0为待审核状态，如果没有，说明已经审核完成
-        sql="update flow_records set status=? where id=? ;";//状态1为通过，2为驳回
+        sql="update flow_records set status=? where id=? ;";//状态1为通过，2为驳回（目前不处理需要多人共同审批的流程）
 
     values={passed?1:2,flowID};
         ok=false;
@@ -78,6 +87,20 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
             QMessageBox::information(nullptr,"","更新流程审核记录出错，0条修改成功");
             return false;
         }
+
+      //更新操作记录
+        sql="update flow_operate_records set operateStatus=? ,operateComments=?, operateTime=NOW() where operatorID=(select id from sys_employee_login where name=?) and flowID=?;";
+        values={passed?1:2,comments,user()->name(),flowID};
+
+            doSqlQuery(sql, [this](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"更新操作记录出错：",msg.result().toString());
+                    sqlFinished();
+                    return;
+                }
+                sqlFinished();
+            },0,values);
+        waitForSql();
             //流程处理完成
 //            emit dealFLow(flowInfo,AGREE);//当前节点通过，发出信号，由各自模块处理下一步流程
             //通知发起人审批结果
@@ -85,26 +108,18 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
             //对于多人审批的，检查流程是否审批完成，如果完成，则取消其它人的审批。(直接删除数据）
             sql="delete from flow_operate_records  where flowID=? and operateStatus=0 and (select status from flow_records where id=?)!=0; ";
             values={flowID,flowID};
-            doSqlQuery(sql, [](const QSqlReturnMsg&msg){
+            doSqlQuery(sql, [this](const QSqlReturnMsg&msg){
                 if(msg.error()){
                     QMessageBox::information(nullptr,"取消其它审批人时出错：",msg.result().toString());
+                    sqlFinished();
                     return;
                 }
 
+                sqlFinished();
             },0,values);
 
+        waitForSql();
 
-      //更新操作记录
-        sql="update flow_operate_records set operateStatus=? ,operateComments=?, operateTime=NOW() where operateStatus=0 and operatorID=(select id from sys_employee_login where name=?) and flowID=?;";
-        values={passed?1:2,comments,user()->name(),flowID};
-
-            doSqlQuery(sql, [](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(nullptr,"更新操作记录出错：",msg.result().toString());
-                    return;
-                }
-
-            },0,values);
         //更新待办
 //        removeTodo(row);
         //若其它人的审批被取消，更新其它人的待办（这个不操作了，麻烦）
@@ -112,6 +127,56 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
         return true;
 
 
+}
+
+void TabWidgetBase::showFlowInfo(const QSqlReturnMsg &flowIDsQueryMsg)
+{
+        if(flowIDsQueryMsg.error()){
+            QMessageBox::information(nullptr,"查询流程信息时出错：",flowIDsQueryMsg.errorMsg());
+            return;
+        }
+        QList<QVariant>r=flowIDsQueryMsg.result().toList();
+        if(r.count()<2){
+            QMessageBox::information(nullptr,"error：","没有可查询的操作流程。");
+            return;
+        }
+        QString sql;
+
+        bool ok=false;
+        m_view->clear();
+        for(int i=1;i<r.count();i++){
+            QList<QVariant>row=r.at(i).toList();
+            int flowID=row.at(0).toInt();
+            if(!flowID){
+                QMessageBox::information(nullptr,"error:","错误的流程ID信息。");
+                qDebug()<<row;
+                break;
+            }
+            sql="SELECT JSON_EXTRACT(flowInfo, '$.flowName'), CASE WHEN A.operateStatus = 1 THEN '通过' WHEN A.operateStatus = 2 THEN '驳回' ELSE '审批中' END AS '审批结果', A.operateComments, sys_employee_login.name, DATE_FORMAT(A.operateTime,'%Y/%m/%d %H:%i') FROM "
+                  "(select * from (select flowID,operateStatus,operateComments, operatorID, operateTime from flow_operate_records where flowID=?) as T left join flow_records on T.flowID= flow_records.id) as A left join sys_employee_login on A.operatorID=sys_employee_login.id; ";
+
+            doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"获取审批信息时出错:",msg.errorMsg());
+                    sqlFinished();
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+//                if(r.count()<2){
+//                    QMessageBox::information(nullptr,"error:","没有相关流程信息。");
+//                    sqlFinished();
+//                    return;
+//                }
+                for(int i=1;i<r.count();i++){
+                    auto row=r.at(i);
+                    m_view->append(row.toList());
+                }
+                ok=true;
+                sqlFinished();
+            },1,{flowID});
+            waitForSql();
+        }
+        m_view->show();
 }
 
 void TabWidgetBase::initMod()
@@ -122,7 +187,8 @@ void TabWidgetBase::initMod()
 
 void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJsonArray&bindValues)
 {
-    static int flag=0;
+//    static int flag=0;
+        qDebug()<<"tab:"<<this;
     QSqlCmd cmd(sql,flag,page);
     if(bindValues.count()){
         cmd.bindValue(bindValues);

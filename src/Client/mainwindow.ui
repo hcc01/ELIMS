@@ -71,6 +71,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="btSamplingSchedule">
+          <property name="text">
+           <string>采样排单</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="btTaskSheet_2">
           <property name="text">
            <string>采样任务管理</string>
@@ -80,7 +87,7 @@
         <item>
          <widget class="QPushButton" name="btTaskSheet_3">
           <property name="text">
-           <string>样品管理</string>
+           <string>样品流转</string>
           </property>
          </widget>
         </item>

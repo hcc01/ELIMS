@@ -11,6 +11,7 @@ CONFIG += c++17
 
 SOURCES += \
     ../Client/ctablemodel.cpp \
+    ../Client/itemsselectdlg.cpp \
     ../Client/mycombobox.cpp \
     ../Client/mymodel.cpp \
     ../Client/mytableview.cpp \
@@ -20,9 +21,12 @@ SOURCES += \
     clientmanagerdlg.cpp \
     clineteditor.cpp \
     contractreviewdlg.cpp \
+    doscheduledlg.cpp \
     implementingstandardselectdlg.cpp \
     methodselectdlg.cpp \
     reportmanagerui.cpp \
+    samplegroupingdlg.cpp \
+    samplingscheduleui.cpp \
     tasksheeteditor.cpp \
     tasksheetui.cpp \
     testinfoeditor.cpp
@@ -30,6 +34,7 @@ SOURCES += \
 HEADERS += \
     ../Client/ctablemodel.h \
     ../Client/global.h \
+    ../Client/itemsselectdlg.h \
     ../Client/mycombobox.h \
     ../Client/mymodel.h \
     ../Client/mytableview.h \
@@ -40,9 +45,12 @@ HEADERS += \
     clientmanagerdlg.h \
     clineteditor.h \
     contractreviewdlg.h \
+    doscheduledlg.h \
     implementingstandardselectdlg.h \
     methodselectdlg.h \
     reportmanagerui.h \
+    samplegroupingdlg.h \
+    samplingscheduleui.h \
     tasksheeteditor.h \
     tasksheetui.h \
     testinfoeditor.h
@@ -54,12 +62,16 @@ unix {
 !isEmpty(target.path): INSTALLS += target
 
 FORMS += \
+    ../Client/itemsselectdlg.ui \
     clientmanagerdlg.ui \
     clineteditor.ui \
     contractreviewdlg.ui \
+    doscheduledlg.ui \
     implementingstandardselectdlg.ui \
     methodselectdlg.ui \
     reportmanagerui.ui \
+    samplegroupingdlg.ui \
+    samplingscheduleui.ui \
     tasksheeteditor.ui \
     tasksheetui.ui \
     testinfoeditor.ui

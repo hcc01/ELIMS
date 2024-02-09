@@ -15,11 +15,11 @@ public:
         // 设置列表项，并保存原始列表项
 //        QListWidget::addItems(items);
         for(int i=0;i<items.count();i++){
-            QListWidgetItem *item = new QListWidgetItem();
+            QListWidgetItem *item = new QListWidgetItem(this);
             item->setText(items.at(i));
-            item->setData(Qt::UserRole,idList.at(i));
+            if(idList.count()) item->setData(Qt::UserRole,idList.at(i));
             addItem(item);
-            allItems.append({item->text(),idList.at(i)});
+            if(idList.count()) allItems.append({item->text(),idList.at(i)});
         }
 //        this->items = items;
 //        allItems = findItems("", Qt::MatchWildcard);

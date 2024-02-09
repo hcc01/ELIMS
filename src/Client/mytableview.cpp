@@ -1,4 +1,5 @@
 ﻿#include "mytableview.h"
+#include "qheaderview.h"
 #include<QMessageBox>
 MyTableView::MyTableView(QWidget *parent)
     : QTableView{parent}
@@ -25,6 +26,22 @@ MyTableView::MyTableView(QWidget *parent)
     });
     //    m_contextMenu->addAction(m_infoAction);
 
+}
+
+void MyTableView::resizeEvent(QResizeEvent *event)
+{
+    // 调用基类的 resizeEvent 以保持默认行为
+            QTableView::resizeEvent(event);
+
+    // 在这里调整你的排版逻辑
+    // 比如重新计算行高、列宽等
+
+//            for(int i=0;i<this->m_model->columnCount();i++){
+//                horizontalHeader()->setSectionResizeMode(horizontalHeader()->sectionResizeMode(i));
+//            }
+//            // 更新视图
+                resizeRowsToContents();
+//                resizeColumnsToContents();
 }
 
 void MyTableView::init(const QVariant &data)
@@ -80,6 +97,11 @@ QVariant MyTableView::value(int row, const QString &head) const
     return m_model->data(row,head);
 }
 
+QVariant MyTableView::value(const QModelIndex &index) const
+{
+    return m_model->data(index);
+}
+
 QVariant MyTableView::cellFlag(int row, int column) const
 {
     return m_model->data(row,column,Qt::UserRole);
@@ -111,6 +133,11 @@ void MyTableView::setBackgroundColor(int row, int colunm, const QColor &color)
 void MyTableView::setCellFlag(int row, int colunm, const QVariant &value)
 {
     m_model->setData(m_model->index(row,colunm),value,Qt::UserRole);
+}
+
+QModelIndexList MyTableView::selectedIndexes() const
+{
+    return QTableView::selectedIndexes();
 }
 
 int MyTableView::selectedRow() const

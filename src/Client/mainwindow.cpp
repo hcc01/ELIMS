@@ -19,6 +19,7 @@
 #include<QTimer>
 #include<QThread>
 #include"reportmanagerui.h"
+#include"samplingscheduleui.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -50,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(StandardsManager,ui->standardsManagerBtn);
     ADD_MODULE(PersnalDataManagerUI,ui->btPersonalInfo);
     ADD_MODULE(ReportManagerUI,ui->reportManagerBtn);
+    ADD_MODULE(SamplingScheduleUI,ui->btSamplingSchedule);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
@@ -87,6 +89,9 @@ MainWindow::MainWindow(QWidget *parent)
     if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
         ui->btEmployeeManage->show();
     }
+    if(m_user->position()&(CUser::Sampler|CUser::SamplerLeader)){
+        ui->btSamplingSchedule->show();
+    }
     ui->btnToDo->clicked();
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
     if(todoUI){
@@ -97,9 +102,11 @@ MainWindow::MainWindow(QWidget *parent)
             qDebug()<<"调用模块"<<tab<<tab->tabName();
             tab->dealProcess(flowInfo,operateFlag);
         });
+
+        loadUser();//登录返回人员名和职位，其它人员信息在这里载入
+        qDebug()<<m_user->name()<<m_user->phone();
     }
 
-    loadUser();//登录返回人员名和职位，其它人员信息在这里载入
 }
 
 MainWindow::~MainWindow()
@@ -358,9 +365,10 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
 void MainWindow::loadUser()//在我在待办模块中操作
 {
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
-    qDebug()<<" ui->tabWidget->count()"<< ui->tabWidget->count();
-    if(!todoUI) qDebug()<<"error:todoUI is 0";
-    return;
+    if(!todoUI) {
+        qDebug()<<"error:todoUI is 0";
+         return;
+    }
     todoUI->loadUser(m_user);
 }
 
@@ -443,7 +451,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.2.3");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.2.5");
 }
 
 

@@ -89,6 +89,10 @@ void testInfoEditor::load(TestInfo* info)
 void testInfoEditor::on_testInofOkBtn_clicked()
 {
     if(!m_info) return;
+    if(ui->sampleTypeBox->currentText().isEmpty()){
+        QMessageBox::information(nullptr,"error","样品类型不能为空");
+        return;
+    }
     QString s=ui->testItemEdit->toPlainText();
     s.replace("\n","、");
     toStdParameterName(s);
@@ -237,6 +241,7 @@ void testInfoEditor::on_testTypeBox_currentTextChanged(const QString &arg1)
         sqlFinished();
     });
     waitForSql();
+    ui->sampleTypeBox->setCurrentIndex(-1);
 }
 
 

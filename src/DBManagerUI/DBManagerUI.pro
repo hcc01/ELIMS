@@ -11,6 +11,8 @@ CONFIG += c++11
 
 SOURCES += \
     ../Client/ctablemodel.cpp \
+    ../Client/mymodel.cpp \
+    ../Client/mytableview.cpp \
     ../Client/qexcel.cpp \
     ../Client/qjsoncmd.cpp \
     ../Client/tabwigetbase.cpp \
@@ -19,6 +21,8 @@ SOURCES += \
 HEADERS += \
     ../Client/QExcel.h \
     ../Client/ctablemodel.h \
+    ../Client/mymodel.h \
+    ../Client/mytableview.h \
     ../Client/qjsoncmd.h \
     ../Client/tabwigetbase.h \
     DBManagerUI_global.h \

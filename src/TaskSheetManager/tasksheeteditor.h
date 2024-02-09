@@ -23,7 +23,7 @@ public:
     void init();
     void doSave();
     bool saveMethod();
-    void load(const QString& taskNum);
+    void load(const QString& taskNum,bool newMode=false);
     enum OpenMode{NewMode,EditMode,ReviewMode,ViewMode};
     void setOpenMode(int mode);
     void reset();

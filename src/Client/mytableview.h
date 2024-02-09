@@ -69,6 +69,7 @@ class MyTableView : public QTableView
     Q_OBJECT
 public:
     explicit MyTableView(QWidget *parent = nullptr);
+    void resizeEvent(QResizeEvent *event) override;
     void init(const QVariant &data);
     void setHeader(const QStringList& header);    //设置列名，初始化表格。
     void addContextAction(const QString&action, ActionFuc f);//添加右键命令
@@ -78,11 +79,13 @@ public:
     QList<QList<QVariant>> data()const;//获取全部数据
     QVariant value(int row,int column)const;
     QVariant value(int row,const QString&head)const;
+    QVariant value(const QModelIndex& index)const;
     QVariant cellFlag(int row,int column)const;
     void clear();//清空
     bool setData(int row,int colunm, const QVariant &value, int role = Qt::EditRole);
     void setBackgroundColor(int row,int colunm,const QColor& color);
     void setCellFlag(int row,int colunm,const QVariant &value);
+    QModelIndexList selectedIndexes() const override;
     int selectedRow()const;//当前选中的行
     void setEditableColumn(int colunm);//设置可编辑的列
     void setEdiableColumns(QList<int>columns){m_model->setEditableColumns(columns);}
