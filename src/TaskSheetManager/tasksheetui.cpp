@@ -291,7 +291,7 @@ void TaskSheetUI::initMod()
     });
 
 
-    //方法评审表
+    //方法评审表(报告编号也在这个表中保存，方便按类型、资质、分包情况进行分包）
     sql="CREATE TABLE IF NOT EXISTS task_methods("
            "id int AUTO_INCREMENT primary key, "//
            "monitoringInfoID int not null, "//监测信息ID
@@ -306,7 +306,8 @@ void TaskSheetUI::initMod()
            "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
            "subpackageDesc VARCHAR(255),"//分包说明
             "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
-           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+           "reportNum varchar(32), "
+          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
            "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
            "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
            "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
@@ -351,19 +352,53 @@ void TaskSheetUI::initMod()
             return;
         }
     });
-    //样品检测结果表：
-    sql="CREATE TABLE IF NOT EXISTS sample_results("
+
+        //样品流转表：
+        sql="CREATE TABLE IF NOT EXISTS sample_circulate("
           "id int AUTO_INCREMENT primary key, "//
-          "sampleNumber varchar(32) not null,"//样品编号
-          "sampleInfoID int not null, "//样品信息ID
-          "testParameter varchar(32) ,"
-          "result json "
-//          "FOREIGN KEY (sampleNumber) REFERENCES sampling_info (sampleNumber) "//包含采样和送样两个表格，无法使用外键
+          "taskNum varchar(32) not null,"//任务单号
+          "sampleNum varchar(32) unique,"//样品编号
+          "deleiver varchar(16) ,"
+          "receiver varchar(16), "
+          "receiveTime DateTime "
+//          "FOREIGN KEY (taskNum) REFERENCES test_task_info (taskNum) "
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sampling_info",msg.result().toString());
+            return;
+        }
+    });
+    //报告审批状态表：
+    sql="CREATE TABLE IF NOT EXISTS report_status("
+          "id int AUTO_INCREMENT primary key, "//
+          "status int,"//
+          "reportNum varchar(32) unique,"
+          "taskNum varchar(32),"
+          "ramarks varchar(255) "
+          //          "FOREIGN KEY (reportNum) REFERENCES test_task_info (id), "
+//          " FOREIGN KEY (flowID) REFERENCES flow_records (id)"
           ");";
 
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
-            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sample_results",msg.result().toString());
+            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS report_status",msg.result().toString());
+            return;
+        }
+    });
+    //报告审批记录表：
+    sql="CREATE TABLE IF NOT EXISTS report_flows("
+          "id int AUTO_INCREMENT primary key, "//
+//          "status int,"//
+          "flowID int , "//
+          "reportNum varchar(32) unique,"
+//          "FOREIGN KEY (reportNum) REFERENCES test_task_info (id), "
+          " FOREIGN KEY (flowID) REFERENCES flow_records (id)"
+          ");";
+
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS report_flows",msg.result().toString());
             return;
         }
     });
@@ -381,11 +416,71 @@ void TaskSheetUI::initMod()
     });
 }
 
+FlowWidget *TaskSheetUI::flowWidget(const QFlowInfo &flowInfo)
+{
+    if(flowInfo.flowName()=="任务单审核"){
+        FlowWidget*w= new FlowWidget;
+        QVBoxLayout* vlay=new QVBoxLayout(w);
+        MyTableView* view=new MyTableView(w);
+        QPushButton* infoBtn=new QPushButton("查看任务单",w);
+        vlay->addWidget(infoBtn);
+        vlay->addWidget(view);
+        view->setHeader({"评审要素","评审内容","评审记录"});
+        view->append({"1.检测方法评审","检测方法是否明确、适用、有效","是"});
+        view->append({"2.检测项目评审","检测项目是否明确	","是"});
+        view->append({"3.样品要求评审","样品类型、数量、采/抽样、运输、存储、制备、防护、处理处置、是否确定","是"});
+        view->append({"4.安全环保评审	","样品存储、制备、检测过程中是否存在潜在的危险或危害		","否"});
+        view->append({"5.结果传递评审","结果提交的方式是否明确","是"});
+        view->append({"6.分包评审","检测过程中是否需要分包","否"});
+        view->append({"7.人力资源评审	","检测人员是否具备相应检测技能，是否需要采/抽样、其他特殊资质要求","是"});
+        view->append({"8.设备设施评审","是否具备开展检测和客户需求所需设备设施","是"});
+        view->append({"9.资质能力评审","是否具备检验资质	","是"});
+        view->append({"10.时间评审","检测周期是否满足客户要求","是"});
+        view->setEditableColumn(2);
+        ComboBoxDelegate* editor=new ComboBoxDelegate(view,{"否","是"});
+        view->setItemDelegateForColumn(2,editor);
+        view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+        QString taskNum=flowInfo.value("taskNum").toString();
+        //查看任务单信息
+        connect(infoBtn,&QPushButton::clicked,[this, flowInfo, taskNum](){
+            viewTaskSheet(taskNum);
+        });
+        //处理流程审批结果
+        connect(w,&FlowWidget::pushProcess,[this](const QFlowInfo&flowInfo,bool passed){
+            QString sql="update test_task_info set taskStatus=? where id=?";
+            int flowID=flowInfo.flowID();
+            int taskSheetID=flowInfo.value("taskSheetID").toInt();
+            int node=flowInfo.node();
+            int backNode=flowInfo.backNode();
+            int nextNode=flowInfo.nextNode();
+            QJsonArray values;
+            if(passed){//同意，进入采样排单
+                //进入新流程（后面处理）
+                //更改任务单状态
+                values={nextNode,taskSheetID};
+            }
+            else{//拒绝，退回任务单修改
+                //更改任务单状态为“待修改”
+                values={backNode,taskSheetID};
+            }
+            doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        return notifySqlError("更改任务单状态时出错：",msg.errorMsg());
+                    }
+                },0,values);
+        });
+
+        return w;
+    }
+    return nullptr;
+}
+
 void TaskSheetUI::initCMD()//初始化和刷新
 {
     ui->tableView->clear();
-    QString sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus , sampleSource from (select * from test_task_info where creator='%1' and deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;").arg(user()->name());
-    if(user()->name()=="admin") sql="SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus ,sampleSource from (select * from test_task_info where deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;";
+    m_taskIDs.clear();
+    QString sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus , sampleSource,A.id from (select * from test_task_info where creator='%1' and deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;").arg(user()->name());
+    if(user()->name()=="admin") sql="SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus ,sampleSource ,A.id from (select * from test_task_info where deleted!=1 ) as A left join users on A.salesRepresentative=users.id ORDER BY createDate DESC;";
     DealFuc f=[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
@@ -396,13 +491,14 @@ void TaskSheetUI::initCMD()//初始化和刷新
             for(int i=1;i<r.count();i++){
                 QList<QVariant>row=r.at(i).toList();
                 int status=row.at(6).toInt();
-                row[6]=StatusName.value(status);
+                row[6]=getStatusName(status);
                 if(row.at(7).toBool()){
                     row[7]="送样检测";
                 }
                 else row[7]="采样检测";
                 ui->tableView->append(row);
                 ui->tableView->setCellFlag(i-1,6,status);
+                m_taskIDs[row.at(0).toString()]=row.at(8).toInt();
             }
             qDebug()<<msg.jsCmd();
     };
@@ -434,6 +530,7 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum,bool DeliveryTe
     QFlowInfo flowInfo("任务单审核",tabName());
     flowInfo.setValue("taskSheetID",sheetID);//标记
     flowInfo.setValue("taskNum",taskNum);//标记
+    flowInfo.setFlowAbs(taskNum);
     flowInfo.setNode(REVIEW);//
     flowInfo.setBackNode(MODIFY);
     if(DeliveryTest) flowInfo.setNextNode(TESTING);//送样分析，直接到分析节点
@@ -458,21 +555,21 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum,bool DeliveryTe
         return;
     }
     //任务单审核提交到流利管理
-    int flowID=submitFlow(flowInfo,operateorIDs);//提交到流程登记
+    int flowID=submitFlow(flowInfo,operateorIDs,QString::number(sheetID),1,"task_status","taskSheetID");//提交到流程登记
     if(!flowID){
         QMessageBox::information(nullptr,"创建流程出错：","未获取到有效的流程ID。");
         return;
     }
-    //关联任务单的审核流程ID
-    doSqlQuery("insert into task_status (taskSheetID, taskStatus, flowID) values(?,?,?) ",[this](const QSqlReturnMsg&msg){//更新任务单状态
-        if(msg.error()){
-            QMessageBox::information(nullptr,"插入流程时出错：",msg.result().toString());
-            emit sqlFinished();
-            return;
-        }
-        emit sqlFinished();
-    },0,{sheetID,REVIEW,flowID});
-    waitForSql("正在创建审批流程……");
+//    //关联任务单的审核流程ID
+//    doSqlQuery("insert into task_status (taskSheetID, taskStatus, flowID) values(?,?,?) ",[this](const QSqlReturnMsg&msg){//更新任务单状态
+//        if(msg.error()){
+//            QMessageBox::information(nullptr,"插入流程时出错：",msg.result().toString());
+//            emit sqlFinished();
+//            return;
+//        }
+//        emit sqlFinished();
+//    },0,{sheetID,REVIEW,flowID});
+//    waitForSql("正在创建审批流程……");
     updateTaskStatus(sheetID,REVIEW);
     initCMD();
 }
@@ -624,5 +721,15 @@ void TaskSheetUI::on_reviewCommentsBtn_clicked()
     waitForSql();
     showFlowInfo(QSqlReturnMsg(m));
 
+}
+
+
+void TaskSheetUI::on_submitBtn_clicked()
+{
+    QString taskNum;
+    int row=ui->tableView->selectedRow();
+    if(row<0) return ;
+    taskNum=ui->tableView->value(row,0).toString();
+    submitReview(m_taskIDs.value(taskNum),taskNum,ui->tableView->value(row,"委托类型")=="送样检测");
 }
 

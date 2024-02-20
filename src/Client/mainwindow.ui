@@ -85,7 +85,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="btTaskSheet_3">
+         <widget class="QPushButton" name="samplecirculationBtn">
           <property name="text">
            <string>样品流转</string>
           </property>

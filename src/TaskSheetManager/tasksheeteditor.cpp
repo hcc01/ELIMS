@@ -501,7 +501,7 @@ bool TaskSheetEditor::saveMethod()
     QString sql;
     QJsonArray values;
 
-    sql="update task_methods set testMethodID=?, testMethodName=?, subpackage=?, subpackageDesc=? where taskSheetID=? and testTypeID=? and parameterID=?;";
+    sql="update task_methods set testMethodID=?, testMethodName=?, subpackage=?, subpackageDesc=?,CMA=? where taskSheetID=? and testTypeID=? and parameterID=?;";
     for(auto info:m_testInfo){
         int testTypeID=info->testTypeID;
         for(auto parameterID:info->parametersIDs){
@@ -513,7 +513,7 @@ bool TaskSheetEditor::saveMethod()
                 return true;
             }
             if(mm->testMethodName.isEmpty()) continue;//没方法的项目，跳过
-            values={mm->methodID,mm->testMethodName,mm->subpackage,mm->subpackageDesc,m_taskSheetID, testTypeID,parameterID};
+            values={mm->methodID,mm->testMethodName,mm->subpackage,mm->subpackageDesc,mm->CMA,m_taskSheetID, testTypeID,parameterID};
 
             qDebug()<<"正在保存方法";
             doSql(sql,[this,&error,mm](const QSqlReturnMsg&msg){
@@ -541,6 +541,10 @@ bool TaskSheetEditor::saveMethod()
 
 void TaskSheetEditor::load(const QString &taskNum, bool newMode)
 {
+    if(taskNum.isEmpty()){
+        QMessageBox::information(nullptr,"载入任务信息时出错：","空的任务单号。");
+        return;
+    }
 
     if(!newMode) {
         m_taskNum=taskNum;

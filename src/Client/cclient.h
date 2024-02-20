@@ -26,7 +26,7 @@ public:
 
 signals:
     void netMsg(netmsg_DataHeader* header);
-    void sendingData(const QString&);//主要是控制命令量，发一个命令后等服务器回应后才能执行下一次指令。
+    void sendingData(const QString&);//主要是控制命令量，发一个命令后等服务器回应后才能执行下一次指令。这个没用了！
     void onConnectError(const char* error);
 
 };

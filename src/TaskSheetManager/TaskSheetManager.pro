@@ -25,6 +25,7 @@ SOURCES += \
     implementingstandardselectdlg.cpp \
     methodselectdlg.cpp \
     reportmanagerui.cpp \
+    samplecirculationui.cpp \
     samplegroupingdlg.cpp \
     samplingscheduleui.cpp \
     tasksheeteditor.cpp \
@@ -49,6 +50,7 @@ HEADERS += \
     implementingstandardselectdlg.h \
     methodselectdlg.h \
     reportmanagerui.h \
+    samplecirculationui.h \
     samplegroupingdlg.h \
     samplingscheduleui.h \
     tasksheeteditor.h \
@@ -70,6 +72,7 @@ FORMS += \
     implementingstandardselectdlg.ui \
     methodselectdlg.ui \
     reportmanagerui.ui \
+    samplecirculationui.ui \
     samplegroupingdlg.ui \
     samplingscheduleui.ui \
     tasksheeteditor.ui \

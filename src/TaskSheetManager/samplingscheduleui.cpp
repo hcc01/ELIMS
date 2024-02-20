@@ -18,6 +18,9 @@ SamplingScheduleUI::SamplingScheduleUI(QWidget *parent) :
         int row=ui->taskToScheduledView->selectedRow();
         if(row<0) return false;
         m_reschedule=false;
+        if(!m_doScheduledlg){
+            QMessageBox::information(nullptr,"error","m_doScheduledlg=0");
+        }
         m_doScheduledlg->show();
     });
     ui->taskScheduledView->addContextAction("重新排单",[this](){
@@ -28,11 +31,12 @@ SamplingScheduleUI::SamplingScheduleUI(QWidget *parent) :
     });
     ui->taskScheduledView->addContextAction("样品分组",[this](){
         int row=ui->taskScheduledView->selectedRow();
-        if(row<0) return false;
+        if(row<0) return ;
         SampleGroupingDlg* dlg=new SampleGroupingDlg(this);
         dlg->init(ui->taskScheduledView->value(row,0).toString());
         dlg->show();
     });
+
 }
 
 SamplingScheduleUI::~SamplingScheduleUI()
@@ -80,6 +84,7 @@ void SamplingScheduleUI::initCMD()
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"更新排单任务时出错：",msg.errorMsg());
+            sqlFinished();
             return;
         }
         QList<QVariant>r=msg.result().toList();
@@ -91,7 +96,9 @@ void SamplingScheduleUI::initCMD()
         m_doScheduledlg=new DoScheduleDlg(m_allSamplers,this);
         connect(m_doScheduledlg,&DoScheduleDlg::doSchedule,this,&SamplingScheduleUI::doSchedule);
         qDebug()<<"m_allSamplers"<<m_allSamplers;
+        sqlFinished();
     },0,{CUser::Sampler});
+    waitForSql();
     updateScheduledView();
     updateToScheduledView();
 }

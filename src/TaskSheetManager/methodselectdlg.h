@@ -18,6 +18,7 @@ struct MethodMore{
     QString testMethodName;
     bool subpackage;
     QString subpackageDesc;
+    bool CMA;
 };
 using MethodMorePtr = QSharedPointer<MethodMore>;
 

@@ -10,11 +10,15 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ../Client/mymodel.cpp \
+    ../Client/mytableview.cpp \
     ../Client/tabwigetbase.cpp \
     sqlpagecontroleui.cpp\
     ../Client/qjsoncmd.cpp
 
 HEADERS += \
+    ../Client/mymodel.h \
+    ../Client/mytableview.h \
     ../Client/tabwigetbase.h \
     sqlPageControleUI_global.h \
     ../Client/qjsoncmd.cpp \

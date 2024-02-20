@@ -29,23 +29,37 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="newSheetBtn">
+        <widget class="QPushButton" name="reportEditBtn">
          <property name="text">
-          <string>新建</string>
+          <string>报告编制</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="submitBtn">
+         <property name="text">
+          <string>提交审核</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_3">
          <property name="text">
-          <string>修改</string>
+          <string>报告拆分</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="reviewRecordBtn">
+         <property name="text">
+          <string>审批记录</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_4">
          <property name="text">
-          <string>查看</string>
+          <string>报告归档</string>
          </property>
         </widget>
        </item>
@@ -142,15 +156,15 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>MyTableView</class>
+   <extends>QTableView</extends>
+   <header>mytableview.h</header>
+  </customwidget>
+  <customwidget>
    <class>SqlPageControleUI</class>
    <extends>QWidget</extends>
    <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>MyTableView</class>
-   <extends>QTableView</extends>
-   <header>mytableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -1,10 +1,11 @@
 #include "tabwigetbase.h"
 #include "mytableview.h"
-#include "qeventloop.h"
-#include "qthread.h"
+#include "qapplication.h"
+#include "qlayout.h"
 #include <QLabel>
 #include<QDialog>
 #include<QTimer>
+#include<QDesktopWidget>
 TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
     m_view=new MyTableView;
@@ -174,7 +175,7 @@ void TabWidgetBase::showFlowInfo(const QSqlReturnMsg &flowIDsQueryMsg)
                 ok=true;
                 sqlFinished();
             },1,{flowID});
-            waitForSql();
+            waitForSql("正在查询流程信息...");
         }
         m_view->show();
 }
@@ -212,7 +213,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
 
 }
 //流程操作：提交到流程
-int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, int operatorCount)
+int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, const QString&identityValue, int operatorCount, const QString &tableName, const QString &identityColumn, const QString &flowIDColumn)
 {
     int ret=0;
     QString sql;
@@ -258,9 +259,63 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         sqlEnd();
     });
     waitForSql();
+    //更新流程记录
+    if(ret&&!tableName.isEmpty()){
+        sql=QString("insert into %1(%2,%3) values(?,?);").arg(tableName).arg(identityColumn).arg(flowIDColumn);
+        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更新流程记录出错：",msg.result().toString());
+                sqlEnd();
+                return;
+            }
+            sqlEnd();
+        },0,{identityValue,ret});
+    }
+    waitForSql();
     //通知操作人员待办消息
 
     return ret;//传回所建流程ID，让发送者进行下一步处理
+}
+
+QWidget *TabWidgetBase::showFlowRecord(const QString& identityValue, const QString &tableName, const QString&identityColumn, const QString&flowIDColumn)
+{
+    QString sql;
+    sql=QString("select %1 from %2 where %3=?;").arg(flowIDColumn).arg(tableName).arg(identityColumn);
+    QJsonObject m;
+    doSqlQuery(sql,[this, &m](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询审批记录时出错：",msg.errorMsg());
+            sqlFinished();
+            return;
+        }
+        m=msg.jsCmd();
+        sqlFinished();
+    },0,{identityValue});
+    waitForSql();
+    if(!m.isEmpty()){
+        showFlowInfo(QSqlReturnMsg(m));
+    }
+    QLayout *layout = m_view->layout();
+    if (layout) {
+        layout->removeWidget(m_view);
+        qDebug()<<"1";
+    }
+    m_view->setParent(nullptr);
+    // 移动窗口到屏幕中央
+    QDesktopWidget *desktop = QApplication::desktop();
+    int screenWidth = desktop->width();
+    int screenHeight = desktop->height();
+    int widgetWidth = m_view->width();
+    int widgetHeight = m_view->height();
+
+    // 计算窗口应该移动到的位置
+    int x = (screenWidth - widgetWidth) / 2;
+    int y = (screenHeight - widgetHeight) / 2;
+
+    // 移动窗口
+    m_view->move(x, y);
+    m_view->show();
+    return m_view;
 }
 
 void TabWidgetBase::waitForSql(const QString &msg)

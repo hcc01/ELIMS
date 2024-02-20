@@ -53,6 +53,7 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
     case CMD_JSON_CMD:
     {
         QJsonObject js=CELLReadStream(header).getJsonData();
+        qDebug()<<pClient<<js;
         onJsonCMD(pClient,js);
     }
         break;
@@ -68,7 +69,7 @@ void CServer::onJsonCMD(CELLClient *pClient, QJsonObject &json)
         case JC_DO_SQL:
     {
         //这里需要增加判断指令操作权限
-        qDebug()<<"SQL_JSON"<<json;
+//        qDebug()<<"SQL_JSON"<<json;
         QSqlCmd sqlCmd(json);
         QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd);
         pClient->SendData(slqR.jsCmd());

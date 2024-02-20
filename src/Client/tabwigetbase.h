@@ -20,6 +20,12 @@
 #include<QWaitCondition>
 //流程处理函数
 //typedef void (*DealFuc) (const QSqlReturnMsg& );qjsoncmd.h中统一定义
+class FlowWidget:public QWidget{
+     Q_OBJECT
+signals:
+     void pushProcess(const QFlowInfo&flowInfo,bool passed);
+};
+
 #include<QDialog>
 class WaitDlg:public QDialog{
     Q_OBJECT
@@ -44,11 +50,14 @@ public:
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
     virtual void dealProcess(const QFlowInfo&, int operateFlag);//处理流程事件
     virtual bool pushProcess(QFlowInfo flowInfo, bool passed, const QString &comments);//推进流程
-    virtual void showFlowInfo(const QSqlReturnMsg& flowIDsQueryMsg);
+    virtual void showFlowInfo(const QSqlReturnMsg& flowIDsQueryMsg);//显示审批记录，暂时保留，已经被showFlowRecord替代
     virtual void initMod();//新增模块时初始化操作，建表等。
     virtual void initCMD(){}//初次调用模块窗口时需要进行的初始化操作。
+    virtual FlowWidget* flowWidget(const QFlowInfo &flowInfo){return nullptr;}//用于流程审批的窗口，各模块自定义
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
-    int submitFlow(const QFlowInfo& flowInfo, QList<int> operatorIDs,int operatorCount=1 );
+    int submitFlow(const QFlowInfo& flowInfo, QList<int> operatorIDs,const QString& identityValue,int operatorCount=1, const QString&tableName="all_flows",
+                   const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID");
+    QWidget* showFlowRecord(const QString& identityValue, const QString &tableName="all_flows", const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID");
     void setUser(CUser* user){m_user=user;}
     void setTabName(const QString&name){m_tabName=name;}
     CUser* user()const{return m_user;}

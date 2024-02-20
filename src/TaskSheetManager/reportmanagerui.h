@@ -14,6 +14,17 @@ class TASKSHEETMANAGER_EXPORT ReportManagerUI : public TabWidgetBase
 public:
     explicit ReportManagerUI(QWidget *parent = nullptr);
     ~ReportManagerUI();
+    void initCMD()override;
+    FlowWidget* flowWidget(const QFlowInfo&flowInfo)override;
+
+private slots:
+    void on_submitBtn_clicked();
+
+    void on_reportEditBtn_clicked();
+
+    void on_refleshBtn_clicked();
+
+    void on_reviewRecordBtn_clicked();
 
 private:
     Ui::ReportManagerUI *ui;

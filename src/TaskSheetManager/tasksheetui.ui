@@ -126,6 +126,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="submitBtn">
+         <property name="text">
+          <string>提交审核</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="reviewCommentsBtn">
          <property name="text">
           <string>审批记录</string>

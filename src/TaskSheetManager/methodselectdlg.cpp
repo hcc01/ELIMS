@@ -241,6 +241,7 @@ void MethodSelectDlg::on_OkBtn_clicked()
         mm->testMethodName=methodName;
         mm->subpackage=ui->tableView->value(i,"是否分包").toString()=="是"?1:0;
         mm->subpackageDesc=ui->tableView->value(i,"分包原因").toString();
+                                 mm->CMA=ui->tableView->value(i,"CMA资质").toString()=="是"?1:0;
         addMethod(testTypeID,parameterID,mm);
     }
     if(!m_methodLoad) this->hide();//没有加载方法，就没有改变方法。

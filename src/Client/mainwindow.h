@@ -29,7 +29,8 @@ signals:
     void loginResult(int result);
     void changeSkin(int);
     void notice(const QString&);//任务栏通知消息
-private:
+//private:
+public:
     TabWidgetBase *getTabWidget(const QString& widgetText)const;//模块的操作窗口
     TabWidgetBase *getModule(const QString& widgetText);//主要用于流程处理等非交互操作的地方，如果有窗口，直接返回操作窗口。
     void loadUser();

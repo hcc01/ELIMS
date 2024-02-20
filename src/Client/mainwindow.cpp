@@ -20,6 +20,7 @@
 #include<QThread>
 #include"reportmanagerui.h"
 #include"samplingscheduleui.h"
+#include"samplecirculationui.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -52,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(PersnalDataManagerUI,ui->btPersonalInfo);
     ADD_MODULE(ReportManagerUI,ui->reportManagerBtn);
     ADD_MODULE(SamplingScheduleUI,ui->btSamplingSchedule);
+    ADD_MODULE(SampleCirculationUI,ui->samplecirculationBtn);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
@@ -83,25 +85,33 @@ MainWindow::MainWindow(QWidget *parent)
     }
 //    ui->btnToDo->show();
     ui->btPersonalInfo->show();
+    //报告编制和实验室主管
     if(m_user->position()&(CUser::ReportWriter|CUser::LabManager|LabSupervisor)){
         ui->btTaskSheet->show();
+        ui->reportManagerBtn->show();
     }
+    //实验室主管
     if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
         ui->btEmployeeManage->show();
     }
+    //采样和采样组长
     if(m_user->position()&(CUser::Sampler|CUser::SamplerLeader)){
         ui->btSamplingSchedule->show();
+    }
+    //样品管理员
+    if(m_user->position()&(CUser::SampleAdministrator)){
+        ui->samplecirculationBtn->show();
     }
     ui->btnToDo->clicked();
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
     if(todoUI){
-        connect(todoUI,&ToDoUI::dealFLow,[this](const QFlowInfo&flowInfo,int operateFlag){
+//        connect(todoUI,&ToDoUI::dealFLow,[this](const QFlowInfo&flowInfo,int operateFlag){
 
-            TabWidgetBase* tab=getModule(flowInfo.tabName());
-            qDebug()<<"接收到流程处理信息"<<flowInfo.object();
-            qDebug()<<"调用模块"<<tab<<tab->tabName();
-            tab->dealProcess(flowInfo,operateFlag);
-        });
+//            TabWidgetBase* tab=getModule(flowInfo.tabName());
+//            qDebug()<<"接收到流程处理信息"<<flowInfo.object();
+//            qDebug()<<"调用模块"<<tab<<tab->tabName();
+//            tab->dealProcess(flowInfo,operateFlag);
+//        });
 
         loadUser();//登录返回人员名和职位，其它人员信息在这里载入
         qDebug()<<m_user->name()<<m_user->phone();
@@ -299,6 +309,7 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
 
 void MainWindow::onOpenTab()
 {
+
     QPushButton* bt=static_cast<QPushButton*>(sender()) ;
     if(!bt) return;
     QString text=bt->text();
@@ -308,20 +319,27 @@ void MainWindow::onOpenTab()
             return;
         }
     }
-
     TabWidgetBase *tab;
     tab=m_modules.value(text);//如果模块里面有创建过，直接移到界面
-    m_modules[text]=nullptr;
-    if(!tab) tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
+    if(tab){
+        m_modules[text]=nullptr;
+        ui->tabWidget->addTab(tab,text);
+        ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
+        tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
+        return;
+    }
+    tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
     if(!tab) {
         qDebug()<<"无法创建窗体："<<text;
         return;
     }
     tab->setUser(m_user);
     tab->setTabName(text);
+    qDebug()<<"onOpenTab connect tab:"<<tab;
     connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
         QJsonObject j=sqlCmd;
         j["tytle"]=text;//标识下处理窗口
+        qDebug()<<tab;
         sendData(j);
     });
     ui->tabWidget->addTab(tab,text);
@@ -353,6 +371,7 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
     }
     tab->setUser(m_user);
     tab->setTabName(widgetText);
+    qDebug()<<"getModule connect tab:"<<tab;
     connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
         QJsonObject j=sqlCmd;
         j["tytle"]=widgetText;//标识下处理窗口
@@ -369,7 +388,7 @@ void MainWindow::loadUser()//在我在待办模块中操作
         qDebug()<<"error:todoUI is 0";
          return;
     }
-    todoUI->loadUser(m_user);
+    todoUI->loadUser(m_user,this);
 }
 
 
@@ -451,7 +470,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.2.5");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.3.0");
 }
 
 
