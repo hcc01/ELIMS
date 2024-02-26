@@ -130,6 +130,24 @@ void MyTableView::setBackgroundColor(int row, int colunm, const QColor &color)
     m_model->setData(m_model->index(row,colunm),QBrush(color),Qt::BackgroundRole);
 }
 
+void MyTableView::setBackgroundColor(int row, const QColor &color)
+{
+    for(int i=0;i<m_model->columnCount();i++){
+        m_model->setData(m_model->index(row,i),QBrush(color),Qt::BackgroundRole);
+    }
+}
+
+void MyTableView::setBackgroundColor(const QModelIndex &index, const QColor &color)
+{
+    m_model->setData(index,QBrush(color),Qt::BackgroundRole);
+}
+
+void MyTableView::removeBackgroundColor()
+{
+    m_model->removeBackgroundColor();
+    this->update();
+}
+
 void MyTableView::setCellFlag(int row, int colunm, const QVariant &value)
 {
     m_model->setData(m_model->index(row,colunm),value,Qt::UserRole);

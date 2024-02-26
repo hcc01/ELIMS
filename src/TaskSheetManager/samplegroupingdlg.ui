@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>613</width>
-    <height>398</height>
+    <width>612</width>
+    <height>589</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,6 +50,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="modifyBtn">
+          <property name="text">
+           <string>修改标签</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="printBtn">
           <property name="text">
            <string>打印标签</string>
@@ -68,42 +75,52 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <layout class="QFormLayout" name="formLayout_2">
-        <item row="0" column="0">
-         <widget class="QComboBox" name="typeSelectBox">
-          <item>
-           <property name="text">
-            <string>全部类型</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>选择类型</string>
-           </property>
-          </item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>选择采样人员：</string>
+          </property>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QComboBox" name="siteSelectBox">
-          <item>
-           <property name="text">
-            <string>全部点位</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>选择点位</string>
-           </property>
-          </item>
+        <item>
+         <widget class="QLineEdit" name="samplerEdit"/>
+        </item>
+        <item>
+         <widget class="QPushButton" name="addSamplerBtn">
+          <property name="text">
+           <string>添加采样人员</string>
+          </property>
          </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QTextBrowser" name="typeBrowser"/>
-        </item>
-        <item row="1" column="1">
-         <widget class="QTextBrowser" name="siteBrowser"/>
         </item>
        </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="label_6">
+          <property name="text">
+           <string>选择采样点位：</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox">
+          <property name="text">
+           <string>打印全部点位</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="MyTableView" name="tableView"/>
+      </item>
+      <item>
+       <widget class="SqlPageControleUI" name="pageCtrl" native="true"/>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -121,12 +138,17 @@
             <string>全部周期</string>
            </property>
           </item>
+          <item>
+           <property name="text">
+            <string>当前周期</string>
+           </property>
+          </item>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_5">
           <property name="text">
-           <string>采样日期：</string>
+           <string>采样开始日期：</string>
           </property>
          </widget>
         </item>
@@ -134,9 +156,16 @@
          <widget class="QDateEdit" name="dateEdit"/>
         </item>
         <item>
+         <widget class="QPushButton" name="printOkbtn_2">
+          <property name="text">
+           <string>导出原标签</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="printOkbtn">
           <property name="text">
-           <string>确认</string>
+           <string>生成打印标签</string>
           </property>
          </widget>
         </item>
@@ -159,6 +188,12 @@
    <class>MyTableView</class>
    <extends>QTableView</extends>
    <header>mytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SqlPageControleUI</class>
+   <extends>QWidget</extends>
+   <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -8,6 +8,8 @@ SampleCirculationUI::SampleCirculationUI(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->tableView->setHeader({"任务单号","委托单位","受检单位","项目名称"});
+    ui->groupBox_2->hide();
+    ui->groupBox_3->hide();
 }
 
 SampleCirculationUI::~SampleCirculationUI()

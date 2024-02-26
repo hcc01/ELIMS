@@ -219,8 +219,9 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
     QString sql;
     sql="insert into flow_records(creator, flowInfo, operatorCountNeeded, createTime) values(?,?,?,now());set @flowID=LAST_INSERT_ID();";
     QJsonArray values;
-
-    values={user()->name(),flowInfo.flowInfo(),operatorCount};
+    QString creator=flowInfo.creator();
+    if(creator.isEmpty()) creator=user()->name();//如果没有确定发起人，默认发起人为当前用户。
+    values={creator,flowInfo.flowInfo(),operatorCount};
 
     for(int id:operatorIDs){
         sql+="insert into flow_operate_records(flowID,operatorID) values(@flowID,?);";
@@ -330,6 +331,27 @@ void TabWidgetBase::sqlEnd()
 {
 //    m_dlg.accept();
     m_dlg.end();
+}
+
+bool TabWidgetBase::connectDB(CMD Transaction)
+{
+    QString sql=QString::number(Transaction);
+    bool ok=true;
+    doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
+        if(msg.error()) {
+            ok=false;
+            QMessageBox::information(nullptr,"error","网络繁忙，请重试。");
+        }
+        sqlFinished();
+    });
+    waitForSql("正在开启事务……");
+    return ok;
+}
+
+void TabWidgetBase::releaseDB(CMD TransactionType)
+{
+    QString sql=QString::number(TransactionType);
+    doSqlQuery(sql);
 }
 
 

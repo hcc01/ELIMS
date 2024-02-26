@@ -96,3 +96,5 @@ else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 
 INCLUDEPATH += $$PWD/../sqlPageControleUI
 DEPENDPATH += $$PWD/../sqlPageControleUI
+
+include(../qzxing/QZXing.pri)

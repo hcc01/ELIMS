@@ -16,6 +16,7 @@ public:
     QVariant data(int row,int colunm, int role = Qt::DisplayRole) const ;
     QVariant data(int row,const QString&head)const;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+    void removeBackgroundColor();
     QList<QList<QVariant>> getData()const;
     bool setData(int row,int colunm, const QVariant &value, int role = Qt::EditRole);
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;

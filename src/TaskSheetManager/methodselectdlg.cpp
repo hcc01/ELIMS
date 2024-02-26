@@ -52,6 +52,7 @@ MethodSelectDlg::~MethodSelectDlg()
     delete m_methodBox;
     m_methods.clear();
     m_specialMehtods.clear();
+    m_MethodMores.clear();
 
 }
 
@@ -144,7 +145,7 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
             }
             allTypeParameters[testTypeID][parameterID]=row;//记录下参数的行号，下次如果有相同类型的参数，使用这行方法
             //开始查找合适的方法
-            sql="select A.id, methodName, methodNumber, CMA, non_stdMethod,labPriority,typePriority ,coverage, extendCoverage from (select * from method_parameters where parameterID=?) as A "
+            sql="select A.id, methodName, methodNumber, CMA, non_stdMethod,labPriority,typePriority ,coverage, extendCoverage,B.testingMode, B.sampleGroup from (select * from method_parameters where parameterID=?) as A "
                   "join (select * from test_methods where (coverage&? or extendCoverage&?) and testFieldID=? ) as B on A.methodID= B.id;";
 
             doSql(sql,[this,row,sampleType,parameter,typeBit,&methodAppearedTimes,&methodScore,testTypeID,parameterID](const QSqlReturnMsg&msg){//每个项目可能有多个方法，进行方法选择
@@ -157,13 +158,23 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                 QStringList methods;
                 QHash<QString,QVariant> maps;//用来记录方法的资质情况
                 QMap<QString,int>methodToID;
+
                 for(int j=1;j<r.count();j++){//处理每个方法的得分
                     QList<QVariant>row=r.at(j).toList();
                     QString method=QString("%2 %1").arg(row.at(2).toString()).arg(row.at(1).toString());
                     QString cma=row.at(3).toInt()?"是":"否";
+                    int methodID=row.at(0).toInt();
+                    if(!m_MethodMores.contains(methodID)){
+                        MethodMore *mm=new MethodMore;
+                        m_MethodMores[methodID]=MethodMorePtr(mm);
+
+                        mm->testMod=row.at(9).toInt();
+                        mm->sampleGroup=row.at(10).toString();//这两个地方为了后续保存方法时进行样品分组
+                    }
                     methods.append(method);
-                    methodToID[method]=(row.at(0).toInt());
-                    m_methodIDs[method]=(row.at(0).toInt());//记录方法ID表，用于后面VIEW中识别方法ID
+                    methodToID[method]=(methodID);
+                    m_methodIDs[method]=(methodID);//记录方法ID表，用于后面VIEW中识别方法ID
+
                     maps.insert(method,cma);
                     methodAppearedTimes[method]+=1;
                     methodScore[method]=0;
@@ -241,7 +252,14 @@ void MethodSelectDlg::on_OkBtn_clicked()
         mm->testMethodName=methodName;
         mm->subpackage=ui->tableView->value(i,"是否分包").toString()=="是"?1:0;
         mm->subpackageDesc=ui->tableView->value(i,"分包原因").toString();
-                                 mm->CMA=ui->tableView->value(i,"CMA资质").toString()=="是"?1:0;
+        mm->CMA=ui->tableView->value(i,"CMA资质").toString()=="是"?1:0;
+        if(!methodName.isEmpty()){
+            mm->testMod=m_MethodMores.value(methodID)->testMod;
+            mm->sampleGroup=m_MethodMores.value(methodID)->sampleGroup;
+        }
+        else{
+            mm->testMod=-1;//没有方法
+        }
         addMethod(testTypeID,parameterID,mm);
     }
     if(!m_methodLoad) this->hide();//没有加载方法，就没有改变方法。

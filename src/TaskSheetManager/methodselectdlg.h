@@ -19,6 +19,8 @@ struct MethodMore{
     bool subpackage;
     QString subpackageDesc;
     bool CMA;
+    int testMod;//是否现场测试，用于样品分组
+    QString sampleGroup;//标准样品组
 };
 using MethodMorePtr = QSharedPointer<MethodMore>;
 
@@ -55,6 +57,7 @@ private:
     QHash<QString,int>m_typeIDs;//类型-ID映射表
     QHash<int,QHash<QString,int>>m_parameterIDs;//项目-ID映射表
     QHash<QString,int>m_methodIDs;//方法映射表
+    QHash<int,MethodMorePtr>m_MethodMores;//标准方法详情【方法参数表ID，方法详情】，用于根据ID加载方法详情
     QHash<int,QHash<int,MethodMorePtr>>m_methods;//按类型确认的方法表【类型ID，【参数ID，方法ID】】；使用智能指针，在清空映射时会自动释放资源
     QHash<int,QHash<int,MethodMorePtr>>m_specialMehtods;//特别项目的方法，如果有需要（如进口颗粒物的选用的方法与其它不同。);<点位ID，{<参数ID，方法ID>}>
 };

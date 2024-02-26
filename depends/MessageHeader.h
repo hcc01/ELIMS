@@ -11,10 +11,16 @@ enum CMD
 	CMD_C2S_HEART,
 	CMD_S2C_HEART,
     CMD_NOTICE,//字符串
+    CMD_INFORMATION,
     CMD_ERROR,
     CMD_JSON_CMD,//JSON信息
     CMD_RM_GET_RM_TITLE,
-    CMD_INIT
+    CMD_INIT,
+    CMD_START_QUERY,
+    CMD_END_QUERY,
+    CMD_START_Transaction,
+    CMD_COMMIT_Transaction,
+    CMD_ROLLBACK_Transaction,
 };
 
 enum LoginResult{

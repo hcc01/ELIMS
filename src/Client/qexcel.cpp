@@ -11,6 +11,21 @@
 #include<QBuffer>
 #include<QMessageBox>
 #include <QtMath>
+QString QExcel::columnIndexToName(int columnIndex)
+{
+    QString columnName;
+
+    // 将列索引转换为列字母名称
+    int dividend = columnIndex;
+    while (dividend > 0) {
+        int modulo = (dividend - 1) % 26;
+        columnName.prepend(QChar('A' + modulo));
+        dividend = (dividend - modulo) / 26;
+    }
+
+    return columnName;
+}
+
 void QExcel::openExcel()
 {
 
@@ -64,6 +79,11 @@ void QExcel::setScreenUpdating(bool update)
     _ExcelApp->setProperty("ScreenUpdating",update);
 }
 
+void QExcel::setEnableEvents(bool b)
+{
+    _ExcelApp->setProperty("EnableEvents", b);
+}
+
 void QExcel::SetVisible(bool v)
 {
     _ExcelApp->dynamicCall("SetVisible(bool)", v);
@@ -107,6 +127,13 @@ QAxObject* QExcel::Open(const QString &path, const QVariant &UpdateLinks, bool r
         _lastError="文件不存在："+dir.absolutePath();
                                             return nullptr;
     }
+}
+
+WorkBook *QExcel::OpenBook(const QString &path, const QVariant &UpdateLinks, bool readOnly, const QString &password)
+{
+    QAxObject* book=Open(path,UpdateLinks,readOnly,password);
+    if(!book) return nullptr;
+    return new WorkBook(book);
 }
 
 void QExcel::Close()
@@ -244,6 +271,12 @@ QAxObject * QExcel::selectSheet(int i, QAxObject * book)const
 QAxObject *QExcel::selectRow(int row, QAxObject *sheet) const
 {
     return sheet->querySubObject("Rows(const QString&)",QString("%1:%1").arg(row).arg(row));
+}
+
+QAxObject *QExcel::usedRange(QAxObject *sheet) const
+{
+    if(!sheet) return nullptr;
+    return sheet->querySubObject("UsedRange()");
 }
 
 
@@ -711,4 +744,296 @@ QExcel::QExcel(int processID, QObject *parent)
 QExcel::~QExcel()
 {
 
+}
+
+Range::Range(QAxObject *range, QObject *parent):
+    QObject(parent)
+    ,m_range(range)
+{
+}
+
+Range::~Range()
+{
+    m_range=nullptr;
+}
+void Range::setFont(const QFont& font)
+{
+    QAxObject* fontObj = m_range->querySubObject("Font");
+    fontObj->setProperty("Name", font.family());
+    fontObj->setProperty("Size", font.pointSize());
+    // 设置其他字体属性
+}
+
+void Range::setFillColor(const QColor& color)
+{
+    QAxObject* interior = m_range->querySubObject("Interior");
+    interior->setProperty("Color", color.rgb());
+    // 设置其他填充颜色属性
+}
+
+void Range::setHorizontalAlignment(HorizontalAlignment alignment)
+{
+    int alignmentValue;
+    switch (alignment) {
+    case AlignLeft:
+        alignmentValue = -4131;  // xlLeft常量的值为-4131
+        break;
+    case AlignCenter:
+        alignmentValue = -4108;  // xlCenter常量的值为-4108
+        break;
+    case AlignRight:
+        alignmentValue = -4152;  // xlRight常量的值为-4152
+        break;
+    default:
+        alignmentValue = -4131;
+    }
+    m_range->setProperty("HorizontalAlignment", alignmentValue);
+}
+
+void Range::setVerticalAlignment(VerticalAlignment alignment)
+{
+    int alignmentValue;
+    switch (alignment) {
+    case AlignTop:
+        alignmentValue = -4160;  // xlTop常量的值为-4160
+        break;
+    case AlignMiddle:
+        alignmentValue = -4108;  // xlCenter常量的值为-4108
+        break;
+    case AlignBottom:
+        alignmentValue = -4107;  // xlBottom常量的值为-4107
+        break;
+    default:
+        alignmentValue = -4160;
+    }
+    m_range->setProperty("VerticalAlignment", alignmentValue);
+}
+
+void Range::setWrapText(bool wrap)
+{
+    m_range->setProperty("WrapText", wrap);
+}
+
+void Range::setMergeCells(bool merge)
+{
+    m_range->setProperty("MergeCells", merge);
+}
+
+void Range::setBorder(int lineStyle, int weight, int colorIndex)
+{
+    QAxObject* borders = m_range->querySubObject("Borders");
+    borders->setProperty("LineStyle", lineStyle);
+    borders->setProperty("Weight", weight);
+    borders->setProperty("ColorIndex", colorIndex);
+}
+
+void Range::copy()
+{
+    m_range->dynamicCall("Copy()");
+}
+
+void Range::paste(const QVariant &PasteType)
+{
+    m_range->dynamicCall("PasteSpecial(QVariant)",PasteType);
+}
+
+void Range::clear()
+{
+    m_range->dynamicCall("Clear()");
+    m_range->dynamicCall("ClearContents()");
+}
+
+void Range::insert()
+{
+    if(!m_range) return;
+    m_range->dynamicCall("insert()");
+}
+
+void Range::Delete()
+{
+    if(!m_range) return;
+    m_range->dynamicCall("delete()");
+}
+
+Range *Range::find(const QString &searchText, bool matchCase, bool matchWholeWord)
+{
+    QAxObject* find = m_range->querySubObject("Find(const QString&, const QVariant&, const QVariant&, const QVariant&, const QVariant&, const QVariant&, const QVariant&, const QVariant&)",
+                                            searchText, QVariant(), matchCase, QVariant(), matchWholeWord, QVariant(), QVariant(), QVariant());
+    if (find != nullptr) {
+        return new Range(find,this);
+    }
+    return nullptr;
+}
+
+bool Range::replace(const QString &What, const QString &Replacement, const QVariant &LookAt, const QVariant &SearchOrder, const QVariant &SearchDirection, const QVariant &MatchCase)
+{
+    return m_range->querySubObject("Replace(QVariant, QVariant, QVariant, QVariant, QVariant, QVariant, QVariant)",
+                          What, Replacement, LookAt,SearchOrder, SearchDirection,MatchCase);
+}
+
+WorkSheet::WorkSheet(QAxObject *s, QObject *parent):
+    QObject(parent),
+    m_sheet(s)
+{
+
+}
+
+Range *WorkSheet::usedRange()
+{
+    if(!m_sheet) return nullptr;
+    return new Range(m_sheet->querySubObject("UsedRange()"),this);
+}
+
+Range* WorkSheet::range(const QString& rangeStr)
+{
+    QAxObject* range = m_sheet->querySubObject("Range(const QString&)", rangeStr);
+    return new Range(range, this);
+}
+
+Range *WorkSheet::selectRange(int startRow, int startColumn, int endRow, int endColumn)
+{
+
+    // 构建选择范围的字符串
+    QString rangeString = QString("%1%2:%3%4").arg(QExcel::columnIndexToName(startColumn))
+                              .arg(startRow)
+                              .arg(QExcel::columnIndexToName(endColumn))
+                              .arg(endRow);
+
+    // 选择指定的范围
+    QAxObject* range = m_sheet->querySubObject("Range(const QString&)", rangeString);
+    qDebug()<<"rangeString"<<rangeString;
+    return new Range(range,this);
+}
+
+Range *WorkSheet::selectRow(int row)
+{
+    if(!m_sheet) return nullptr;
+    return new Range(EXCEL.selectRow(row,m_sheet),this);
+}
+
+void WorkSheet::setValue(const QVariant &value, int startRow, int startColumn, int endRow, int endColumn)
+{
+    if(!m_sheet) return;
+    if(!endRow) endRow=startRow;
+    if(!endColumn) endColumn=startColumn;
+    Range * r=selectRange(startRow,startColumn,endRow,endColumn);
+    r->setValue(value);
+    delete r;
+    r=nullptr;
+}
+
+void WorkSheet::insertRow(int row)
+{
+    QAxObject* rows = m_sheet->querySubObject("Rows");
+    rows->dynamicCall("Insert(int)", row);
+}
+
+void WorkSheet::deleteRow(int row)
+{
+    QAxObject* rows = m_sheet->querySubObject("Rows");
+    rows->dynamicCall("Delete(int)", row);
+}
+
+void WorkSheet::insertColumn(int column)
+{
+    QAxObject* columns = m_sheet->querySubObject("Columns");
+    columns->dynamicCall("Insert(int)", column);
+}
+
+void WorkSheet::deleteColumn(int column)
+{
+    QAxObject* columns = m_sheet->querySubObject("Columns");
+    columns->dynamicCall("Delete(int)", column);
+}
+
+void WorkSheet::insertPic(const QString &path, int row, int column)
+{
+    if(!m_sheet) return;
+    QAxObject* pictures = m_sheet->querySubObject("Pictures");
+
+    QPixmap image(path);
+    QSize imageSize = image.size();
+    QAxObject* range = m_sheet->querySubObject("Cells(int,int)", row,column);
+    if(!range){
+        QMessageBox::information(nullptr,"error","无法获取单元格");
+        return;
+    }
+    QAxObject* mergeArea = range->querySubObject("MergeArea");
+    double cellWidth = mergeArea->property("Width").toDouble();
+    double cellHeight = mergeArea->property("Height").toDouble();
+    double widthRatio = cellWidth / imageSize.width();
+    double heightRatio = cellHeight / imageSize.height();
+    double ratio = qMin(widthRatio, heightRatio);
+
+    int pictureWidth = static_cast<int>(imageSize.width() * ratio);
+    int pictureHeight = static_cast<int>(imageSize.height() * ratio);
+
+    EXCEL.insertPic(m_sheet,range,path,0,0,pictureWidth,pictureHeight);
+    range->clear();
+    mergeArea->clear();
+}
+
+WorkBook::WorkBook(QAxObject *book, QObject *parent):
+    QObject(parent),
+    m_book(book)
+{
+
+}
+
+WorkBook::~WorkBook()
+{
+    if(m_book) delete m_book;
+}
+
+bool WorkBook::open(const QString &path, const QVariant &UpdateLinks, bool readOnly, const QString &password)
+{
+    QAxObject *book=EXCEL.Open(path,UpdateLinks,readOnly,password);
+    if(!book) {
+        QMessageBox::critical(nullptr,"无法打开表格",EXCEL.LastError());
+        return false;
+    }
+    m_book=book;
+    return true;
+}
+
+WorkSheet *WorkBook::sheet(int i)
+{
+    if(!m_book) return nullptr;
+    QAxObject *WorkSheets=m_book->querySubObject("WorkSheets");
+    int c=WorkSheets->dynamicCall("Count()").toInt();
+    if(i>c||i<1){
+        QMessageBox::critical(nullptr,"error","错误的索引号，超出表格数量。");
+        return nullptr;
+    }
+    return new WorkSheet(WorkSheets->querySubObject("Item(int)",i),this);
+}
+
+bool WorkBook::save()
+{
+    return m_book->dynamicCall("Save()").toBool();
+}
+
+void WorkBook::saveAs(const QString& path)
+{
+    m_book->dynamicCall("SaveAs(const QString&)", path);
+}
+
+void WorkBook::close()
+{
+    m_book->dynamicCall("Close()");
+}
+
+WorkSheet* WorkBook::addSheet(const QString& name)
+{
+    QAxObject* sheets = m_book->querySubObject("Sheets");
+    QAxObject* sheet = sheets->querySubObject("Add()");
+    sheet->setProperty("Name", name);
+    return new WorkSheet(sheet, this);
+}
+
+void WorkBook::deleteSheet(int index)
+{
+    QAxObject* sheets = m_book->querySubObject("Sheets");
+    QAxObject* sheet = sheets->querySubObject("Item(int)", index);
+    sheet->dynamicCall("Delete()");
 }

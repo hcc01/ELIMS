@@ -54,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(ReportManagerUI,ui->reportManagerBtn);
     ADD_MODULE(SamplingScheduleUI,ui->btSamplingSchedule);
     ADD_MODULE(SampleCirculationUI,ui->samplecirculationBtn);
+
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
@@ -162,6 +163,26 @@ void MainWindow::DoLogin()
     connect(this,&MainWindow::loginResult,&loginUI, &LoginUI::onLoginResult);
     loginUI.exec();
     logining=false;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("选择操作");
+    msgBox.setText("您想要做什么？");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    msgBox.setButtonText(QMessageBox::Yes, "退出程序");
+    msgBox.setButtonText(QMessageBox::No, "最小化到托盘");
+
+    int ret = msgBox.exec();
+
+    if (ret == QMessageBox::Yes) {
+        exit(0);
+    }
+    else{
+        this->hide();
+    }
 }
 
 void MainWindow::sendData(const QJsonObject &json)
@@ -470,7 +491,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.3.0");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.4.0");
 }
 
 

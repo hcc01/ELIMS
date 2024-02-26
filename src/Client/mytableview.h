@@ -84,6 +84,9 @@ public:
     void clear();//清空
     bool setData(int row,int colunm, const QVariant &value, int role = Qt::EditRole);
     void setBackgroundColor(int row,int colunm,const QColor& color);
+    void setBackgroundColor(int row,const QColor& color);
+    void setBackgroundColor(const QModelIndex&index,const QColor& color);
+    void removeBackgroundColor();
     void setCellFlag(int row,int colunm,const QVariant &value);
     QModelIndexList selectedIndexes() const override;
     int selectedRow()const;//当前选中的行

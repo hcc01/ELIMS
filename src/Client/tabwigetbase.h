@@ -70,6 +70,8 @@ public:
     }
     void sqlEnd();
     void sqlFinished(){sqlEnd();}
+    bool connectDB(CMD Transaction);//连接数据库时，使用专用的连接进行操作，可以开启事务
+    void releaseDB(CMD TransactionType);//断开数据库，请注意及时断开
 
 private:
 signals:

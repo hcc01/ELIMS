@@ -23,6 +23,9 @@
       <item>
        <widget class="MyTableView" name="tableView"/>
       </item>
+      <item>
+       <widget class="SqlPageControleUI" name="pageCtrl" native="true"/>
+      </item>
      </layout>
     </widget>
    </item>
@@ -35,6 +38,9 @@
       <item>
        <widget class="MyTableView" name="tableView_2"/>
       </item>
+      <item>
+       <widget class="SqlPageControleUI" name="pageCtrl_2" native="true"/>
+      </item>
      </layout>
     </widget>
    </item>
@@ -45,6 +51,12 @@
    <class>MyTableView</class>
    <extends>QTableView</extends>
    <header>mytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SqlPageControleUI</class>
+   <extends>QWidget</extends>
+   <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

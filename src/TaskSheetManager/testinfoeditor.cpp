@@ -149,14 +149,16 @@ void testInfoEditor::on_testInofOkBtn_clicked()
             },0,{m_testFieldIDs.at(ui->testFiledBox->currentIndex()),item,item});
             // 等待异步查询完成
             waitForSql();
-            if(duplicateItems.count()){
-                for(int n:duplicateItems){
-                    m_monitoringParameters.removeOne(items.at(n));
-                    QMessageBox::information(nullptr,"",QString("%1是重复检测项目， 已自动删除。").arg(items.at(n)));
-                }
-            }
             if(error) return;
         }
+        if(duplicateItems.count()){
+            for(int n:duplicateItems){
+//            m_monitoringParameters.removeOne(items.at(n));//这样删除会和ID列表不对应！
+            m_monitoringParameters[n]="0";
+            QMessageBox::information(nullptr,"",QString("%1是重复检测项目， 已自动删除。").arg(items.at(n)));
+            }
+        }
+        m_monitoringParameters.removeAll("0");
         qDebug()<<m_monitoringParameterIDs;
 //    m_monitoringParameters=items;
 

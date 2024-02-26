@@ -75,7 +75,7 @@ class itemsSelectDlg : public QDialog
 public:
     explicit itemsSelectDlg(const QStringList&list,const QList<int>&IDlist={},QWidget *parent = nullptr);
     ~itemsSelectDlg();
-    static QStringList getSelectedItems(const QStringList& list);
+    static QStringList getSelectedItems(const QStringList& list,const QString&tytle="");
     static QList<int> getSelectedItemsID(const QStringList& fromList, const QList<int> &IDList, QStringList &selectedList);
     static QString getSelectedItem(const QStringList& fromList);
 private slots:

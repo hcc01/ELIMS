@@ -24,6 +24,8 @@ public:
     ~MainWindow();
     void DoConnect();
     void DoLogin();
+protected:
+    void closeEvent(QCloseEvent *event) override ;
 signals:
     void Connected();
     void loginResult(int result);

@@ -274,9 +274,9 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
     int r=2;
     QString methodName=EXCEL.cellValue(r,1,sheet).toString().simplified();//列A是方法名称，去掉多余空格
     QString methodNum,unit,sampleGroup,sampleMedium,preservatives,storageCondition,stability,samplingFlow,samplingDuration,samplingRequirements,
-        blankControl,curveCalibration,parallelControl,spikeControl;
+        blankControl,curveCalibration,parallelControl,spikeControl,inspector,price;
     QString parameters,MDLs,coverages,labParameters;
-    int coverage=0,testingMode,minAmount,mediumPrepare;
+    int coverage=0,testingMode,minAmount,mediumPrepare,series;
     QSqlQuery query(DB.database());
     bool rollBack=false;
     if(DB.database().transaction()){//启动事务，准备插入数据
@@ -285,9 +285,11 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             // 处理事件循环，刷新界面
             QApplication::processEvents();
             methodNum=EXCEL.cellValue(r,2,sheet).toString().simplified();//列B是标准编号
+            methodNum.replace("—","-");
             unit=EXCEL.cellValue(r,7,sheet).toString();//列G是数据单位
             sampleGroup=EXCEL.cellValue(r,10,sheet).toString();//列J是样品分组
             sampleMedium=EXCEL.cellValue(r,11,sheet).toString();//列K是采样介质
+            series=EXCEL.cellValue(r,12,sheet).toInt();//列L，串联情况
             preservatives=EXCEL.cellValue(r,14,sheet).toString();//列N是固定剂
             storageCondition=EXCEL.cellValue(r,15,sheet).toString();//列O是保存条件
             stability=EXCEL.cellValue(r,16,sheet).toString();//列P是时效性
@@ -308,6 +310,8 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             labParameters=EXCEL.cellValue(r,5,sheet).toString();//列E实验室资质项目
             toStdParameterName(labParameters);
             QString labMDLs=EXCEL.cellValue(r,26,sheet).toString();//列实验室检出限
+            inspector=EXCEL.cellValue(r,28,sheet).toString();//AB检测负责人
+            price=EXCEL.cellValue(r,29,sheet).toString();//AC单价
             QString labPriority,priorityType;
             int typePriority=0;
             labPriority=EXCEL.cellValue(r,24,sheet).toString();//列X实验室优先级
@@ -455,11 +459,12 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                methodID=query.value(0).toInt();
 //               query.prepare("update test_methods set sampleGroup=:,sampleMedium=:,preservatives=:,storageCondition=:,stability=:,samplingFlow=:,samplingDuration=:,samplingRequirements=:,"
 //                             "blankControl=:,curveCalibration=:,parallelControl=:,spikeControl=:, testFieldID=:, extendCoverage=:,testingMode=:,minAmount=:,mediumPrepare=: where id=:id;");
-               query.prepare("UPDATE test_methods SET sampleGroup=:sampleGroup, sampleMedium=:sampleMedium, preservatives=:preservatives, storageCondition=:storageCondition, stability=:stability, samplingFlow=:samplingFlow, samplingDuration=:samplingDuration, samplingRequirements=:samplingRequirements, "
+               query.prepare("UPDATE test_methods SET sampleGroup=:sampleGroup, sampleMedium=:sampleMedium, seriesConnection=:seriesConnection, preservatives=:preservatives, storageCondition=:storageCondition, stability=:stability, samplingFlow=:samplingFlow, samplingDuration=:samplingDuration, samplingRequirements=:samplingRequirements, "
                              "blankControl=:blankControl, curveCalibration=:curveCalibration, parallelControl=:parallelControl, spikeControl=:spikeControl, testFieldID=:testFieldID, extendCoverage=:extendCoverage, testingMode=:testingMode, minAmount=:minAmount, mediumPrepare=:mediumPrepare WHERE id=:id;");
                query.bindValue(":testFieldID",areaID);
                query.bindValue(":sampleGroup",sampleGroup);
                query.bindValue(":sampleMedium",sampleMedium);
+               query.bindValue(":seriesConnection",series);
                query.bindValue(":preservatives",preservatives);
                query.bindValue(":storageCondition",storageCondition);
                query.bindValue(":stability",stability);
@@ -675,16 +680,17 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             }
             else{
                 //插入新方法
-                sql="INSERT INTO test_methods (methodName,methodNumber,sampleGroup,sampleMedium,preservatives,storageCondition,stability,samplingFlow,samplingDuration,samplingRequirements,"
+                sql="INSERT INTO test_methods (methodName,methodNumber,sampleGroup,sampleMedium,seriesConnection,preservatives,storageCondition,stability,samplingFlow,samplingDuration,samplingRequirements,"
                       "blankControl,curveCalibration,parallelControl,spikeControl, testFieldID, coverage,testingMode,minAmount,mediumPrepare,extendCoverage) "
-                      "VALUES(:methodName,:methodNum,:sampleGroup,:sampleMedium,:preservatives,:storageCondition,:stability,:samplingFlow,:samplingDuration,:samplingRequirements,"
+                      "VALUES(:methodName,:methodNum,:sampleGroup,:sampleMedium,:seriesConnection,:preservatives,:storageCondition,:stability,:samplingFlow,:samplingDuration,:samplingRequirements,"
                       ":blankControl,:curveCalibration,:parallelControl,:spikeControl, :testFieldID, :coverage,:testingMode,:minAmount,:mediumPrepare,:extendCoverage)";
                 query.prepare(sql);
                 query.bindValue(":methodName",methodName);
                 query.bindValue(":methodNum",methodNum);
                 query.bindValue(":testFieldID",areaID);
                 query.bindValue(":sampleGroup",sampleGroup);
-                query.bindValue(":sampleMedium",sampleMedium);
+                query.bindValue(":sampleMedium",sampleMedium);                
+                query.bindValue(":seriesConnection",series);
                 query.bindValue(":preservatives",preservatives);
                 query.bindValue(":storageCondition",storageCondition);
                 query.bindValue(":stability",stability);
@@ -702,6 +708,8 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
                 query.bindValue(":extendCoverage",extendCoverage);
                 if(!query.exec()){
                     QMessageBox::information(this,"INSERT INTO test_methods error",query.lastError().text());
+                    qDebug()<<query.lastQuery();
+                    qDebug()<<query.lastError().text();
                     DB.database().rollback();
                     return;
                 }

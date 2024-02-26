@@ -26,6 +26,10 @@ private slots:
 
     void on_reviewRecordBtn_clicked();
 
+    void on_splitBtn_clicked();
+
+    void on_sortTypeBox_currentIndexChanged(int index);
+
 private:
     Ui::ReportManagerUI *ui;
 };

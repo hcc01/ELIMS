@@ -35,6 +35,8 @@ public:
     int position()const{return m_position;}
     QString phone()const{return m_phone;}
     void setPhone(const QString&phone){m_phone=phone;}
+    int id()const{return m_id;}
+    void setID(int id){m_id=id;}
 signals:
 private:
     QString m_name;
@@ -42,6 +44,7 @@ private:
     QString m_phone;
     int _authority;
     int m_position;
+    int m_id;
 };
 
 #endif // CUSER_H

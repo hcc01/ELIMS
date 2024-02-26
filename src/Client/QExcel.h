@@ -6,6 +6,9 @@
 #include<QVariant>
 #define EXCEL QExcel::instance()
 #include<QtSql/QSqlDatabase>
+class Range;
+class WorkSheet;
+class WorkBook;
 class  QExcel:public QObject
 {
 
@@ -14,6 +17,7 @@ public:
         static QExcel excel(processID);
         return  excel;
     }
+    static QString columnIndexToName(int columnIndex);
     void openExcel();
     inline bool isOpen(const QString &fileName="")const;
     void Quit();//在退出程序之前调用，结束EXCEL
@@ -22,11 +26,13 @@ public:
     }
     //屏幕刷新
     void setScreenUpdating(bool update);
+    void setEnableEvents(bool);
     void SetVisible(bool v);
     void DisplayAlerts(bool v);
     //app operate fuc
     QAxObject *newBook();
     QAxObject *Open(const QString& path, const QVariant &UpdateLinks=QVariant(), bool readOnly=false, const QString &password="");
+    WorkBook *OpenBook(const QString& path, const QVariant &UpdateLinks=QVariant(), bool readOnly=false, const QString &password="");
     void Close();
     bool CloseBook(QAxObject *book);
     void showExcel(bool show) const;//为防止意外错误，show完建议删除book，不再操作。
@@ -44,7 +50,7 @@ public:
     QAxObject *selectSheet(const QString& sheetName, QAxObject *book)const;
     QAxObject * selectSheet(int i, QAxObject * book)const;
     QAxObject *selectRow(int row, QAxObject * sheet)const;
-
+    QAxObject *usedRange(QAxObject * sheet)const;
     //range operate fuc
     QVariant cellValue(int row, int column, QAxObject *sheet) const;
     void writeCell(int row,int column,QAxObject *sheet,const QVariant& var) const;
@@ -89,6 +95,87 @@ private:
     //    QAxObject *_WorkSheet;
     //    bool _isNewFile;
 
+};
+
+class Range:public QObject
+{
+
+public:
+    enum HorizontalAlignment {
+        AlignLeft,
+        AlignCenter,
+        AlignRight
+    };
+
+    enum VerticalAlignment {
+        AlignTop,
+        AlignMiddle,
+        AlignBottom
+    };
+    Range(QAxObject*range,QObject* parent=nullptr);
+    virtual ~Range();
+    int row()const{return m_range->dynamicCall("row()").toInt();}
+    int column()const{return m_range->dynamicCall("column()").toInt();}
+    QVariant value() const { return m_range->property("Value"); }
+    void setValue(const QVariant& value) { m_range->setProperty("Value", value); }
+    void setFont(const QFont& font);
+    void setFillColor(const QColor& color);
+    void setHorizontalAlignment(HorizontalAlignment alignment);
+    void setVerticalAlignment(VerticalAlignment alignment);
+    void setWrapText(bool wrap);
+    void setMergeCells(bool merge);
+    void setBorder(int lineStyle, int weight, int colorIndex);
+    void copy();
+    void paste(const QVariant&PasteType=QVariant());
+    void clear();
+    void insert();
+    void Delete();
+    double width()const{if(m_range) return m_range->property("Width").toDouble();return 0;};
+    double Height()const{if(m_range) return m_range->property("Height").toDouble();return 0;};;
+
+    Range* find(const QString& searchText, bool matchCase = false, bool matchWholeWord = false);
+    bool replace(const QString&What, const QString&Replacement,const QVariant&LookAt=QVariant(), const QVariant&SearchOrder=QVariant(), const QVariant&SearchDirection=QVariant(), const QVariant&MatchCase=QVariant());
+    Range*entireRow()
+    {
+        QAxObject *entireRowRange = m_range->querySubObject("entireRow()");
+        return new Range(entireRowRange,this->parent());
+    }
+private:
+    QAxObject* m_range;
+};
+class WorkSheet:public QObject
+{
+public:
+    WorkSheet(QAxObject*s,QObject* parent=nullptr);
+    Range* usedRange();
+    Range* range(const QString& rangeStr);
+    Range *selectRange(int startRow,int startColumn,int endRow,int endColumn);
+    Range *selectRow(int row);
+    void setValue(const QVariant& value, int startRow, int startColumn, int endRow=0, int endColumn=0);
+    void insertRow(int row);
+    void deleteRow(int row);
+    void insertColumn(int column);
+    void deleteColumn(int column);
+    void insertPic(const QString&path,int row,int column);
+private:
+    QAxObject* m_sheet;
+};
+
+class WorkBook:public QObject
+{
+public:
+    WorkBook(QAxObject* book,QObject*parent=nullptr);
+    virtual ~WorkBook();
+    bool open(const QString& path, const QVariant &UpdateLinks=QVariant(), bool readOnly=false, const QString &password="");
+    WorkSheet *sheet(int i);
+    bool save();
+    void saveAs(const QString& path);
+    void close();
+    WorkSheet* addSheet(const QString& name);
+    void deleteSheet(int index);
+    int sheetCount();
+private:
+    QAxObject* m_book;
 };
 
 #endif // QEXCEL_H

@@ -72,9 +72,9 @@ public:
 	{
 		return SendData((const char*)header, header->dataLength);
 	}
-    int SendData(const char* notice){//直接发送字符串
+    int SendMsg(const char* notice,int MsgType=CMD_NOTICE){//直接发送字符串
         CELLWriteStream s;
-        s.setNetCmd(CMD_NOTICE);
+        s.setNetCmd(MsgType);
         s.WriteString(notice);
         s.finsh();
         return SendData(s.data(),s.length());

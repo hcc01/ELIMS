@@ -198,7 +198,9 @@ public:
     QString flowName()const{return m_flowInfo.value("flowName").toString();}//流程名称，必须
     QString tabName()const{return m_flowInfo.value("tabName").toString();}//模块名称，必须，用于指定操作模块去处理流程
     QString flowAbs()const{return m_flowInfo.value("abstract").toString();}//流程摘要，用于显示在审核界面
-    void setFlowAbs(const QString&abstract){m_flowInfo["abstract"]=abstract;}    
+    void setFlowAbs(const QString&abstract){m_flowInfo["abstract"]=abstract;}
+    QString creator()const{return m_flowInfo.value("creator").toString();}
+    void setCreator(const QString&creator){m_flowInfo["creator"]=creator;}
     void setNode(int node){m_flowInfo["node"]=node;}
     int node()const{return m_flowInfo.value("node").toInt();}//当前节点
     void setNextNode(int node){m_flowInfo["nextNode"]=node;}

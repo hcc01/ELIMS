@@ -107,6 +107,11 @@ bool MyModel::setData(const QModelIndex &index, const QVariant &value, int role)
     return QAbstractTableModel::setData(index,value,role);
 }
 
+void MyModel::removeBackgroundColor()
+{
+    m_backgroundColors.clear();
+}
+
 QList<QList<QVariant> > MyModel::getData() const
 {
     return m_data;

@@ -19,10 +19,68 @@ ReportManagerUI::~ReportManagerUI()
 void ReportManagerUI::initCMD()
 {
     QString sql;
+    switch(ui->sortTypeBox->currentIndex()){
+    case 0://未完成
+    {
+        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status from task_methods as A "
+              "left join test_task_info as B on A.taskSheetID=B.id "
+              "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
+              "left join report_status as D on A.reportNum=D.reportNum "
+//                      "left join (select "//后面要选择样品交接时间并排序
+                      "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0").arg(TaskSheetUI::TESTING).arg(TaskSheetUI::REPORT_REVIEW3);
+        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
+            sql+=QString(" and B.creator='%1'").arg(user()->name());
+        }
+        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
+    }
+    break;
+    case 1://待归档
+    {
+        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT C.sampleType SEPARATOR '/'),D.status from task_methods as A "
+                      "left join test_task_info as B on A.taskSheetID=B.id "
+                      "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
+                      "left join report_status as D on A.reportNum=D.reportNum "
+                      "where D.status=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
+        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
+            sql+=QString(" and A.creator='%1'").arg(user()->name());
+        }
+         sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
+    }
+    break;
+    case 2://已完成
+    {
+        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT C.sampleType SEPARATOR '/'),D.status from task_methods as A "
+                      "left join test_task_info as B on A.taskSheetID=B.id "
+                      "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
+                      "left join report_status as D on A.reportNum=D.reportNum "
+                      "where D.status>=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
+        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
+            sql+=QString(" and A.creator='%1'").arg(user()->name());
+        }
+        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
+    }
+    break;
+    }
+    ui->pageCtrl->startSql(this,sql,1,{},[this](const QSqlReturnMsg&msg){
+        ui->tableView->clear();
+        QList<QVariant>r=msg.result().toList();
+        QList<QVariant>row;
+        for(int i=1;i<r.count();i++){
+            row=r.at(i).toList();
+            row[5]=TaskSheetUI::getStatusName(row.at(5).toInt());
+             ui->tableView->append(row);
+
+        }
+
+    });
+    return;
+    //以下作废
     //流程节点在报告编制和归档之间的任务单
     QList<QVariant>tasks;//tasks:{任务单号，客户名称，项目名称，任务单ID}
     ui->tableView->clear();
-    sql="select taskNum, clientName, inspectedProject ,id from test_task_info where creator=? and taskStatus>=? and taskStatus<=?;";
+    sql=QString("select taskNum, clientName, inspectedProject ,id from test_task_info where creator='%1' and taskStatus>=%2;").arg(user()->name()).arg(TaskSheetUI::TESTING);
+    if(user()->position()&(CUser::LabManager|CUser::LabSupervisor))
+        sql=QString("select taskNum, clientName, inspectedProject ,id from test_task_info where taskStatus>=%1;").arg(TaskSheetUI::TESTING);
     doSqlQuery(sql,[this,&tasks](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询任务单时出错：",msg.errorMsg());
@@ -32,7 +90,8 @@ void ReportManagerUI::initCMD()
         tasks=msg.result().toList();
         tasks.removeFirst();
         sqlFinished();
-    },0,{user()->name(),TaskSheetUI::TESTING,TaskSheetUI::REPORT_REVIEW3});
+
+    });
     waitForSql();
     if(!tasks.count()){
         return;
@@ -127,6 +186,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                 }
                 QFlowInfo info("报告审核",this->tabName());
                 info.setFlowAbs(reportNum);
+                info.setCreator(flowInfo.creator());
                 submitFlow(info,reviewerIDs,reportNum,1,"report_flows","reportNum","flowID");
             }
         });
@@ -172,6 +232,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                 }
                 QFlowInfo info("报告签发",this->tabName());
                 info.setFlowAbs(reportNum);
+                info.setCreator(flowInfo.creator());
                 submitFlow(info,reviewerIDs,reportNum,1,"report_flows","reportNum","flowID");
             }
         });
@@ -237,7 +298,7 @@ void ReportManagerUI::on_submitBtn_clicked()
     //提交流程
     QFlowInfo flowinfo("报告初审",this->tabName());
     flowinfo.setFlowAbs(reportNum);
-
+    flowinfo.setCreator(user()->name());
     sql="select B.name ,B.id from users left join sys_employee_login as B on users.name=B.name where position&?;";
     QList<int>ids;
     QStringList names;
@@ -348,5 +409,38 @@ void ReportManagerUI::on_reviewRecordBtn_clicked()
     QString reportNum=ui->tableView->value(row,1).toString();
     if(reportNum.isEmpty()) return;
     showFlowRecord(reportNum,"report_flows","reportNum","flowID");
+}
+
+
+void ReportManagerUI::on_splitBtn_clicked()
+{
+    int row=ui->tableView->selectedRow();
+    if(row<0) return;
+    QString taskNum=ui->tableView->value(row,0).toString();
+    QString reportNum=ui->tableView->value(row,1).toString();
+    QStringList bases={"按点位","按类型","按分包项目"};
+    QString base=itemsSelectDlg::getSelectedItem(bases);
+    QString sql;
+    if(base=="按点位"){
+        sql="select DISTINCT monitoringInfoID from task_methods where reportNum=?;";
+        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"查询点位信息时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            QList<QVariant>r=msg.result().toList();
+            for(int i=1;i<r.count();i++){
+                auto row=r.at(i).toList();
+            }
+        },0,{reportNum});
+        waitForSql();
+    }
+}
+
+
+void ReportManagerUI::on_sortTypeBox_currentIndexChanged(int index)
+{
+    initCMD();
 }
 

@@ -39,9 +39,11 @@ itemsSelectDlg::~itemsSelectDlg()
     delete ui;
 }
 
-QStringList itemsSelectDlg::getSelectedItems(const QStringList &list)
+QStringList itemsSelectDlg::getSelectedItems(const QStringList &list, const QString &tytle)
 {
+
     itemsSelectDlg dlg(list);
+    dlg.setWindowTitle(tytle);
     dlg.exec();
     return dlg.m_selectedItems;
 }

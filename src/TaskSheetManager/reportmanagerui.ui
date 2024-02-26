@@ -6,14 +6,83 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>579</width>
+    <height>407</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>报告查找：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="searchEdit"/>
+     </item>
+     <item>
+      <widget class="QComboBox" name="searchTypeBox">
+       <item>
+        <property name="text">
+         <string>按报告编号</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按任务单号</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按委托单位</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按受检单位</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按项目名称</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>筛选：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="sortTypeBox">
+       <item>
+        <property name="text">
+         <string>未完成</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>待归档</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>已归档</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
@@ -43,7 +112,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_3">
+        <widget class="QPushButton" name="splitBtn">
          <property name="text">
           <string>报告拆分</string>
          </property>
@@ -77,75 +146,6 @@
         </spacer>
        </item>
       </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>查找：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="lineEdit"/>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_3">
-       <item>
-        <property name="text">
-         <string>按任务单号</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按委托单位</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按受检单位</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>按项目名称</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>过滤：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_2">
-       <item>
-        <property name="text">
-         <string>待处理</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>未完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>已完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>全部</string>
-        </property>
-       </item>
-      </widget>
      </item>
     </layout>
    </item>
