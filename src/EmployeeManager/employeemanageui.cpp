@@ -28,14 +28,16 @@ void EmployeeManageUI::initCMD()
 {
     QString sql;
     sql="SELECT name, phone, EducationDegree, Title, position, state from users;";
-    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+    ui->pageCtrl->startSql(this,sql,1,{},[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"初始化查询失败",msg.result().toString());
             return;
         }
         QList<QVariant> r=msg.result().toList();
+        ui->tableView->clear();
         for(int i=1;i<r.count();i++){
             QList<QVariant>row=r.at(i).toList();
+            if(row.at(0).toString()=="admin") continue;
             int p=row.at(4).toInt();
             QString position;
             bool first=true;
@@ -43,13 +45,13 @@ void EmployeeManageUI::initCMD()
 
                 if(p&x){
                     if(first) first=false;
-                    else position+=" 兼\n";
+                    else position+="\n";
                     position+=m_positions.value(x);
                 }
             }
             ui->tableView->append({row.at(0),row.at(1),row.at(2),row.at(3),position});
         }
-    },1);
+    });
 }
 
 void EmployeeManageUI::initMod()

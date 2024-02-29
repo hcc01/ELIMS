@@ -27,7 +27,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page_5">
        <property name="geometry">
@@ -228,6 +228,13 @@
          <widget class="QPushButton" name="pushButton">
           <property name="text">
            <string>危废管理</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="workHourStatisticsBtn">
+          <property name="text">
+           <string>工时统计</string>
           </property>
          </widget>
         </item>

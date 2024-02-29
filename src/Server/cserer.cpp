@@ -57,7 +57,6 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
         onJsonCMD(pClient,js);
     }
         break;
-
     default:
         CELLLog::Info("recv <ip=%s> undefine msgType,dataLen：%d\n", pClient->IP(), header->dataLength);
     }
@@ -72,61 +71,19 @@ void CServer::onJsonCMD(CELLClient *pClient, QJsonObject &json)
         //这里需要增加判断指令操作权限
 //        qDebug()<<"SQL_JSON"<<json;
         QSqlCmd sqlCmd(json);
-        bool ok;
-        QString sql=sqlCmd.sql();
-        int CMD=sql.toInt(&ok);
-        if(ok){//事务开关
-            switch(CMD){
-            case CMD_START_Transaction://要返回开启情况
-            {
-                if(!DB.startQuery(pClient->getUser()->id(),true)){
-                    pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),true).jsCmd());
-                    return;
-                }
-                qDebug()<<"用户开启事务";
-                pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),false).jsCmd());
-
-            }
-            break;
-            case CMD_START_QUERY:
-            {
-                if(!DB.startQuery(pClient->getUser()->id())){
-                    pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),true).jsCmd());
-                    return;
-                }
-                qDebug()<<"用户连接数据库";
-                pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),false).jsCmd());
-            }
-            break;
-            case CMD_END_QUERY:
-            {
-                 DB.endQuery(pClient->getUser()->id());
-                qDebug()<<"用户断开数据库";
-            }
-            break;
-            case CMD_COMMIT_Transaction:
-            {
-                 DB.endQuery(pClient->getUser()->id(),1);
-                qDebug()<<"用户提交事务";
-            }
-            break;
-            case CMD_ROLLBACK_Transaction:
-            {
-                DB.endQuery(pClient->getUser()->id(),2);
-                qDebug()<<"用户回滚事务";
-            }
-            break;
-            }
-
-        }
-        else{
-            QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd,pClient->getUser()->id());
-            pClient->SendData(slqR.jsCmd());
-        }
+        QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd);
+        pClient->SendData(slqR.jsCmd());
     }
         break;
     case JC_WORKFLOW:
     {
+//        _wfManager.onJsonCmd(json, pClient->getUser()->name())
+
+/*        NewWorkFlowCMD wfCmd(json);
+
+           // wfCmd.setOperator(pClient->getUser()->id());
+            createWorkFlow(wfCmd,pClient)*/;
+
 
     }
         break;
@@ -301,10 +258,5 @@ void CServer::noticeToDo(int recordID,CELLClient *pClient)
     if(SOCKET_ERROR==pClient->SendData(notice.data())){
         qDebug()<<"error on noticeTodo: 发送数据时错误.";
     }
-    // qDebug()<<notice.data();
-}
-
-void CServer::sendMsgTo(CELLClient *pClient, const char*msg, int msgType)
-{
-    pClient->SendMsg(msg,msgType);
+   // qDebug()<<notice.data();
 }

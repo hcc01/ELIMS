@@ -19,7 +19,7 @@
      <property name="title">
       <string>选择任务单：</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
@@ -90,12 +90,12 @@
      <property name="title">
       <string>送样样品交接：</string>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <widget class="SqlPageControleUI" name="pageCtrl_2" native="true"/>
-      </item>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
        <widget class="MyTableView" name="tableView_2"/>
+      </item>
+      <item>
+       <widget class="SqlPageControleUI" name="pageCtrl_2" native="true"/>
       </item>
      </layout>
     </widget>
@@ -105,19 +105,51 @@
      <property name="title">
       <string>送样样品交接：</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
+     <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>选择样品：</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>选择样品：</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox">
+          <property name="text">
+           <string>全部</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <widget class="MyTableView" name="tableView_3"/>
       </item>
       <item>
        <widget class="SqlPageControleUI" name="pageCtrl_3" native="true"/>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="deliveryReceiveBtn">
+          <property name="text">
+           <string>开始接样</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>打印标签</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>

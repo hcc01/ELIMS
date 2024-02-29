@@ -19,9 +19,18 @@ SampleCirculationUI::~SampleCirculationUI()
 
 void SampleCirculationUI::initCMD()
 {
+
     QString sql;
-    sql="select taskNum,clientName, inspectedEentityName, inspectedProject from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
-    ui->pageCtrl->startSql(this,sql,1,{user()->name(),TaskSheetUI::WAIT_SAMPLING},[this](const QSqlReturnMsg&msg){
+    QJsonArray values;
+    if(ui->samplingBtn->isChecked()){
+        sql="select taskNum,clientName, inspectedEentityName, inspectedProject from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
+        values={user()->name(),TaskSheetUI::SAMPLING};
+    }
+    if(ui->deliveryBtn->isChecked()){
+        sql="select taskNum,clientName, inspectedEentityName, inspectedProject from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
+        values={user()->name(),TaskSheetUI::SAMPLE_CIRCULATION};
+    }
+    ui->pageCtrl->startSql(this,sql,1,values,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询任务单信息出错：",msg.errorMsg());
             return;
@@ -68,6 +77,29 @@ void SampleCirculationUI::on_sampleReceiveBtn_clicked()
     },0,{taskNum});
     waitForSql();
     if(error) return;
+    initCMD();
+}
+
+
+void SampleCirculationUI::on_refleshBtn_clicked()
+{
+
+}
+
+
+void SampleCirculationUI::on_samplingBtn_clicked()
+{
+    if(ui->samplingBtn->isChecked()) return;
+    ui->samplingBtn->setChecked(true);
+    initCMD();
+
+}
+
+
+void SampleCirculationUI::on_deliveryBtn_clicked()
+{
+    if(ui->deliveryBtn->isChecked()) return;
+    ui->deliveryBtn->setChecked(true);
     initCMD();
 }
 

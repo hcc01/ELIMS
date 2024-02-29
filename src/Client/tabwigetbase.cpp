@@ -202,7 +202,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
         p=sqlinfo.indexOf("?");
         i++;
     }
-    qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2").arg(sqlinfo).arg(flag);
+    qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2,窗体：%3").arg(sqlinfo).arg(flag).arg(this->tabName());
 
     m_fucMap.insert(flag,f);//标识下处理结果返回的函数
     flag++;
@@ -335,23 +335,24 @@ void TabWidgetBase::sqlEnd()
 
 bool TabWidgetBase::connectDB(CMD Transaction)
 {
-    QString sql=QString::number(Transaction);
-    bool ok=true;
-    doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
-        if(msg.error()) {
-            ok=false;
-            QMessageBox::information(nullptr,"error","网络繁忙，请重试。");
-        }
-        sqlFinished();
-    });
-    waitForSql("正在开启事务……");
-    return ok;
+//    QString sql=QString::number(Transaction);
+//    bool ok=true;
+//    doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
+//        if(msg.error()) {
+//            ok=false;
+//            QMessageBox::information(nullptr,"error","网络繁忙，请重试。");
+//        }
+//        sqlFinished();
+//    });
+//    waitForSql("正在开启事务……");
+//    return ok;
+    return true;
 }
 
 void TabWidgetBase::releaseDB(CMD TransactionType)
 {
-    QString sql=QString::number(TransactionType);
-    doSqlQuery(sql);
+//    QString sql=QString::number(TransactionType);
+//    doSqlQuery(sql);
 }
 
 

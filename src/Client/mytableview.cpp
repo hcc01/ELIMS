@@ -61,6 +61,7 @@ void MyTableView::init(const QVariant &data)
 
 void MyTableView::setHeader(const QStringList &header)
 {
+
     m_model->setHeader(header);
 }
 

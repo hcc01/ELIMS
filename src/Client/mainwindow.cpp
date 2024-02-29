@@ -21,6 +21,7 @@
 #include"reportmanagerui.h"
 #include"samplingscheduleui.h"
 #include"samplecirculationui.h"
+#include"workhoursatistics.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -54,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(ReportManagerUI,ui->reportManagerBtn);
     ADD_MODULE(SamplingScheduleUI,ui->btSamplingSchedule);
     ADD_MODULE(SampleCirculationUI,ui->samplecirculationBtn);
-
+    ADD_MODULE(WorkHourSatistics,ui->workHourStatisticsBtn);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
@@ -239,6 +240,7 @@ void MainWindow::onJsonCMD(const QJsonObject &json)
     {
         QSqlReturnMsg jsCmd(json);
         QString tabText=jsCmd.tytle();
+        qDebug()<<"jsCmd"<<json;
         TabWidgetBase*w= getModule(tabText);
         if(w) w->onSqlReturn(jsCmd);//返回信息的处理交由各窗口处理。
         else {
@@ -387,7 +389,7 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
     //都没有，创建一个
     tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(widgetText,this));
     if(!tab) {
-        qDebug()<<"无法创建窗体："<<widgetText;
+        qDebug()<<"getModule无法创建窗体："<<widgetText;
         return nullptr;
     }
     tab->setUser(m_user);
@@ -491,7 +493,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.4.0");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.3.4");
 }
 
 

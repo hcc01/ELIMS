@@ -19,6 +19,12 @@ public:
 private slots:
     void on_sampleReceiveBtn_clicked();
 
+    void on_refleshBtn_clicked();
+
+    void on_samplingBtn_clicked();
+
+    void on_deliveryBtn_clicked();
+
 private:
     Ui::SampleCirculationUI *ui;
 };

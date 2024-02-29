@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>EmployeeManageUI</class>
- <widget class="QWidget" name="EmployeeManageUI">
+ <class>WorkHourSatistics</class>
+ <widget class="QWidget" name="WorkHourSatistics">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>604</width>
-    <height>488</height>
+    <width>669</width>
+    <height>456</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,49 +17,47 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>学历：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_2"/>
-     </item>
-     <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>职称：</string>
+        <string>开始时间：</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox"/>
+      <widget class="QDateEdit" name="dateEdit"/>
      </item>
      <item>
       <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>岗位：</string>
+        <string>结束时间：</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox_3"/>
+      <widget class="QDateEdit" name="dateEdit2"/>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="OKbtn">
        <property name="text">
-        <string>筛选</string>
+        <string>确认</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="OKbtn_2">
+       <property name="text">
+        <string>导出</string>
        </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <widget class="MyTableView" name="tableView"/>
-   </item>
-   <item>
-    <widget class="SqlPageControleUI" name="pageCtrl" native="true"/>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="MyTableView" name="tableView"/>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
@@ -68,12 +66,6 @@
    <class>MyTableView</class>
    <extends>QTableView</extends>
    <header>mytableview.h</header>
-  </customwidget>
-  <customwidget>
-   <class>SqlPageControleUI</class>
-   <extends>QWidget</extends>
-   <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

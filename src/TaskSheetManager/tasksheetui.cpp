@@ -279,6 +279,7 @@ void TaskSheetUI::initMod()
           "sampleNumber varchar(32) unique ,"
           "samplingParameters json,"
           "samplers varchar(12),"
+          "siteOrder int, "
           "UNIQUE (monitoringInfoID, samplingRound,samplingPeriod,sampleOrder),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id) "
           ");";

@@ -192,7 +192,7 @@ void TaskSheetEditor::init()
     waitForSql();
      doSql("select  clientName,id, address from client_info where deleted=0;",[&](const QSqlReturnMsg&msg){
         if(msg.error()){
-            QMessageBox::information(this,"error",msg.result().toString());
+            QMessageBox::information(this,"查询客户信息时出错：",msg.result().toString());
             sqlFinished();
             return;
         }
@@ -260,7 +260,7 @@ void TaskSheetEditor::doSave()
             },0,{ui->salesRepresentativeBox->currentText()});
             waitForSql();
             if(!ok) {
-                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
             //进行基本信息保存
@@ -273,6 +273,7 @@ void TaskSheetEditor::doSave()
                       ui->reportPurposEdit->currentText(),ui->reportPeriodBox->value(),ui->sampleDisposalBox->currentText(),ui->reportCopiesBox->value(),ui->methodSourseBox->currentIndex(),ui->subpackageBox->currentIndex(),
                       ui->otherRequirementsEdit->text(),ui->inspectedAddrEdit->text(),salerID,m_taskNum};
             qDebug()<<"m_taskNum"<<m_taskNum;
+            tabWiget()->connectDB(CMD_START_Transaction);//开启事务
             doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
                     if(msg.error()){
                         QMessageBox::information(nullptr,"保存任务单信息时出错：",msg.errorMsg());
@@ -289,6 +290,7 @@ void TaskSheetEditor::doSave()
                 tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
+            tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         }
         if(m_bTestInfoModified){
             //保存检测信息
@@ -297,10 +299,11 @@ void TaskSheetEditor::doSave()
             if(!m_bMethodModified){
                 int a=QMessageBox::question(nullptr,"","检测到监测信息有变更，但检测方法未重新确认，是否继续保存（方法表将为空）？");
                 if(a==QMessageBox::No) {
-                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                     return;
                 }
             }
+            tabWiget()->connectDB(CMD_START_Transaction);//开启事务
             sql="delete from task_methods where taskSheetID= ?;delete from site_monitoring_info where taskSheetID=?;";//删除点位监测信息表和检测方法表
             values={m_taskSheetID,m_taskSheetID};//保存时用到m_taskSheetID，要确保任务单ID得到正确获取
             doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
@@ -379,15 +382,16 @@ void TaskSheetEditor::doSave()
                     }
                 }
             }
+            tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         }
 
         if(m_bMethodModified){
             if(!saveMethod()){
-                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
         }
-        tabWiget()->releaseDB(CMD_COMMIT_Transaction);
+//        tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         QMessageBox::information(nullptr,"","保存完成。");
         return;//修改操作完成，返回，下面是新建操作。
     }
@@ -413,9 +417,10 @@ void TaskSheetEditor::doSave()
         },0,{ui->salesRepresentativeBox->currentText()});
         waitForSql();
         if(!ok){
-            tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//            tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
             return;
         }
+        tabWiget()->connectDB(CMD_START_Transaction);
         sql="INSERT INTO test_task_info (taskNum,contractNum,clientID,clientName,clientAddr,clientContact,clientPhone,"
               "inspectedEentityName,inspectedEentityContact,inspectedEentityPhone,inspectedProject,projectAddr,"
               "reportPurpos,reportPeriod,sampleDisposal,reprotCopies,methodSource,subpackage,otherRequirements, creator, createDate,sampleSource,inspectedEentityAddr,salesRepresentative) "
@@ -509,9 +514,8 @@ void TaskSheetEditor::doSave()
                     return;
                 }
             }
-
-
         }
+        tabWiget()->releaseDB(CMD_COMMIT_Transaction);
 
                 //保存完成后，改为修改模式，以便用户继续修改。
                 m_mode=EditMode;
@@ -531,7 +535,7 @@ void TaskSheetEditor::doSave()
 
             if(!saveMethod()){
 
-                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
 
             }
@@ -1088,71 +1092,43 @@ void TaskSheetEditor::on_saveBtn_clicked()
         return;
     }
 
-    if(!this->tabWiget()->connectDB(CMD_START_Transaction)){//使用事务操作
-        return;
-    }
+
     if(m_mode==NewMode){
         //新单，根据编码规则，确认任务单号：
         QString date=QDate::currentDate().toString("yyMMdd");
         QString sql;
-        sql=QString("select taskcount from tasknumber where taskdate='%1';").arg(date);
+        if(!this->tabWiget()->connectDB(CMD_START_Transaction)){//使用事务操作
+            QMessageBox::information(nullptr,"error","无法开启事务");
+            return;
+        }
+        sql=QString("INSERT INTO tasknumber (taskdate, taskcount) VALUES (?, 1) ON DUPLICATE KEY UPDATE taskcount = taskcount + 1;");
+        doSql(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(this,"更新任务单号时出错：",msg.result().toString());
+                sqlFinished();
+                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+                return;
+            }
+            sqlFinished();
+        },0,{date});
+        waitForSql("正在更新任务单号");
+        sql="SELECT taskcount FROM tasknumber WHERE taskdate =?";
         doSql(sql,[date,this](const QSqlReturnMsg&msg){
             if(msg.error()){
-                QMessageBox::information(this,"error",msg.result().toString());
+                QMessageBox::information(this,"设置任务单号时出错：",msg.result().toString());
                 sqlFinished();
+                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
             QList<QVariant>r=msg.result().toList();
-            bool error=false;
-            if(r.count()==1){
-                QString sql=QString("INSERT INTO tasknumber VALUES('%1',1);").arg(date);
-                doSql(sql,[date,this, &error](const QSqlReturnMsg&msg){
-                    if(msg.error()){
-                        QMessageBox::information(this,"error",msg.result().toString());
-                        error=true;
-                        sqlFinished();
-                        return;
-                    }
-                    m_taskNum=QString("SST%1%2").arg(date).arg("001");
-                    setWindowTitle("任务单："+m_taskNum);
-                    sqlFinished();
-//                    doSave();在这里保存会卡在等待界面
-                });
-                waitForSql();
-                if(error){
-                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                    return;
-                }
-            }
-            else{
-                int count=(r.at(1).toList().at(0).toInt());
-                count++;
-                m_taskNum=QString("SST%1%2").arg(date).arg(count,3,10,QChar('0'));
-                setWindowTitle("任务单："+m_taskNum);
-                QString sql=QString("update tasknumber set taskcount =%1 where taskdate='%2';").arg(count).arg(date);//任务单编号自增
-                doSql(sql,[date,this, &error](const QSqlReturnMsg&msg){
-                    if(msg.error()){
-                        QMessageBox::information(this,"error",msg.result().toString());
-                        error=true;
-                        sqlFinished();
-                        return;
-                    }
-//                    doSave();
-                    sqlFinished();
-                });
-                waitForSql();
-                if(error){
-                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                    return;
-                }
-            }
-        });
-
-        doSave();
+            int count=(r.at(1).toList().at(0).toInt());
+            m_taskNum=QString("SST%1%2").arg(date).arg(count,3,10,QChar('0'));
+            sqlFinished();
+        },0,{date});
+        waitForSql("正在设置任务单号");
+        tabWiget()->releaseDB(CMD_COMMIT_Transaction);//提交事务
     }
-    else{
-        doSave();
-    }
+    doSave();
 
 }
 

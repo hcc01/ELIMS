@@ -109,7 +109,6 @@ bool ToDoUI::pushProcess(QFlowInfo flowInfo, bool passed, const QString &comment
     ok=false;
     doSqlQuery(sql,[this,&ok](const QSqlReturnMsg&msg){
         if(msg.error()){
-                ok=false;
             return notifySqlError("更新流程审核记录出错",msg.result().toString());
         }
         ok=msg.numRowsAffected();
@@ -134,6 +133,7 @@ bool ToDoUI::pushProcess(QFlowInfo flowInfo, bool passed, const QString &comment
             sqlFinished();
             return;
         }
+        ok=true;
         sqlFinished();
     },0,values);
     waitForSql();
@@ -155,7 +155,7 @@ bool ToDoUI::pushProcess(QFlowInfo flowInfo, bool passed, const QString &comment
             sqlFinished();
             return;
         }
-
+        ok=true;
         sqlFinished();
     },0,values);
     waitForSql();
@@ -169,8 +169,6 @@ bool ToDoUI::pushProcess(QFlowInfo flowInfo, bool passed, const QString &comment
         //若其它人的审批被取消，更新其它人的待办（这个不操作了，麻烦）
         removeTodo(ui->tableView->selectedRow());
         return true;
-
-
 }
 
 void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)

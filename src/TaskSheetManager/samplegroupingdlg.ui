@@ -84,7 +84,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="samplerEdit"/>
+         <widget class="QLineEdit" name="samplerEdit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="inputMask">
+           <string/>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QPushButton" name="addSamplerBtn">
@@ -105,9 +112,26 @@
          </widget>
         </item>
         <item>
+         <widget class="QRadioButton" name="radioPrint">
+          <property name="text">
+           <string>打印标签</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioGenerate">
+          <property name="text">
+           <string>生成标签</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="checkBox">
           <property name="text">
-           <string>打印全部点位</string>
+           <string>选择全部</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -138,11 +162,6 @@
             <string>全部周期</string>
            </property>
           </item>
-          <item>
-           <property name="text">
-            <string>当前周期</string>
-           </property>
-          </item>
          </widget>
         </item>
         <item>
@@ -156,16 +175,9 @@
          <widget class="QDateEdit" name="dateEdit"/>
         </item>
         <item>
-         <widget class="QPushButton" name="printOkbtn_2">
-          <property name="text">
-           <string>导出原标签</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QPushButton" name="printOkbtn">
           <property name="text">
-           <string>生成打印标签</string>
+           <string>确认</string>
           </property>
          </widget>
         </item>

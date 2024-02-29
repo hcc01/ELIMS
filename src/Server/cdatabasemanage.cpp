@@ -6,8 +6,6 @@
 #include<QJsonArray>
 #include<QSqlError>
 #include<QDate>
-
-
 void CDatabaseManage::connectDb()
 {
     _db=QSqlDatabase::addDatabase("QMYSQL","elims");
@@ -24,7 +22,7 @@ void CDatabaseManage::connectDb()
     _db.exec("CREATE DATABASE IF NOT EXISTS elims");
    _db.setDatabaseName("elims");
    _db.open();
-   qDebug()<<"db opened"<<_db;
+    qDebug()<<"db opened";
     _dbOpen=true;
     QSqlQuery query(_db);
 
@@ -138,29 +136,12 @@ bool CDatabaseManage::queryRM( QJsonObject &jsCMD)
     return true;
 }
 
-QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd, int userID)
+QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd)
 {
+    QSqlQuery query(_db);
     QString sql=sqlCmd.sql();
-    QSqlDatabase db;
-    DatabaseConnection* connect=m_userDb.value(userID);
-    if(connect){
-        db=connect->dataBase();
-        db.setDatabaseName("elims");
-        QSqlQuery query(db);
-        if (!query.exec("use elims")) {
-            qDebug() << "use elims error" << query.lastError().text();
-        }
-    }
-    else  db=_db;
-    qDebug()<<db.connectionName()<<db;
-    QSqlQuery query(db);
-    if(!query.exec("show databases")){
-        qDebug()<<"query error"<<query.lastError().text();
-    }
-    qDebug()<<query.result();
-
-    if(sqlCmd.useBindMod()){
-//        _db.transaction();
+    if(sqlCmd.useBindMod()){//增加了使用格式化的查询模式，适用于大量操作，开启事务模式。
+        _db.transaction();
         query.prepare(sql);
         QJsonArray values=sqlCmd.getBindValues();
         qDebug()<<"bindValues:"<<values;
@@ -168,8 +149,8 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd, int userID)
             query.bindValue(i,values.at(i).toVariant());
         }
         if(!query.exec()){
-            _lastError=query.lastError().text();qDebug()<<_lastError;
-//            _db.rollback();
+            _lastError=query.lastError().text();
+            _db.rollback();
             return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
         }
 //        if(query.numRowsAffected() == 0) {
@@ -178,10 +159,10 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd, int userID)
 //            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
 //        }
 
-//        _db.commit();
+        _db.commit();
     }
     else if(!query.exec(sql)){
-        _lastError=query.lastError().text();qDebug()<<_lastError;
+        _lastError=query.lastError().text();
         return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
     }
     QJsonArray table;
@@ -230,36 +211,6 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd, int userID)
     }
 
     return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,pages);
-}
-
-bool CDatabaseManage::startQuery(int userID,bool Transaction)
-{
-    DatabaseConnection* connect=m_connectionPool.getConnection(userID);
-    if(connect){
-        m_userDb[userID]=connect;
-        if(Transaction) connect->beginTransaction();
-        return true;
-    }
-    qDebug()<<"无法连接数据库";
-    return false;
-
-}
-
-void CDatabaseManage::endQuery(int userID,int Transaction)
-{
-    DatabaseConnection* connect= m_userDb.value(userID);
-    if(!connect) return;
-    switch(Transaction){
-    case 1:
-        connect->commitTransaction();
-        break;
-    case 2:
-        connect->rollbackTransaction();
-        break;
-    }
-    m_connectionPool.releaseConnection(connect);
-    m_userDb.remove(userID);
-
 }
 
 CDatabaseManage::CDatabaseManage():

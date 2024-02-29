@@ -42,7 +42,7 @@ void ReportManagerUI::initCMD()
                       "left join report_status as D on A.reportNum=D.reportNum "
                       "where D.status=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
         if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
-            sql+=QString(" and A.creator='%1'").arg(user()->name());
+            sql+=QString(" and B.creator='%1'").arg(user()->name());
         }
          sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
     }
@@ -55,7 +55,7 @@ void ReportManagerUI::initCMD()
                       "left join report_status as D on A.reportNum=D.reportNum "
                       "where D.status>=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
         if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
-            sql+=QString(" and A.creator='%1'").arg(user()->name());
+            sql+=QString(" and B.creator='%1'").arg(user()->name());
         }
         sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
     }

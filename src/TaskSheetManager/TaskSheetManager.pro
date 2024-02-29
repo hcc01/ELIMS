@@ -30,7 +30,8 @@ SOURCES += \
     samplingscheduleui.cpp \
     tasksheeteditor.cpp \
     tasksheetui.cpp \
-    testinfoeditor.cpp
+    testinfoeditor.cpp \
+    workhoursatistics.cpp
 
 HEADERS += \
     ../Client/ctablemodel.h \
@@ -55,7 +56,8 @@ HEADERS += \
     samplingscheduleui.h \
     tasksheeteditor.h \
     tasksheetui.h \
-    testinfoeditor.h
+    testinfoeditor.h \
+    workhoursatistics.h
 
 # Default rules for deployment.
 unix {
@@ -77,7 +79,8 @@ FORMS += \
     samplingscheduleui.ui \
     tasksheeteditor.ui \
     tasksheetui.ui \
-    testinfoeditor.ui
+    testinfoeditor.ui \
+    workhoursatistics.ui
 
 
 DESTDIR = "../../lib"

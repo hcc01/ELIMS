@@ -33,7 +33,7 @@ SamplingScheduleUI::SamplingScheduleUI(QWidget *parent) :
         int row=ui->taskScheduledView->selectedRow();
         if(row<0) return ;
         SampleGroupingDlg* dlg=new SampleGroupingDlg(this);
-        dlg->init(ui->taskScheduledView->value(row,0).toString(),ui->taskScheduledView->value(row,5).toString().split("、"));
+        dlg->init(ui->taskScheduledView->value(row,0).toString(),(ui->taskScheduledView->value(row,4).toString()+"、"+ui->taskScheduledView->value(row,5).toString()).split("、"));
         dlg->show();
     });
 

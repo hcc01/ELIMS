@@ -12,6 +12,7 @@ MyModel::MyModel(const QStringList &header, QObject *parent)
 void MyModel::setHeader(const QStringList &header)
 {
     beginResetModel();
+    m_data.clear();
     m_header=header;
     endResetModel();
 }
