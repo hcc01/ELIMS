@@ -4,6 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
 LIBS += -lpthread libwsock32 libws2_32
+LIBS += -L$$PWD -lqsqlmysql
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
@@ -20,6 +21,7 @@ SOURCES += \
     ../../depends/EasyTcpServer.cpp \
     ../../depends/server.cpp \
     ../../depends/user.cpp \
+    ../Client/itemsselectdlg.cpp \
     ../Client/qexcel.cpp \
     ../Client/qjsoncmd.cpp \
     cdatabasemanage.cpp \
@@ -52,6 +54,7 @@ HEADERS += \
     ../../depends/user.h \
     ../Client/QExcel.h \
     ../Client/global.h \
+    ../Client/itemsselectdlg.h \
     ../Client/qjsoncmd.h \
     cdatabasemanage.h \
     cfileserver.h \
@@ -64,6 +67,7 @@ HEADERS += \
     staticdatamanager.h
 
 FORMS += \
+    ../Client/itemsselectdlg.ui \
     mainwindow.ui \
     staticdatamanager.ui
 

@@ -224,9 +224,72 @@ void TaskSheetUI::initMod()
             return;
         }
     });
+    //点位监测项目
+    sql="CREATE TABLE IF NOT EXISTS task_parameters("
+          "id int AUTO_INCREMENT primary key, "//
+          "monitoringInfoID int not null, "//监测信息ID
+          "taskSheetID int not null,"//任务单ID
+          "parameterID int not null, "               //检测参数ID
+          "parameterName VARCHAR(16) not null, "   //检测参数名称
+          "reportNum varchar(32), "
+          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id) "
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"task_parameters error",msg.result().toString());
+            return;
+        }
+    });
 
+    //方法评审表(按类型）
+    sql="CREATE TABLE IF NOT EXISTS type_methods("
+          "id int AUTO_INCREMENT primary key, "//
+          "taskSheetID int not null,"//任务单ID
+          "testTypeID int not null , "//检测类型ID
+          "parameterID int not null, "               //检测参数ID
+          "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
+          "sampleGroup int DEFAULT -1, "           //样品组
+          "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
+          "subpackageDesc VARCHAR(255),"//分包说明
+          "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
+          "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
+          "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"type_methods error",msg.result().toString());
+            return;
+        }
+    });
 
-    //方法评审表(报告编号也在这个表中保存，方便按类型、资质、分包情况进行分包）
+    //方法评审表(按点位）
+    sql="CREATE TABLE IF NOT EXISTS site_methods("
+          "id int AUTO_INCREMENT primary key, "//
+          "taskSheetID int not null,"//任务单ID
+          "monitoringInfoID int not null, "//监测信息ID
+          "parameterID int not null, "               //检测参数ID
+          "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
+          "sampleGroup int DEFAULT -1, "           //样品组
+          "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
+          "subpackageDesc VARCHAR(255),"//分包说明
+          "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+          "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
+          "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+          ");";
+    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(this,"site_methods error",msg.result().toString());
+            return;
+        }
+    });
+
+    //方法评审表(报告编号也在这个表中保存，方便按类型、资质、分包情况进行分包）这个表作废！
     sql="CREATE TABLE IF NOT EXISTS task_methods("
            "id int AUTO_INCREMENT primary key, "//
            "monitoringInfoID int not null, "//监测信息ID
@@ -297,12 +360,13 @@ void TaskSheetUI::initMod()
           "sampleNum varchar(32) unique,"//样品编号
           "deleiver varchar(16) ,"
           "receiver varchar(16), "
-          "receiveTime DateTime "
-//          "FOREIGN KEY (taskNum) REFERENCES test_task_info (taskNum) "
+          "receiveTime DateTime, "
+          "tasksheetID int,"
+          "FOREIGN KEY (tasksheetID) REFERENCES test_task_info (id) "
           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
-            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sampling_info",msg.result().toString());
+            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sample_circulate",msg.result().toString());
             return;
         }
     });

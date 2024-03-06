@@ -187,7 +187,7 @@ void testInfoEditor::on_testInofOkBtn_clicked()
     info->limitStandardID=m_limitStandardID;
     info->remark=ui->remarkEdit->text();
     info->samplingFrequency=ui->samplingFrequencyBox->value();
-    info->samplingSites=ui->samplePosEdit->toPlainText();
+    info->samplingSites=sites;
     info->samplingSiteCount=ui->samplingPosCountBox->value();
     info->samplingPeriod=ui->samplingPeriodCountBox->value();
     info->sampleName=ui->sampleNameEdit->text();
@@ -197,6 +197,7 @@ void testInfoEditor::on_testInofOkBtn_clicked()
 //    m_testInfo.append(info);
 //    ui->testInfoTableView->append(info->infoList());
     m_info=nullptr;
+    qDebug()<<"<info->samplingSites;"<<info<<info->samplingSites;
     accept();
 }
 

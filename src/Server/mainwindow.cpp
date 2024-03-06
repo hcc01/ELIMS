@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include "qdir.h"
+#include "qsettings.h"
 #include "ui_mainwindow.h"
 #include<QDebug>
 #include"cuser.h"
@@ -6,10 +8,16 @@
 #include"cdatabasemanage.h"
 #include<QSqlQuery>
 #include"staticdatamanager.h"
+#include<QTableView>
+#include<QSqlTableModel>
+#include<QMessageBox>
+#include"../Client/itemsselectdlg.h"
+#include<QHeaderView>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    DB_POOL;
     ui->setupUi(this);
     QTimer *timer = new QTimer(this);
     timer->start(600000);
@@ -23,16 +31,42 @@ MainWindow::MainWindow(QWidget *parent)
             qWarning() << "MainWindow: Failed to keep connection. Error:" << query.lastError().text();
         }
     });
+    m_logView=new QTableView;
+    m_model = new QSqlTableModel(m_logView);
+    m_logView->setModel(m_model);
+    m_logView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    QSettings set("settings.ini",QSettings::IniFormat);
+    QString tytle;
+    if(set.value("company").isValid()){
+        tytle=set.value("company").toString();
+    }
+    else{
+        tytle="";
+        set.setValue("company","未定义公司");
+    }
+    setWindowTitle(tytle);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    if(m_logView)delete m_logView;
 }
 
 void MainWindow::on_btStart_clicked()
 {
-    if(_server.Bind(nullptr,5555)==SOCKET_ERROR||_fileServer.Bind(nullptr,5556)==SOCKET_ERROR){
+    QSettings set("settings.ini",QSettings::IniFormat);
+    int port;
+    qDebug()<<QDir::currentPath();
+    if(set.value("server/port").isValid()){
+        port=set.value("server/port").toInt();
+    }
+    else{
+        port=5555;
+        set.setValue("server/port",5555);
+    }
+    if(_server.Bind(nullptr,port)==SOCKET_ERROR||_fileServer.Bind(nullptr,port+1)==SOCKET_ERROR){
         qDebug()<<"绑定端口失败。";
         return;
     }
@@ -69,5 +103,32 @@ void MainWindow::on_staticDataBtn_clicked()
 {
     StaticDataManager *w=new StaticDataManager(this);
     w->show();
+}
+
+
+void MainWindow::on_viewLogBtn_clicked()
+{
+
+    QDir dir("./");
+    QStringList fileList;
+    QFileInfoList entries = dir.entryInfoList(QDir::Files);
+    QString suffix="log";
+    for (const QFileInfo &file : entries) {
+        if (file.suffix().toLower() == suffix.toLower()) {
+            fileList.append(file.fileName());
+        }
+    }
+    QString file=itemsSelectDlg::getSelectedItem(fileList);
+    DB.showLog(file,m_model);
+    m_logView->show();
+}
+
+
+void MainWindow::on_lineEdit_returnPressed()
+{
+    QString sql=ui->lineEdit->text();
+    if(!DB.doSql(sql)){
+        QMessageBox::information(nullptr,"error",DB.lastError());
+    }
 }
 

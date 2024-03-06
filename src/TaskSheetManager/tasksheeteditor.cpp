@@ -86,6 +86,7 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
         if(row<0) return;
         auto info=m_testInfo.at(row);
         info->delieveryTest=ui->sampleSourceBox->currentIndex();
+        qDebug()<<"<info->samplingSites;"<<info<<info->samplingSites;
         m_infoEditor.load(info);
         m_infoEditor.show();
     });
@@ -273,7 +274,7 @@ void TaskSheetEditor::doSave()
                       ui->reportPurposEdit->currentText(),ui->reportPeriodBox->value(),ui->sampleDisposalBox->currentText(),ui->reportCopiesBox->value(),ui->methodSourseBox->currentIndex(),ui->subpackageBox->currentIndex(),
                       ui->otherRequirementsEdit->text(),ui->inspectedAddrEdit->text(),salerID,m_taskNum};
             qDebug()<<"m_taskNum"<<m_taskNum;
-            tabWiget()->connectDB(CMD_START_Transaction);//开启事务
+//            tabWiget()->connectDB(CMD_START_Transaction);//开启事务
             doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
                     if(msg.error()){
                         QMessageBox::information(nullptr,"保存任务单信息时出错：",msg.errorMsg());
@@ -287,10 +288,10 @@ void TaskSheetEditor::doSave()
                 },0,values);
             waitForSql("正在保存任务单信息...");
             if(!ok){
-                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
-            tabWiget()->releaseDB(CMD_COMMIT_Transaction);
+//            tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         }
         if(m_bTestInfoModified){
             //保存检测信息
@@ -308,6 +309,8 @@ void TaskSheetEditor::doSave()
             values={m_taskSheetID,m_taskSheetID};//保存时用到m_taskSheetID，要确保任务单ID得到正确获取
             doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
                     if(msg.error()){
+
+                        tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                         QMessageBox::information(nullptr,"保存任务单信息时出错：",msg.errorMsg());
                         ok=false;
                         sqlFinished();
@@ -317,13 +320,14 @@ void TaskSheetEditor::doSave()
             },0,values);
             waitForSql();
             if(!ok){
-                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
             }
             foreach (auto info, m_testInfo) {//保存监测信息
                 bool siteMatched=false;
                 QStringList sites=info->samplingSites.split("、");//检查点位数量与名称的匹配性，如果匹配，识别点位名称，否则不识别，全部保存
+                qDebug()<<"点位匹配:"<<info<<sites<<info->samplingSiteCount;
                 if(sites.count()==info->samplingSiteCount){
+
                     siteMatched=true;
                 }
                 values={};
@@ -333,8 +337,11 @@ void TaskSheetEditor::doSave()
                           "limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
                           "VALUES (?, ?,?,?,?,?,?,?,?,?,?);SET @site_id = "
                           "LAST_INSERT_ID();";
+                    values={};
                     QString smaplingSite;
-                    if(siteMatched) smaplingSite=sites.at(i);
+                    if(siteMatched) {
+                        smaplingSite=sites.at(i);
+                    }
                     else smaplingSite=info->samplingSites;
                     values.append(m_taskSheetID);
                     values.append(info->testTypeID);
@@ -367,6 +374,8 @@ void TaskSheetEditor::doSave()
                     }
                     doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
                             if(msg.error()){
+
+                                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                                 QMessageBox::information(nullptr,"保存监测信息时出错：",msg.errorMsg());
                                 sqlFinished();
                                 ok=false;
@@ -377,7 +386,6 @@ void TaskSheetEditor::doSave()
                         },0,values);
                     waitForSql("正在保存监测信息...");
                     if(!ok){
-                        tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                         return;
                     }
                 }
@@ -1127,6 +1135,9 @@ void TaskSheetEditor::on_saveBtn_clicked()
         },0,{date});
         waitForSql("正在设置任务单号");
         tabWiget()->releaseDB(CMD_COMMIT_Transaction);//提交事务
+    }
+    for(auto info:m_testInfo){
+        qDebug()<<"info:"<<info<<info->samplingSites;
     }
     doSave();
 

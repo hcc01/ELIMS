@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include"cserer.h"
 #include"cfileserver.h"
+#include "qsqltablemodel.h"
+#include "qtableview.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -23,9 +25,15 @@ private slots:
 
     void on_staticDataBtn_clicked();
 
+    void on_viewLogBtn_clicked();
+
+    void on_lineEdit_returnPressed();
+
 private:
     Ui::MainWindow *ui;
     CServer _server;
     CFileServer _fileServer;
+    QTableView* m_logView;
+    QSqlTableModel *m_model;
 };
 #endif // MAINWINDOW_H

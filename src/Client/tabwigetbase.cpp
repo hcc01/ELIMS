@@ -335,24 +335,23 @@ void TabWidgetBase::sqlEnd()
 
 bool TabWidgetBase::connectDB(CMD Transaction)
 {
-//    QString sql=QString::number(Transaction);
-//    bool ok=true;
-//    doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
-//        if(msg.error()) {
-//            ok=false;
-//            QMessageBox::information(nullptr,"error","网络繁忙，请重试。");
-//        }
-//        sqlFinished();
-//    });
-//    waitForSql("正在开启事务……");
-//    return ok;
-    return true;
+    QString sql=QString::number(Transaction);
+    bool ok=true;
+    doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
+        if(msg.error()) {
+            ok=false;
+            QMessageBox::information(nullptr,"error","网络繁忙，请重试。");
+        }
+        sqlFinished();
+    });
+    waitForSql("正在开启事务……");
+    return ok;
 }
 
 void TabWidgetBase::releaseDB(CMD TransactionType)
 {
-//    QString sql=QString::number(TransactionType);
-//    doSqlQuery(sql);
+    QString sql=QString::number(TransactionType);
+    doSqlQuery(sql);
 }
 
 

@@ -1,5 +1,6 @@
 #include "samplegroupingdlg.h"
 #include "qcalendarwidget.h"
+#include "tasksheetui.h"
 #include "ui_samplegroupingdlg.h"
 #include"itemsselectdlg.h"
 #include"QExcel.h"
@@ -348,6 +349,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
             else{//需要给新的点位号
                 if(typeID!=nowType){
                     typeOrder=m_typeUsedOrder.value(typeID)+1;
+                    qDebug()<<"m_typeUsedOrder"<<m_typeUsedOrder<<"typeID"<<typeID;
                     nowType=typeID;
                 }
 
@@ -433,6 +435,17 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
     //            if(ui->periodBox->currentIndex()!=0) break;//只选其中一个周期的（这个在上面使用start>1来判断处理
             }
         }
+        //更新任务单状态为采样
+        sql="update test_task_info set taskStatus=? where id=?;";
+        doSql(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更新任务单状态时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            sqlFinished();
+        },0,{TaskSheetUI::SAMPLING,m_taskSheetID});
+        waitForSql();
     }
     else{//打印标签
         auto indexs=ui->tableView->selectedIndexes();
@@ -473,7 +486,12 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
         }
         WorkSheet* sheet=book->sheet(1);
         if(!sheet){
-            QMessageBox::information(nullptr,"无法打开样品标签文件:",EXCEL.LastError());
+            QMessageBox::information(nullptr,"无法打开样品标签表格:",EXCEL.LastError());
+            return;
+        }
+        WorkSheet* sheet2=book->sheet(2);
+        if(!sheet2){
+            QMessageBox::information(nullptr,"无法打开样品标签数据表格:",EXCEL.LastError());
             return;
         }
          usedRange=sheet->usedRange();
@@ -555,7 +573,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
         int itemRow=range->row()-startRow;
         int itemColumn=range->column()-startColumn;
         delete range;
-
+        int sheet2Row=2;
         Range *nowRange=nullptr;
         Range* nextRange=nullptr;
 
@@ -627,19 +645,13 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                         nextRange=nullptr;
                     }
                 }
-                else{
-                    sheet=book->sheet(2);
-                    if(!sheet){
-                        QMessageBox::information(nullptr,"表格错误","无法定位标签数据表格。");
-                        return;
-                    }
-                    sheet->setValue(sampleType,startRow,1);
-                    sheet->setValue(sampleDate,startRow,4);
-                    sheet->setValue(siteName,startRow,2);
-                    sheet->setValue(testItems,startRow,5);
-                    sheet->setValue(num,startRow,3);
-                    startRow++;
-                }
+                sheet2->setValue(sampleType,sheet2Row,1);
+                sheet2->setValue(sampleDate,sheet2Row,4);
+                sheet2->setValue(siteName,sheet2Row,2);
+                sheet2->setValue(testItems,sheet2Row,5);
+                sheet2->setValue(num,sheet2Row,3);
+                sheet2Row++;
+
             }
 
         }

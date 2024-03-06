@@ -23,11 +23,11 @@ void SampleCirculationUI::initCMD()
     QString sql;
     QJsonArray values;
     if(ui->samplingBtn->isChecked()){
-        sql="select taskNum,clientName, inspectedEentityName, inspectedProject from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
+        sql="select taskNum,clientName, inspectedEentityName, inspectedProject,id from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
         values={user()->name(),TaskSheetUI::SAMPLING};
     }
     if(ui->deliveryBtn->isChecked()){
-        sql="select taskNum,clientName, inspectedEentityName, inspectedProject from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
+        sql="select taskNum,clientName, inspectedEentityName, inspectedProject,id from test_task_info where creator=? and deleted!=1 and taskStatus=?;";
         values={user()->name(),TaskSheetUI::SAMPLE_CIRCULATION};
     }
     ui->pageCtrl->startSql(this,sql,1,values,[this](const QSqlReturnMsg&msg){
@@ -39,7 +39,10 @@ void SampleCirculationUI::initCMD()
         ui->tableView->clear();
         for(int i=1;i<r.count();i++){
             QList<QVariant>row=r.at(i).toList();
+            int id=row.last().toInt();
+            row.removeLast();
             ui->tableView->append(row);
+            ui->tableView->setCellFlag(i-1,0,id);
         }
     });
 

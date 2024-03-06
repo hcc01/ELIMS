@@ -58,13 +58,15 @@ void ToDoUI::removeTodo(int row)
 void ToDoUI::loadUser(CUser *user, MainWindow *main)
 {
     m_main=main;
-    QString sql="select phone, B.id from users left join sys_employee_login as B on users.name=B.name where B.name=?";
+    QString sql="select phone, B.id from sys_employee_login as B left join  users on users.name=B.name where B.name=?";
     doSqlQuery(sql,[user](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"载入用户信息时出错：",msg.errorMsg());
             return;
         }
         QList<QVariant>r=msg.result().toList();
+        qDebug()<<r;
+        if(r.count()<2) return;
         user->setPhone(r.at(1).toList().at(0).toString());
         user->setID(r.at(1).toList().at(1).toInt());
     },0,{user->name()});

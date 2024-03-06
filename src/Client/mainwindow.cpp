@@ -493,7 +493,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.3.4");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.3.5");
 }
 
 

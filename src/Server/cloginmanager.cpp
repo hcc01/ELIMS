@@ -53,13 +53,13 @@ CUser* CLoginManager::doLogin(CELLClient *pClient, const QString &name, const QS
            }
            else {
                oldUser->linktoClient(pClient);//重新连接。网络断线时未清理USER（见onNectError），所以直接连接。
-               qDebug()<<QString("用户%1从%2处重新登录。").arg(user->name()).arg(pClient->IP());
+               DB.doLog(QString("用户%1从%2处重新登录。").arg(user->name()).arg(pClient->IP()));
            }
        }
        else{
            user->linktoClient(pClient);
            addUser(user);
-           qDebug()<<QString("用户%1从%2处登录。").arg(user->name()).arg(pClient->IP());
+           DB.doLog(QString("用户%1从%2处登录。").arg(user->name()).arg(pClient->IP()));
        }
         pClient->SendData(&lr);             //传回登录成功的消息
         return user;//将用户信息返回给调用者操作。

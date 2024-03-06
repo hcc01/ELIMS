@@ -52,10 +52,6 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
         break;
     case CMD_JSON_CMD:
     {
-        if(!pClient->getUser()){
-            DB.doLog("收到未登录用户的指令",CDatabaseManage::ERROR_MSG);
-            return;
-        }
         QJsonObject js=CELLReadStream(header).getJsonData();
         qDebug()<<pClient<<js;
         onJsonCMD(pClient,js);
@@ -74,53 +70,9 @@ void CServer::onJsonCMD(CELLClient *pClient, QJsonObject &json)
     {
         //这里需要增加判断指令操作权限
 //        qDebug()<<"SQL_JSON"<<json;
-
         QSqlCmd sqlCmd(json);
-        bool ok;
-        QString sql=sqlCmd.sql();
-        int CMD=sql.toInt(&ok);//这个是事务开关
-        if(ok){
-            switch(CMD){
-            case CMD_START_Transaction:
-            {
-                if(!DB.startTransaction(pClient->getUser()->id())){
-                    pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),true).jsCmd());
-                    return;
-                }
-                DB.doLog(QString("%1开启了事务。").arg(pClient->getUser()->name()));
-                pClient->SendData(QSqlReturnMsg("",sqlCmd.flag(),sqlCmd.tytle(),false).jsCmd());
-            }
-            break;
-            case CMD_START_QUERY://这个命令取消，普通查询不使用连接池
-            {
-                return;
-            }
-            break;
-            case CMD_END_QUERY:
-            {
-                return;
-            }
-            break;
-            case CMD_COMMIT_Transaction:
-            {
-                DB.doLog(QString("%1提交了事务。").arg(pClient->getUser()->name()));
-                DB.commitTransaction(pClient->getUser()->id());
-            }
-            break;
-            case CMD_ROLLBACK_Transaction:
-            {
-                DB.doLog(QString("%1回滚了事务。").arg(pClient->getUser()->name()));
-                DB.rollbackTransaction(pClient->getUser()->id());
-            }
-            break;
-            }
-        }
-        else{//普通的数据库操作
-            QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd,pClient->getUser()->id());
-            pClient->SendData(slqR.jsCmd());
-        }
-//        QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd);
-//        pClient->SendData(slqR.jsCmd());
+        QSqlReturnMsg slqR=CDatabaseManage::Instance().doQuery(sqlCmd);
+        pClient->SendData(slqR.jsCmd());
     }
         break;
     case JC_WORKFLOW:
