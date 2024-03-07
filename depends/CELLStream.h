@@ -12,7 +12,7 @@ public:
         CELLStream(char* pData, int nSize, bool bDelete = false);
 
 
-    CELLStream(int nSize = 1024)
+    CELLStream(int nSize = 512000)
 	{
 		_nSize = nSize;
 		_pBuff = new char[_nSize];
@@ -35,8 +35,12 @@ public:
 	//内联函数
 	//还能读出n字节的数据吗?
 	inline bool canRead(int n)
-	{
-		return _nSize - _nReadPos >= n;
+    {
+        if(_nSize - _nReadPos< n){
+            CELLLog::Info("error, CELLStream::Read failed._nSize:%d,_nReadPos:%d,toread:%d",_nSize,_nReadPos,n);
+            return false;
+        }
+        return true;
 	}
 	//还能写入n字节的数据吗?
 	inline bool canWrite(int n)

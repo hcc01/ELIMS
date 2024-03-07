@@ -85,7 +85,9 @@ public:
         QJsonDocument jd(jsOb);
         QByteArray ba=jd.toJson(QJsonDocument::Compact);
         char* info=ba.data();
-        s.WriteString(info);
+        if(!s.WriteString(info)){
+            return 0;
+        }
         s.finsh();
         return SendData(s.data(),s.length());
     }

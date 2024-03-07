@@ -22,6 +22,7 @@
 #include"samplingscheduleui.h"
 #include"samplecirculationui.h"
 #include"workhoursatistics.h"
+#include<QSettings>
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -132,9 +133,25 @@ MainWindow::~MainWindow()
 void MainWindow::DoConnect()
 {
 
-//    QHostInfo info = QHostInfo::fromName("127.0.0.1");
-    QHostInfo info = QHostInfo::fromName("mud.tpddns.cn");
-    if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),5555)==SOCKET_ERROR){
+    QSettings set("settings",QSettings::IniFormat);
+
+    QHostInfo info = QHostInfo::fromName("127.0.0.1");
+    if(set.value("server/ip").isValid()){
+        info= QHostInfo::fromName(set.value("server/ip").toString());
+    }
+    else{
+        info= QHostInfo::fromName("127.0.0.1");
+        set.setValue("server/ip","127.0.0.1");
+    }
+    int port;
+    if(set.value("server/port").isValid()){
+        port=set.value("server/port").toInt();
+    }
+    else{
+        port= 6666;
+        set.setValue("server/port",6666);
+    }
+    if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),port)==SOCKET_ERROR){
         int r=QMessageBox::warning(nullptr,"","无法连接服务器","重新连接","退出");
         switch (r) {
             case 0:
@@ -188,7 +205,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::sendData(const QJsonObject &json)
 {
-    _clientSocket.SendData(json);
+    if(!_clientSocket.SendData(json)){
+        QMessageBox::information(nullptr,"error","无法发送数据！");
+    }
 }
 
 

@@ -34,6 +34,7 @@ public:
     void setMsg(const QString&msg){m_msg->setText(msg);}
     void wait(){m_execFlag++;qDebug()<<"msg:"<< m_msg->text() <<"waitCount:"<<m_execFlag;exec();}
     void end(){if(!m_execFlag) return;m_execFlag--;if(!m_execFlag) accept();}
+    void reject()override{m_execFlag=0;QDialog::reject();}//强制取消等待，用于出错的情况
 
 private:
     QLabel* m_msg;

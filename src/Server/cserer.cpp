@@ -57,6 +57,7 @@ void CServer::OnNetMsg(CELLServer *pServer, CELLClient *pClient, netmsg_DataHead
             return;
         }
         QJsonObject js=CELLReadStream(header).getJsonData();
+        qDebug()<<"header.lenth:"<<header->dataLength;
         qDebug()<<pClient<<js;
         onJsonCMD(pClient,js);
     }

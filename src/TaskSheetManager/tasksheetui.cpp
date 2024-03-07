@@ -231,7 +231,9 @@ void TaskSheetUI::initMod()
           "taskSheetID int not null,"//任务单ID
           "parameterID int not null, "               //检测参数ID
           "parameterName VARCHAR(16) not null, "   //检测参数名称
+          "sampleGroup int DEFAULT -1, "           //样品组
           "reportNum varchar(32), "
+          "UNIQUE (monitoringInfoID, parameterID),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id) "
@@ -250,14 +252,14 @@ void TaskSheetUI::initMod()
           "testTypeID int not null , "//检测类型ID
           "parameterID int not null, "               //检测参数ID
           "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
-          "sampleGroup int DEFAULT -1, "           //样品组
           "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
           "subpackageDesc VARCHAR(255),"//分包说明
           "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
+          "UNIQUE (taskSheetID, testTypeID,parameterID),  "
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
           "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
-          "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+          "FOREIGN KEY (testMethodID) REFERENCES test_methods (id)"
           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
@@ -273,14 +275,14 @@ void TaskSheetUI::initMod()
           "monitoringInfoID int not null, "//监测信息ID
           "parameterID int not null, "               //检测参数ID
           "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
-          "sampleGroup int DEFAULT -1, "           //样品组
           "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
           "subpackageDesc VARCHAR(255),"//分包说明
           "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
+          "UNIQUE (monitoringInfoID, parameterID),  "
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
-          "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+          "FOREIGN KEY (testMethodID) REFERENCES test_methods (id)"
           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){

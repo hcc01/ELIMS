@@ -3,6 +3,7 @@
 
 CELLStream::CELLStream(char *pData, int nSize, bool bDelete)
 {
+    CELLLog::Info(" CELLStream set nSize:%d",nSize);
     _nSize = nSize;
     _pBuff = pData;
     _bDelete = bDelete;

@@ -1,6 +1,7 @@
 ﻿#ifndef _MessageHeader_hpp_
 #define _MessageHeader_hpp_
 
+#include <cstdint>
 enum CMD
 {
 	CMD_LOGIN,
@@ -60,7 +61,8 @@ struct netmsg_DataHeader
 		dataLength = sizeof(netmsg_DataHeader);
 		cmd = CMD_ERROR;
 	}
-	unsigned short dataLength;
+//	unsigned short dataLength;
+    uint32_t dataLength;
 	unsigned short cmd;
 };
 

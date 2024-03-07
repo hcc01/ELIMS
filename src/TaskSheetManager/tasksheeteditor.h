@@ -124,7 +124,7 @@ private:
 //    bool m_bSaved;//是否已保存到数据库（保存后如果有修改，则需要修改数据库）
     bool m_bTasksheetModified;//任务基本信息被修改，只需要更新任务单表。
     bool m_bTestInfoModified;//检测信息更改，则需要删除方法评审和和检测信息表，重新处理。
-    bool m_bMethodModified;//检测方法被修改，只需要更新方法
+//    bool m_bMethodModified;//检测方法被修改，只需要更新方法
     int m_status;//保存下任务单状态，避免不必要的查询。
     //以下是需要保存的数据
     int m_inspectedEentityID;//受检单位ID

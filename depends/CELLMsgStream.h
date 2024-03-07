@@ -21,7 +21,7 @@ public:
 		return cmd;
 	}
     QString getNoticeStr(){//直接用于字符串类信息的读取
-        int n=ReadInt16();
+        int n=ReadInt32();
         qDebug()<<"len:"<<n;
         getNetCmd();
         if(n<1024){
@@ -44,6 +44,11 @@ public:
             ReadArray(str,n);
             return QString(str);
         }
+        if(n<512400){
+            char str[512400]={};
+            ReadArray(str,n);
+            return QString(str);
+        }
         qDebug()<<"warning: too long msg,length="<<n;
         return QString();
     }
@@ -60,7 +65,7 @@ class CELLWriteStream :public CELLStream
 public:
         CELLWriteStream(char* pData, int nSize, bool bDelete = false);
 
-        CELLWriteStream(int nSize = 102400);
+        CELLWriteStream(int nSize = 512400);
 
 	void setNetCmd(uint16_t cmd)
 	{

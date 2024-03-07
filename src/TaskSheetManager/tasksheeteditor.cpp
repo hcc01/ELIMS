@@ -22,7 +22,6 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
 //    m_bSaved(false),
     m_bTasksheetModified(false),
     m_bTestInfoModified(false),
-    m_bMethodModified(false),
     m_status(0),
     m_taskSheetID(0),
     m_mode(openMode),
@@ -167,14 +166,10 @@ void TaskSheetEditor::init()
     m_infoEditor.init();
     connect(&m_infoEditor,&testInfoEditor::accepted,[this](){//修改时，更新。添加时，需要在添加菜单里处理数据后更新。
         m_bTestInfoModified=true;
-        m_bMethodModified=false;//检测项目更改时，为了提醒用户重新做方法选择，这个强制把方法更改设为否。
         qDebug()<<"m_bTestInfoModified=true";
         updateTestInfoView();
     });
-    connect(m_MethodDlg,&MethodSelectDlg::accepted,[this](){//修改时，更新。添加时，需要在添加菜单里处理数据后更新。
-        m_bMethodModified=true;
-        qDebug()<<"m_bMethodModified";
-    });
+
     doSql("select name from users where position=?",[this](const QSqlReturnMsg& msg){
         if(msg.error()){
             QMessageBox::information(this,"error",msg.result().toString());
@@ -296,48 +291,24 @@ void TaskSheetEditor::doSave()
         if(m_bTestInfoModified){
             //保存检测信息
 //            if(!ui->sampleSourceBox->currentIndex()){//采样任务单的保存
-            bool ok=true;
-            if(!m_bMethodModified){
-                int a=QMessageBox::question(nullptr,"","检测到监测信息有变更，但检测方法未重新确认，是否继续保存（方法表将为空）？");
-                if(a==QMessageBox::No) {
-//                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                    return;
-                }
-            }
+            bool error=false;
             tabWiget()->connectDB(CMD_START_Transaction);//开启事务
-            sql="delete from task_methods where taskSheetID= ?;delete from site_monitoring_info where taskSheetID=?;";//删除点位监测信息表和检测方法表
+            sql="delete from task_parameters where taskSheetID= ?;delete from site_monitoring_info where taskSheetID=?;";//删除点位监测信息表和检测项目表
             values={m_taskSheetID,m_taskSheetID};//保存时用到m_taskSheetID，要确保任务单ID得到正确获取
-            doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
-                    if(msg.error()){
 
-                        tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                        QMessageBox::information(nullptr,"保存任务单信息时出错：",msg.errorMsg());
-                        ok=false;
-                        sqlFinished();
-                        return;
-                    }
-                    sqlFinished();
-            },0,values);
-            waitForSql();
-            if(!ok){
-                return;
-            }
             foreach (auto info, m_testInfo) {//保存监测信息
                 bool siteMatched=false;
                 QStringList sites=info->samplingSites.split("、");//检查点位数量与名称的匹配性，如果匹配，识别点位名称，否则不识别，全部保存
                 qDebug()<<"点位匹配:"<<info<<sites<<info->samplingSiteCount;
                 if(sites.count()==info->samplingSiteCount){
-
                     siteMatched=true;
                 }
-                values={};
                 for (int i = 0; i < info->samplingSiteCount;i++) { // 将合并的点位拆开保存(当为送样单时，samplingSiteCount=1，也会进入保存）
-                    sql = "INSERT INTO site_monitoring_info (taskSheetID, testTypeID, "
+                    sql += "INSERT INTO site_monitoring_info (taskSheetID, testTypeID, "
                           "samplingSiteName, samplingFrequency, samplingPeriod, "
                           "limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
                           "VALUES (?, ?,?,?,?,?,?,?,?,?,?);SET @site_id = "
                           "LAST_INSERT_ID();";
-                    values={};
                     QString smaplingSite;
                     if(siteMatched) {
                         smaplingSite=sites.at(i);
@@ -356,50 +327,36 @@ void TaskSheetEditor::doSave()
                     values.append(info->sampleCount);
                     values.append(info->sampleDesc);
 
-                    sql += "INSERT INTO task_methods ( monitoringInfoID, taskSheetID, "
-                           "testTypeID, parameterID, parameterName) "
+                    sql += "INSERT INTO task_parameters ( monitoringInfoID, taskSheetID, "
+                           " parameterID, parameterName) "
                            "VALUES ";
                     // 开始保存点位监测项目
 
                     for (int i = 0; i < info->monitoringParameters.count(); i++) {
-                        sql += "(@site_id,?, ?, ?, ?)";
+                        sql += "(@site_id,?, ?, ?)";
                         if (i == info->monitoringParameters.count() - 1) {
                             sql += ";";
                         } else
                             sql += ",";
                         values.append(m_taskSheetID);
-                        values.append(info->testTypeID);
                         values.append(info->parametersIDs.at(i));
                         values.append(info->monitoringParameters.at(i));
-                    }
-                    doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
-                            if(msg.error()){
-
-                                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                                QMessageBox::information(nullptr,"保存监测信息时出错：",msg.errorMsg());
-                                sqlFinished();
-                                ok=false;
-                                return;
-                            }
-                            m_bTestInfoModified=false;
-                            sqlFinished();
-                        },0,values);
-                    waitForSql("正在保存监测信息...");
-                    if(!ok){
-                        return;
-                    }
+                    }                    
                 }
             }
+            doSql(sql,[this, &error](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+                    error=true;
+                    QMessageBox::information(nullptr,"保存检测信息时出错：",msg.errorMsg());
+                }
+                sqlFinished();
+            },0,values);
+            waitForSql("正在保存检测信息。");
+            if(error) return;
             tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         }
 
-        if(m_bMethodModified){
-            if(!saveMethod()){
-//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                return;
-            }
-        }
-//        tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         QMessageBox::information(nullptr,"","保存完成。");
         return;//修改操作完成，返回，下面是新建操作。
     }
@@ -432,48 +389,14 @@ void TaskSheetEditor::doSave()
         sql="INSERT INTO test_task_info (taskNum,contractNum,clientID,clientName,clientAddr,clientContact,clientPhone,"
               "inspectedEentityName,inspectedEentityContact,inspectedEentityPhone,inspectedProject,projectAddr,"
               "reportPurpos,reportPeriod,sampleDisposal,reprotCopies,methodSource,subpackage,otherRequirements, creator, createDate,sampleSource,inspectedEentityAddr,salesRepresentative) "
-              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(),?,?,?);";
+              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(),?,?,?);set @taskSheetID=LAST_INSERT_ID();";
         values={m_taskNum,ui->contractEdit->text(),m_clients.value(ui->clientBox->currentText()).ID,ui->clientBox->currentText(),ui->clientAddrEdit->text(),ui->clientContactsBox->currentText(),ui->clientContactsPhoneEdit->text(),
                   ui->inspectedComBox->currentText(),ui->inspectedContactsBox->currentText(),ui->inspectedPhoneEidt->text(),ui->projectNameEdit->text(),ui->projectAddrEdit->text(),
                   ui->reportPurposEdit->currentText(),ui->reportPeriodBox->value(),ui->sampleDisposalBox->currentText(),ui->reportCopiesBox->value(),ui->methodSourseBox->currentIndex(),ui->subpackageBox->currentIndex(),
                   ui->otherRequirementsEdit->text(),user()->name(),ui->sampleSourceBox->currentIndex(),ui->inspectedAddrEdit->text(),salerID};
-        doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(nullptr,"插入任务单信息时出错：",msg.errorMsg());
-                    sqlFinished();
-                    return;
-                }
-                m_bTasksheetModified=false;
-                ok=true;
-                sqlFinished();
-            },0,values);
-        waitForSql("正在保存任务单信息...");
-        if(!ok){
-            tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-            return;
-        }
+
         //开始保存点位监测信息
-        //先获取任务单ID
-        doSql("select id from test_task_info where taskNum=?",[this, &ok](const QSqlReturnMsg&msg){
-            if(msg.error()){
-                QMessageBox::information(nullptr,"获取任务单ID时出错：",msg.errorMsg());
-                sqlFinished();
-                return;
-            }
-            if(msg.result().toList().count()!=2){
-                QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
-                sqlFinished();
-                return;
-            }
-            m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
-            ok=true;
-            sqlFinished();
-        },0,{m_taskNum});
-        waitForSql("正在获取任务单ID...");
-        if(!ok){
-            tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-            return;
-        }
+
         //逐条保存监测信息
         foreach(auto info,m_testInfo){
             bool siteMatched=false;
@@ -483,139 +406,125 @@ void TaskSheetEditor::doSave()
             }
 
             for(int i=0;i<info->samplingSiteCount;i++){//将合并的点位拆开保存，按点位保存检测信息
-                sql="INSERT INTO site_monitoring_info (taskSheetID, testTypeID, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
-                       "VALUES (?, ?,?,?,?,?,?,?,?,?,?);SET @site_id = LAST_INSERT_ID();";
+                sql+="INSERT INTO site_monitoring_info (taskSheetID, testTypeID, samplingSiteName, samplingFrequency, samplingPeriod, limitValueID, remark, sampleType,sampleName,sampleCount,sampleDesc) "
+                       "VALUES (@taskSheetID, ?,?,?,?,?,?,?,?,?,?);SET @site_id = LAST_INSERT_ID();";
                 QString smaplingSite;
                 if(siteMatched) smaplingSite=sites.at(i);
                 else smaplingSite=info->samplingSites;
+                values.append(info->testTypeID);
+                values.append(smaplingSite);
+                values.append(info->samplingFrequency);
+                values.append(info->samplingPeriod);
+                values.append(info->limitStandardID?info->limitStandardID:QJsonValue::Null);
+                values.append(info->remark);
+                values.append(info->sampleType);
+                values.append(info->sampleName);
+                values.append(info->sampleCount);
+                values.append(info->sampleDesc);
 
-                values={m_taskSheetID,info->testTypeID,smaplingSite,info->samplingFrequency,info->samplingPeriod,info->limitStandardID?info->limitStandardID:QJsonValue::Null,info->remark,info->sampleType,info->sampleName,info->sampleCount,info->sampleDesc};
-
-                sql+="INSERT INTO task_methods ( monitoringInfoID, taskSheetID, testTypeID, parameterID, parameterName) "
+                sql+="INSERT INTO task_parameters ( monitoringInfoID, taskSheetID, parameterID, parameterName) "
                        "VALUES ";
 
                 //开始保存点位监测项目
                 for(int i=0;i<info->monitoringParameters.count();i++){
-                    sql+="(@site_id,?, ?, ?, ?)";
+                    sql+="(@site_id,@taskSheetID, ?, ?)";
                     if(i==info->monitoringParameters.count()-1){
                         sql+=";";
                     }
                     else sql+=",";
-                    QJsonArray a={m_taskSheetID, info->testTypeID,info->parametersIDs.at(i),info->monitoringParameters.at(i)};
+                    QJsonArray a={info->parametersIDs.at(i),info->monitoringParameters.at(i)};
                     foreach(auto x,a) values.append(x);
-                }
-                doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
-                        if(msg.error()){
-                            QMessageBox::information(this,"error",msg.result().toString());
-                            sqlFinished();
-                            return;
-                        }
-                        m_bTestInfoModified=false;
-                        ok=true;
-                        sqlFinished();
-
-                    },0,values);
-
-                waitForSql();
-                if(!ok){
-                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                    return;
                 }
             }
         }
+        sql+="select @taskSheetID";
+        doSql(sql,[this, &ok](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+                QMessageBox::information(nullptr,"保存任务单时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            ok=true;
+            m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
+            sqlFinished();
+        },0,values);
+        waitForSql();
+        if(!ok) return;
         tabWiget()->releaseDB(CMD_COMMIT_Transaction);
 
-                //保存完成后，改为修改模式，以便用户继续修改。
-                m_mode=EditMode;
-//                //新任务单保存后，记录任务单ID
-//                doSql(QString("select id from test_task_info where taskNum='%1'").arg(m_taskNum),[this](const QSqlReturnMsg&msg){
-//                    if(msg.error()){
-//                        QMessageBox::information(this,"查询任务单ID时出错",msg.result().toString());
-//                        return;
-//                    }
-//                    qDebug()<<msg.result().toList();
-//                    if(msg.result().toList().count()!=2){
-//                        QMessageBox::information(this,"error","查询任务单ID时出错，数量错误。");
-//                        return;
-//                    }
-//                     m_taskSheetID=msg.result().toList().at(1).toList().at(0).toInt();
-//                });
+        //保存完成后，改为修改模式，以便用户继续修改。
+        m_mode=EditMode;
 
-            if(!saveMethod()){
-
-//                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
-                return;
-
-            }
-            QMessageBox::information(nullptr,"","保存完成。");//保存方法在监测信息更新完后才能进行
+        QMessageBox::information(nullptr,"","保存完成。");//保存方法在监测信息更新完后才能进行
 
     }
 }
 
-bool TaskSheetEditor::saveMethod()
+bool TaskSheetEditor::saveMethod()//没用了，在方法窗口中进行操作。
 {
-    QString sql;
-    QJsonArray values;
-    int sampleOrder,nowOrder;
-    QString group;
-    QHash<QString,int>groups;
-    sql="update task_methods set testMethodID=?, testMethodName=?, subpackage=?, subpackageDesc=?,CMA=?,sampleOrder=? where taskSheetID=? and testTypeID=? and parameterID=?;";
-    for(auto info:m_testInfo){
-        int testTypeID=info->testTypeID;
-            nowOrder=0;
-        groups.clear();
-        for(auto parameterID:info->parametersIDs){
-                sampleOrder=nowOrder;
-            bool error=false;
-            MethodMorePtr mm=m_MethodDlg->getMethod(testTypeID,parameterID);//按检测类型和参数确认方法
+//    QString sql;
+//    QJsonArray values;
+//    int sampleOrder,nowOrder;
+//    QString group;
+//    QHash<QString,int>groups;
+//    sql="update task_methods set testMethodID=?, testMethodName=?, subpackage=?, subpackageDesc=?,CMA=?,sampleOrder=? where taskSheetID=? and testTypeID=? and parameterID=?;";
+//    for(auto info:m_testInfo){
+//        int testTypeID=info->testTypeID;
+//            nowOrder=0;
+//        groups.clear();
+//        for(auto parameterID:info->parametersIDs){
+//                sampleOrder=nowOrder;
+//            bool error=false;
+//            MethodMorePtr mm=m_MethodDlg->getMethod(testTypeID,parameterID);//按检测类型和参数确认方法
 
-            if(mm.isNull()) {
-                QMessageBox::information(nullptr,"保存方法时出错：",QString("no mehtod find,参数：%1(%2)，类型:%3(%4)").arg(info->monitoringParameters.at(info->parametersIDs.indexOf(parameterID))).arg(parameterID).arg(info->sampleType).arg(testTypeID));
-                return true;
-            }
-            if(mm->testMethodName.isEmpty()) continue;//没方法的项目，跳过
+//            if(mm.isNull()) {
+//                QMessageBox::information(nullptr,"保存方法时出错：",QString("no mehtod find,参数：%1(%2)，类型:%3(%4)").arg(info->monitoringParameters.at(info->parametersIDs.indexOf(parameterID))).arg(parameterID).arg(info->sampleType).arg(testTypeID));
+//                return true;
+//            }
+//            if(mm->testMethodName.isEmpty()) continue;//没方法的项目，跳过
 
-            if(mm->testMod) {//现场测试的项目
-                sampleOrder=0;
-            }
-            else{
-                group=mm->sampleGroup;
-                if(group.isEmpty()){
-                    sampleOrder++;
-                    nowOrder++;
-                }
-                else{
-                    if(!groups.contains(group)) {
-                        sampleOrder++;
-                        nowOrder++;
-                        groups[group]=sampleOrder;
-                    }
-                    else{
-                        sampleOrder=groups.value(group);
-                    }
-                }
-            }
-            values={mm->methodID,mm->testMethodName,mm->subpackage,mm->subpackageDesc,mm->CMA,sampleOrder,m_taskSheetID, testTypeID,parameterID};
+//            if(mm->testMod) {//现场测试的项目
+//                sampleOrder=0;
+//            }
+//            else{
+//                group=mm->sampleGroup;
+//                if(group.isEmpty()){
+//                    sampleOrder++;
+//                    nowOrder++;
+//                }
+//                else{
+//                    if(!groups.contains(group)) {
+//                        sampleOrder++;
+//                        nowOrder++;
+//                        groups[group]=sampleOrder;
+//                    }
+//                    else{
+//                        sampleOrder=groups.value(group);
+//                    }
+//                }
+//            }
+//            values={mm->methodID,mm->testMethodName,mm->subpackage,mm->subpackageDesc,mm->CMA,sampleOrder,m_taskSheetID, testTypeID,parameterID};
 
 
-            doSql(sql,[this,&error,mm](const QSqlReturnMsg&msg){                
-                if(msg.error()){
-                    QMessageBox::information(nullptr,QString("更新方法%1(%2)时错误：").arg(mm->testMethodName).arg(mm->methodID),msg.result().toString());
-                    error=true;
-                    sqlFinished();
-                    return ;
-                }
-                sqlFinished();
-            },0,values);
-            waitForSql("正在保存方法……");
+//            doSql(sql,[this,&error,mm](const QSqlReturnMsg&msg){
+//                if(msg.error()){
+//                    QMessageBox::information(nullptr,QString("更新方法%1(%2)时错误：").arg(mm->testMethodName).arg(mm->methodID),msg.result().toString());
+//                    error=true;
+//                    sqlFinished();
+//                    return ;
+//                }
+//                sqlFinished();
+//            },0,values);
+//            waitForSql("正在保存方法……");
 
-            if(error) {
-                QMessageBox::information(nullptr,"","保存方法时出错。");
-                return false;
-            }
-        }
-    }
-    m_bMethodModified=false;
+//            if(error) {
+//                QMessageBox::information(nullptr,"","保存方法时出错。");
+//                return false;
+//            }
+//        }
+//    }
+//    m_bMethodModified=false;
     return true;
 }
 
@@ -641,7 +550,6 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
                   "subpackage, otherRequirements, A.id,taskStatus ,creator, sampleSource,inspectedEentityAddr from (select * from test_task_info where taskNum=?) as A left join users on A.salesRepresentative=users.id;");
 
     doSql(sql,[this, newMode](const QSqlReturnMsg&msg){
-         qDebug()<<"载入任务信息 threadID:"<<QThread::currentThreadId();
         if(msg.error()){
             QMessageBox::information(this,"载入任务信息时错误",msg.result().toString());
             emit sqlFinished();
@@ -682,7 +590,88 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
     },0,{taskNum});
     waitForSql("载入任务信息...");
 
+    sql="SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, "
+          "B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc, "
+          "GROUP_CONCAT(D.parameterID  ORDER BY D.id ASC SEPARATOR ','), GROUP_CONCAT(D.parameterName ORDER BY D.id ASC SEPARATOR ',' )  "
+          "from task_parameters as D "
+          "left join site_monitoring_info as A on  D.monitoringInfoID=A.id "
+          "left join implementing_standards as B on A.limitValueID = B.id "
+          "left join test_type as C on A.testTypeID= C.id "
+//          "right join task_parameters as D on D.monitoringInfoID=A.id "
+          "where A.taskSheetID=? "
+          "group by A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id,"
+          " B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc;";
 
+    doSql(sql,[this](const QSqlReturnMsg&msg){
+        qDebug()<<"处理检测信息";
+        if(msg.error()){
+            QMessageBox::information(this,"载入检测信息时错误",msg.result().toString());
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        foreach (auto x, m_testInfo) {
+            if(x) delete x;
+        }
+        m_testInfo.clear();
+        QList<QVariant>row;
+        QStringList ids;
+        bool deliveryTest=ui->sampleSourceBox->currentIndex();
+        for(int i=1;i<r.count();i++){
+            row=r.at(i).toList();
+//            int monitorID=row.at(7).toInt();
+            ids=row.at(16).toString().split(",");
+
+            QList<int>parameterIDs;
+            for(auto id:ids){
+                parameterIDs.append(id.toInt());
+            }
+            QStringList monitoringParameters=row.at(17).toString().split(",");
+
+            if(deliveryTest||!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
+                                ||m_testInfo.last()->sampleType!=row.at(1).toString()
+                                ||m_testInfo.last()->samplingFrequency!=row.at(3).toInt()
+                                ||m_testInfo.last()->samplingPeriod!=row.at(4).toInt()
+                                ||m_testInfo.last()->limitStandardID!=row.at(5).toInt()
+                                ||m_testInfo.last()->remark!=row.at(6).toString())){
+                TestInfo* info=new TestInfo;
+                info->delieveryTest=ui->sampleSourceBox->currentIndex();
+                info->testTypeID=row.at(0).toInt();
+                info->testFieldID=row.at(12).toInt();
+                info->sampleType=row.at(1).toString();
+//                    if(!row.at(2).toString().isEmpty()) info->samplingSites.append(row.at(2).toString());
+                info->samplingSites=row.at(2).toString();
+                info->samplingFrequency=row.at(3).toInt();
+                info->samplingPeriod=row.at(4).toInt();
+                info->limitStandardID=row.at(5).toInt();
+                info->remark=row.at(6).toString();
+                info->monitoringParameters=monitoringParameters;
+                info->parametersIDs=parameterIDs;
+                info->sampleName=row.at(13).toString();
+                info->sampleCount=row.at(14).toInt();
+                info->sampleDesc=row.at(15).toString();
+                info->limitStandard=QString("%1(%2)%3%4").arg(row.at(8).toString()).arg(row.at(9).toString()).arg(row.at(10).toString()).arg(row.at(11).toString());
+                m_testInfo.append(info);
+
+            }
+            else{//合并监测指标相同的点位
+                m_testInfo.last()->samplingSiteCount++;
+                if(row.at(2).toString()!=m_testInfo.last()->samplingSites) m_testInfo.last()->samplingSites+="、"+row.at(2).toString();
+            }
+            if(i==r.count()-1){
+                ui->testInfoTableView->clear();
+                for(auto info:m_testInfo)
+                    ui->testInfoTableView->append(info->infoList());
+
+            }
+
+        }
+        sqlFinished();
+
+    },0,{m_taskSheetID});
+    waitForSql("载入检测信息...");
+
+/*
     m_userOpereate=true;
     QList<QVariant>r;
     sql=QString("SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, standardName,standardNum, tableName, classNum, testFieldID, A.sampleName,A.sampleCount,A.sampleDesc from"
@@ -704,111 +693,117 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
     waitForSql("载入检测信息...");
     qDebug()<<"处理检测信息...";
     qDebug()<<r;
-        m_testInfo.clear();
-        for(int i=1;i<r.count();i++){
-            QList<QVariant>row=r.at(i).toList();
-            int monitorID=row.at(7).toInt();
 
-            QString sql=QString("SELECT parameterID, parameterName, testMethodID, testMethodName from task_methods where monitoringInfoID=? ;").arg(monitorID);
-            doSql(sql,[this, r,i, row](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(nullptr,"载入项目信息时错误",msg.result().toString());
-                    sqlFinished();
-                    return;
-                }
-                QList<QVariant>parameters=msg.result().toList();
-                QList<int>parameterIDs;
-                QStringList monitoringParameters;
-                for(int i=1;i<parameters.count();i++){
-                    parameterIDs.append(parameters.at(i).toList().at(0).toInt());
-                    monitoringParameters.append(parameters.at(i).toList().at(1).toStringList());
-                }
-                if(ui->sampleSourceBox->currentIndex()||!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
-                                    ||m_testInfo.last()->sampleType!=row.at(1).toString()
-                                    ||m_testInfo.last()->samplingFrequency!=row.at(3).toInt()
-                                    ||m_testInfo.last()->samplingPeriod!=row.at(4).toInt()
-                                    ||m_testInfo.last()->limitStandardID!=row.at(5).toInt()
-                                    ||m_testInfo.last()->remark!=row.at(6).toString())){
-                    TestInfo* info=new TestInfo;
-                    info->delieveryTest=ui->sampleSourceBox->currentIndex();
-                    info->testTypeID=row.at(0).toInt();
-                    info->testFieldID=row.at(12).toInt();
-                    info->sampleType=row.at(1).toString();
-//                    if(!row.at(2).toString().isEmpty()) info->samplingSites.append(row.at(2).toString());
-                    info->samplingSites=row.at(2).toString();
-                    info->samplingFrequency=row.at(3).toInt();
-                    info->samplingPeriod=row.at(4).toInt();
-                    info->limitStandardID=row.at(5).toInt();
-                    info->remark=row.at(6).toString();
-                    info->monitoringParameters=monitoringParameters;
-                    info->parametersIDs=parameterIDs;
-                    info->sampleName=row.at(13).toString();
-                    info->sampleCount=row.at(14).toInt();
-                    info->sampleDesc=row.at(15).toString();
-                    info->limitStandard=QString("%1(%2)%3%4").arg(row.at(8).toString()).arg(row.at(9).toString()).arg(row.at(10).toString()).arg(row.at(11).toString());
-                    m_testInfo.append(info);
+    /*
 
-                }
-                else{//合并监测指标相同的点位
-                    m_testInfo.last()->samplingSiteCount++;
-                    if(row.at(2).toString()!=m_testInfo.last()->samplingSites) m_testInfo.last()->samplingSites+="、"+row.at(2).toString();
-                }
-                if(i==r.count()-1){
-                    ui->testInfoTableView->clear();
-                    for(auto info:m_testInfo)
-                        ui->testInfoTableView->append(info->infoList());
+    /*
+    m_testInfo.clear();
+    for(int i=1;i<r.count();i++){
+        QList<QVariant>row=r.at(i).toList();
+        int monitorID=row.at(7).toInt();
 
-                }
-
+        QString sql="SELECT parameterID, parameterName "
+                      "from task_parameters  "
+                      "where monitoringInfoID=? ;";
+        doSql(sql,[this, r,i, row](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"载入项目信息时错误",msg.result().toString());
                 sqlFinished();
-            },0,{monitorID});
+                return;
+            }
+            QList<QVariant>parameters=msg.result().toList();
+            QList<int>parameterIDs;
+            QStringList monitoringParameters;
+            for(int i=1;i<parameters.count();i++){
+                parameterIDs.append(parameters.at(i).toList().at(0).toInt());
+                monitoringParameters.append(parameters.at(i).toList().at(1).toStringList());
+            }
+            if(ui->sampleSourceBox->currentIndex()||!m_testInfo.count()||(m_testInfo.last()->monitoringParameters!=monitoringParameters
+                                ||m_testInfo.last()->sampleType!=row.at(1).toString()
+                                ||m_testInfo.last()->samplingFrequency!=row.at(3).toInt()
+                                ||m_testInfo.last()->samplingPeriod!=row.at(4).toInt()
+                                ||m_testInfo.last()->limitStandardID!=row.at(5).toInt()
+                                ||m_testInfo.last()->remark!=row.at(6).toString())){
+                TestInfo* info=new TestInfo;
+                info->delieveryTest=ui->sampleSourceBox->currentIndex();
+                info->testTypeID=row.at(0).toInt();
+                info->testFieldID=row.at(12).toInt();
+                info->sampleType=row.at(1).toString();
+//                    if(!row.at(2).toString().isEmpty()) info->samplingSites.append(row.at(2).toString());
+                info->samplingSites=row.at(2).toString();
+                info->samplingFrequency=row.at(3).toInt();
+                info->samplingPeriod=row.at(4).toInt();
+                info->limitStandardID=row.at(5).toInt();
+                info->remark=row.at(6).toString();
+                info->monitoringParameters=monitoringParameters;
+                info->parametersIDs=parameterIDs;
+                info->sampleName=row.at(13).toString();
+                info->sampleCount=row.at(14).toInt();
+                info->sampleDesc=row.at(15).toString();
+                info->limitStandard=QString("%1(%2)%3%4").arg(row.at(8).toString()).arg(row.at(9).toString()).arg(row.at(10).toString()).arg(row.at(11).toString());
+                m_testInfo.append(info);
 
-            waitForSql();
-        }
+            }
+            else{//合并监测指标相同的点位
+                m_testInfo.last()->samplingSiteCount++;
+                if(row.at(2).toString()!=m_testInfo.last()->samplingSites) m_testInfo.last()->samplingSites+="、"+row.at(2).toString();
+            }
+            if(i==r.count()-1){
+                ui->testInfoTableView->clear();
+                for(auto info:m_testInfo)
+                    ui->testInfoTableView->append(info->infoList());
+
+            }
+
+            sqlFinished();
+        },0,{monitorID});
+
+        waitForSql();
+    }*/
     //加载方法
 
-    sql=QString("SELECT A.testTypeID, sampleType, parameterName, testMethodName, CMA, subpackage, subpackageDesc,parameterID from "
-                  "(select * from task_methods where taskSheetID=%1 ) as A left join site_monitoring_info on A.monitoringInfoID= site_monitoring_info.id "
-                  "group by A.testTypeID, sampleType, parameterName, testMethodName,  CMA, subpackage, subpackageDesc,parameterID;").arg(m_taskSheetID);
-    doSql(sql,[this](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(nullptr,"载入方法信息时错误",msg.result().toString());
-            sqlFinished();
-            return;
-        }
-        QList<QVariant>methods=msg.result().toList();
-        QList<QList<QVariant>> methodTable;
-//        m_mthds.clear();
-        QHash<int,QHash<int,int>>parametersRows;//[类型，【参数ID，行号】】
-        for(int i=1;i<methods.count();i++){
-            QList row=methods.at(i).toList();
-            int typeID=row.at(0).toInt();
-            int parameterID=row.at(7).toInt();
-            QString sampleType=row.at(1).toString();
-            //把相同检测类型的项目合并在一起
-            if(parametersRows.value(typeID).contains(parameterID)){
-                int r=parametersRows.value(typeID).value(parameterID);
-                QString type=methodTable.value(r).at(0).toString();
-                if(!type.contains(sampleType)){
-                    methodTable[r][0]=type.append("/").append(sampleType);
-                }
+//    sql=QString("SELECT A.testTypeID, sampleType, parameterName, testMethodName, CMA, subpackage, subpackageDesc,parameterID from "
+//                  "(select * from task_methods where taskSheetID=%1 ) as A left join site_monitoring_info on A.monitoringInfoID= site_monitoring_info.id "
+//                  "group by A.testTypeID, sampleType, parameterName, testMethodName,  CMA, subpackage, subpackageDesc,parameterID;").arg(m_taskSheetID);
+//    doSql(sql,[this](const QSqlReturnMsg&msg){
+//        if(msg.error()){
+//            QMessageBox::information(nullptr,"载入方法信息时错误",msg.result().toString());
+//            sqlFinished();
+//            return;
+//        }
+//        QList<QVariant>methods=msg.result().toList();
+//        QList<QList<QVariant>> methodTable;
+////        m_mthds.clear();
+//        QHash<int,QHash<int,int>>parametersRows;//[类型，【参数ID，行号】】
+//        for(int i=1;i<methods.count();i++){
+//            QList row=methods.at(i).toList();
+//            int typeID=row.at(0).toInt();
+//            int parameterID=row.at(7).toInt();
+//            QString sampleType=row.at(1).toString();
+//            //把相同检测类型的项目合并在一起
+//            if(parametersRows.value(typeID).contains(parameterID)){
+//                int r=parametersRows.value(typeID).value(parameterID);
+//                QString type=methodTable.value(r).at(0).toString();
+//                if(!type.contains(sampleType)){
+//                    methodTable[r][0]=type.append("/").append(sampleType);
+//                }
 
-            }
-            else{
-                methodTable.append({row.at(1),row.at(2),row.at(3),row.at(4).toInt()?"是":"否",row.at(5).toInt()?"是":"否",row.at(6)});
-                parametersRows[typeID][parameterID]=methodTable.count()-1;
-                MethodMore* mm=new MethodMore;
-                mm->testMethodName=row.at(3).toString();//这里用于方法选择时载入已选的方法，不用保存ID
-                mm->subpackage=row.at(5).toInt();
-                mm->subpackageDesc=row.at(6).toString();
-                m_MethodDlg->addMethod(typeID,parameterID,mm);//已选的方法，用于方法加载时，自动选用已经确认的方法。
-            }
-        }
-        m_MethodDlg->showMethods(methodTable);
-        sqlFinished();
-    });
-    waitForSql("载入方法信息...");
-    //    m_bSaved=true;
+//            }
+//            else{
+//                methodTable.append({row.at(1),row.at(2),row.at(3),row.at(4).toInt()?"是":"否",row.at(5).toInt()?"是":"否",row.at(6)});
+//                parametersRows[typeID][parameterID]=methodTable.count()-1;
+//                MethodMore* mm=new MethodMore;
+//                mm->testMethodName=row.at(3).toString();//这里用于方法选择时载入已选的方法，不用保存ID
+//                mm->subpackage=row.at(5).toInt();
+//                mm->subpackageDesc=row.at(6).toString();
+//                m_MethodDlg->addMethod(typeID,parameterID,mm);//已选的方法，用于方法加载时，自动选用已经确认的方法。
+//            }
+//        }
+//        m_MethodDlg->showMethods(methodTable);
+//        sqlFinished();
+//    });
+//    waitForSql("载入方法信息...");
+//    //    m_bSaved=true;
 }
 
 void TaskSheetEditor::setOpenMode(int mode)
@@ -839,7 +834,7 @@ void TaskSheetEditor::reset()
     m_testInfo.clear();
     ui->testInfoTableView->clear();
     m_isSaving=false;
-    m_bMethodModified=false;
+//    m_bMethodModified=false;
     m_bTasksheetModified=false;
     m_bTestInfoModified=false;
     ui->inspectedAddrEdit->setText("");
@@ -882,8 +877,8 @@ void TaskSheetEditor::setEntrustType(bool deliveryTest)
 void TaskSheetEditor::closeEvent(QCloseEvent *event)
 {
     if(m_mode==ViewMode) return;
-    qDebug()<<m_bTasksheetModified<<m_bMethodModified<<m_bTestInfoModified;
-    if(m_bTasksheetModified||m_bMethodModified||m_bTestInfoModified){
+    qDebug()<<m_bTasksheetModified<<m_bTestInfoModified;
+    if(m_bTasksheetModified||m_bTestInfoModified){
         if (QMessageBox::question(this, "", tr("任务单有变更未作保存，你确定要退出应用程序吗？"))!=QMessageBox::Yes) {
             // 如果用户选择“否”，则不关闭窗口
             event->ignore();
@@ -1056,7 +1051,11 @@ void TaskSheetEditor::on_methodSelectBtn_clicked()
 {
     //进入方法选择界面，如果之前方法已经选择了，应当显示下之前的方法。
     //给方法界面传输检测信息（如果没有改动，应当不用设置。）
-    m_MethodDlg->setTestInfo(m_testInfo);
+    if(!m_taskSheetID){
+        QMessageBox::information(nullptr,"error","你需要先保存任务单。");
+        return;
+    }
+    m_MethodDlg->setTestInfo(m_taskSheetID,m_testInfo);
     m_MethodDlg->show();
     m_MethodDlg->raise();
 }

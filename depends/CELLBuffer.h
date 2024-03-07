@@ -6,10 +6,11 @@
 class CELLBuffer
 {
 public:
-	CELLBuffer(int nSize = 8192)
+    CELLBuffer(int nSize = 512000)
 	{
 		_nSize = nSize;
         _pBuff = new char[_nSize];
+        qDebug()<<"_nSize"<<_nSize;
 	}
 
 	~CELLBuffer()

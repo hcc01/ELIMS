@@ -20,20 +20,22 @@ CELLWriteStream::CELLWriteStream(char *pData, int nSize, bool bDelete)
     :CELLStream(pData, nSize, bDelete)
 {
     //预先占领消息长度所需空间
-    Write<uint16_t>(0);
+    //    Write<uint16_t>(0);
+    Write<uint32_t>(0);
 }
 
 CELLWriteStream::CELLWriteStream(int nSize)
     :CELLStream(nSize)
 {
     //预先占领消息长度所需空间
-    Write<uint16_t>(0);
+//    Write<uint16_t>(0);
+    Write<uint32_t>(0);
 }
 
 void CELLWriteStream::finsh()
 {
     int pos = length();
     setWritePos(0);
-    Write<uint16_t>(pos);
+    Write<uint32_t>(pos);
     setWritePos(pos);
 }
