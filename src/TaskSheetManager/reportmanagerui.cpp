@@ -161,7 +161,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                 }
                 sqlFinished();
             },0,{passed?TaskSheetUI::REPORT_REVIEW2:TaskSheetUI::REPORT_MODIFY,reportNum});
-            waitForSql();
+            waitForSql("正在更新状态表");
             if(error) return;
             if(passed){
                 //提交至报告审核
@@ -226,6 +226,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                     sqlFinished();
                 },0,{CUser::AuthorizedSignatory});
                 waitForSql();
+                reviewerIDs.removeOne(user()->id());//审核完就不进行签发
                 if(!reviewerIDs.count()){
                     QMessageBox::information(nullptr,"error","未找到合适的签发人员.");
                     return;
@@ -253,7 +254,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                 }
                 sqlFinished();
             },0,{passed?TaskSheetUI::REPORT_ARCHIVING:TaskSheetUI::REPORT_MODIFY,reportNum});
-            waitForSql();
+            waitForSql("正在更新状态表");
             if(error) return;
         });
         return w;

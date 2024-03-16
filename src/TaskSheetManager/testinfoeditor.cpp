@@ -98,68 +98,74 @@ void testInfoEditor::on_testInofOkBtn_clicked()
     toStdParameterName(s);
     ui->testItemEdit->setText(s);
     QStringList items=s.split("、");
-        if(!items.count()){
-            return;
+    if(!items.count()){
+        return;
+    }
+
+    m_monitoringParameters.clear();
+    m_monitoringParameterIDs.clear();
+    //先处理使用标准选择的项目（这些项目不用确认）
+    for (auto it = items.begin(); it != items.end(); ) {
+        if (m_standardParameterts.contains(*it)) {
+            m_monitoringParameters.append(*it);
+            m_monitoringParameterIDs.append(m_standardParameterts.value(*it));
+            it = items.erase(it); // erase returns the next valid iterator
+        } else {
+            ++it;
         }
-        QList<int>duplicateItems;
-        m_monitoringParameters.clear();
-        m_monitoringParameterIDs.clear();
-        for(int i=0;i<items.count();i++){
-            auto item=items.at(i);
-            if(item.isEmpty()) continue;
-            m_monitoringParameters.append(item);//这里操作可以避免出现空的项目，导致与ID数量不一致
-            QString sql;
-
-//            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=%2) as A "
-//                                  "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
-//                                  "where parameterName='%1' or alias='%1';").arg(item).arg(m_testFieldIDs.at(ui->testFiledBox->currentIndex()));
-            sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=?) as A "
-                          "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
-                          "where parameterName=? or alias=?;");
-
-            bool error=false;
-            // 发送异步的数据库查询请求
-            doSql(sql,[this,item,i,items,&error, &duplicateItems](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(this,"查找输入项目时出错：",msg.result().toString());
-                    error=true;
-                    sqlFinished();
-                    return;
-                }
-                QList<QVariant>r=msg.result().toList();
-                if(r.count()==1){
-                    QMessageBox::information(this,"项目错误",item+"不能被识别。");
-                    error=true;
-                    sqlFinished();
-                    return;
-                }
-                //检查是否重复项目：
-                int id=r.at(1).toList().at(0).toInt();
-                if(m_monitoringParameterIDs.contains(id)){
-                    duplicateItems.append(i);
-                }
-                else m_monitoringParameterIDs.append(id);
-                if(i==items.count()-1){//最后一个项目查询完成，如果没有出错，执行下面操作
+    }
+    QList<int>duplicateItems;
+    for(int i=0;i<items.count();i++){
+        auto item=items.at(i);
+        if(item.isEmpty()) continue;
+        m_monitoringParameters.append(item);//这里操作可以避免出现空的项目，导致与ID数量不一致
+        QString sql;
+        sql=QString("select A.id from (select id, parameterName, testFieldID from detection_parameters where testFieldID=?) as A "
+                      "left join (select alias ,parameterID from detection_parameter_alias) as B on A.id=B.parameterID "
+                      "where parameterName=? or alias=?;");
+        bool error=false;
+        // 发送异步的数据库查询请求
+        doSql(sql,[this,item,i,items,&error, &duplicateItems](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(this,"查找输入项目时出错：",msg.result().toString());
+                error=true;
+                sqlFinished();
+                return;
+            }
+            QList<QVariant>r=msg.result().toList();
+            if(r.count()==1){
+                QMessageBox::information(this,"项目错误",item+"不能被识别。");
+                error=true;
+                sqlFinished();
+                return;
+            }
+            //检查是否重复项目：
+            int id=r.at(1).toList().at(0).toInt();
+            if(m_monitoringParameterIDs.contains(id)){
+                duplicateItems.append(i);
+            }
+            else m_monitoringParameterIDs.append(id);
+            if(i==items.count()-1){//最后一个项目查询完成，如果没有出错，执行下面操作
 //                    ui->testItemEdit->clear();
 //                    ui->testItemEdit->append(items.join("、"));
-                    qDebug()<<"m_monitoringParameterIDs"<<m_monitoringParameterIDs;
+                qDebug()<<"m_monitoringParameterIDs"<<m_monitoringParameterIDs;
 
-                }
-                sqlFinished();
-            },0,{m_testFieldIDs.at(ui->testFiledBox->currentIndex()),item,item});
-            // 等待异步查询完成
-            waitForSql();
-            if(error) return;
-        }
-        if(duplicateItems.count()){
-            for(int n:duplicateItems){
-//            m_monitoringParameters.removeOne(items.at(n));//这样删除会和ID列表不对应！
-            m_monitoringParameters[n]="0";
-            QMessageBox::information(nullptr,"",QString("%1是重复检测项目， 已自动删除。").arg(items.at(n)));
             }
+            sqlFinished();
+        },0,{m_testFieldIDs.at(ui->testFiledBox->currentIndex()),item,item});
+        // 等待异步查询完成
+        waitForSql();
+        if(error) return;
+    }
+    if(duplicateItems.count()){
+        for(int n:duplicateItems){
+//            m_monitoringParameters.removeOne(items.at(n));//这样删除会和ID列表不对应！
+        m_monitoringParameters[n]="0";
+        QMessageBox::information(nullptr,"",QString("%1是重复检测项目， 已自动删除。").arg(items.at(n)));
         }
-        m_monitoringParameters.removeAll("0");
-        qDebug()<<m_monitoringParameterIDs;
+    }
+    m_monitoringParameters.removeAll("0");
+    qDebug()<<m_monitoringParameterIDs;
 //    m_monitoringParameters=items;
 
     if(m_monitoringParameterIDs.isEmpty()){
@@ -262,10 +268,16 @@ void testInfoEditor::on_testItemAddBtn_clicked()
         connect(&dlg,&ImplementingStandardSelectDlg::selectDone,this,[this](const QStringList items,const QList<int>&IDs,const QString&standardName,int limitStandardID){
 //            ui->testItemEdit->clear();
             ui->testItemEdit->setText(ui->testItemEdit->toPlainText()+"、"+items.join("、"));
+        for(int i=0;i<items.count();i++){
+                auto item=items.at(i);
+                if(item.isEmpty()) continue;
+                if(!m_standardParameterts.contains(item)) m_standardParameterts[item]=IDs.at(i);
+            }
 //            m_monitoringParameters=items;
 //            m_monitoringParameterIDs=IDs;
             m_limitStandardID=limitStandardID;
             ui->standardNameEidt->setText(standardName);
+
         });
         dlg.init();
         dlg.exec();

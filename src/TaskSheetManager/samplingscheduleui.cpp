@@ -32,9 +32,9 @@ SamplingScheduleUI::SamplingScheduleUI(QWidget *parent) :
     ui->taskScheduledView->addContextAction("打印标签",[this](){
         int row=ui->taskScheduledView->selectedRow();
         if(row<0) return ;
-        SampleGroupingDlg* dlg=new SampleGroupingDlg(this);
-        dlg->init(ui->taskScheduledView->value(row,0).toString(),(ui->taskScheduledView->value(row,4).toString()+"、"+ui->taskScheduledView->value(row,5).toString()).split("、"));
-        dlg->show();
+        SampleGroupingDlg dlg(this);
+        dlg.init(ui->taskScheduledView->cellFlag(row,0).toInt(),(ui->taskScheduledView->value(row,4).toString()+"、"+ui->taskScheduledView->value(row,5).toString()).split("、"));
+        dlg.exec();
     });
 
 }
@@ -59,10 +59,19 @@ void SamplingScheduleUI::initMod()
           "samplerLeader varchar(32), "
            "scheduler varchar(32), "
           "schedulTime datetime, "
-          "remark varchar(255) "
-//          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id) "
-//          " FOREIGN KEY (flowID) REFERENCES flow_records (id)"
+          "remark varchar(255), "
+          "taskSheetID int ,"
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id) "
           ");";
+    //创建采样任务序号表（用于标签）
+    sql+="CREATE TABLE IF NOT EXISTS sampling_task_order("
+           "id int AUTO_INCREMENT primary key, "
+           "samplingDate date not null,"//采样日期
+           "taskSheetID int, "
+           "number int ,"
+           "UNIQUE (samplingDate,number)"          //
+
+           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"tasknumber error",msg.result().toString());
@@ -111,20 +120,27 @@ void SamplingScheduleUI::doSchedule(QString startDate, QString endDate, QString 
     if(!m_reschedule) indexs=ui->taskToScheduledView->selectedIndexes();
     else indexs=ui->taskScheduledView->selectedIndexes();
     bool ok=true;
+    int taskSheetID;
     for(auto index:indexs){
         if(index.column()!=0) continue;
-        if(!m_reschedule) taskNum=ui->taskToScheduledView->value(index).toString();
-        else taskNum=ui->taskScheduledView->value(index).toString();
-
-
         if(!m_reschedule) {
-            sql="update test_task_info set taskStatus=? where taskNum=?;insert into samplingSchedul(taskNum,startDate,endDate,samplerLeader,samplers,remark,schedulTime,scheduler)"
-              "values(?,?,?,?,?,?,now(),?);";
-            values={TaskSheetUI::WAIT_SAMPLING,taskNum,taskNum,startDate,endDate,leader,samplers,remark,user()->name()};
+            taskNum=ui->taskToScheduledView->value(index).toString();
+            taskSheetID=ui->taskToScheduledView->cellFlag(index.row(),0).toInt();
         }
         else{
-            sql="update samplingSchedul set startDate=?,endDate=?,samplerLeader=?,samplers=?,remark=?,schedulTime=NOW(),scheduler=? where taskNum=?;";
-            values={startDate,endDate,leader,samplers,remark,user()->name(),taskNum};
+
+            taskNum=ui->taskScheduledView->value(index).toString();
+            taskSheetID=ui->taskToScheduledView->cellFlag(index.row(),0).toInt();
+        }
+
+        if(!m_reschedule) {
+            sql="update test_task_info set taskStatus=? where id=?;insert into samplingSchedul(taskNum,startDate,endDate,samplerLeader,samplers,remark,schedulTime,scheduler,taskSheetID)"
+              "values(?,?,?,?,?,?,now(),?,?);";
+            values={TaskSheetUI::WAIT_SAMPLING,taskSheetID,taskNum,startDate,endDate,leader,samplers,remark,user()->name(),taskSheetID};
+        }
+        else{
+            sql="update samplingSchedul set startDate=?,endDate=?,samplerLeader=?,samplers=?,remark=?,schedulTime=NOW(),scheduler=? where taskSheetID=?;";
+            values={startDate,endDate,leader,samplers,remark,user()->name(),taskSheetID};
         }
         doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
                 if(msg.error()){
@@ -144,21 +160,22 @@ void SamplingScheduleUI::doSchedule(QString startDate, QString endDate, QString 
 void SamplingScheduleUI::updateScheduledView()
 {
     QString sql;
-    sql="select samplingSchedul.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, samplingSchedul.remark,scheduler from "
-          "samplingSchedul left join test_task_info on  samplingSchedul.taskNum=test_task_info.taskNum where test_task_info.deleted=0 order by schedulTime desc ;";
+    sql="select A.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, A.remark,scheduler ,A.taskSheetID from "
+          "samplingSchedul as A left join test_task_info as B on  A.taskSheetID=B.id where B.deleted=0 order by schedulTime desc ;";
     ui->pageCtrl2->startSql(this,sql,1,{TaskSheetUI::SAMPLING},[this](const QSqlReturnMsg&msg){
         QList<QVariant>r=msg.result().toList();
         ui->taskScheduledView->clear();
         for(int i=1;i<r.count();i++){
             qDebug()<<r.at(i).toList();
             ui->taskScheduledView->append({r.at(i).toList()});
+            ui->taskScheduledView->setCellFlag(i-1,0,r.at(i).toList().last());
         }
     });
 }
 
 void SamplingScheduleUI::updateToScheduledView()
 {
-    QString sql=QString("select taskNum, inspectedProject,otherRequirements from test_task_info where taskStatus=%1 and deleted =0").arg(TaskSheetUI::SCHEDULING);
+    QString sql=QString("select taskNum, inspectedProject,otherRequirements ,id from test_task_info where taskStatus=%1 and deleted =0").arg(TaskSheetUI::SCHEDULING);
     DealFuc f=[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"更新排单任务时出错：",msg.errorMsg());
@@ -168,6 +185,7 @@ void SamplingScheduleUI::updateToScheduledView()
         ui->taskToScheduledView->clear();
         for(int i=1;i<table.count();i++){
             ui->taskToScheduledView->append(table.at(i).toList());
+            ui->taskToScheduledView->setCellFlag(i-1,0,table.at(i).toList().last().toInt());
         }
     };
 

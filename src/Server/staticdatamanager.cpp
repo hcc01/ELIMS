@@ -286,6 +286,9 @@ void StaticDataManager::on_improtTestMethod_clicked()//导入检测方法
             QApplication::processEvents();
             methodNum=EXCEL.cellValue(r,2,sheet).toString().simplified();//列B是标准编号
             methodNum.replace("—","-");
+            if (methodNum.isEmpty()) {
+                methodNum = "";
+            }
             unit=EXCEL.cellValue(r,7,sheet).toString();//列G是数据单位
             sampleGroup=EXCEL.cellValue(r,10,sheet).toString();//列J是样品分组
             sampleMedium=EXCEL.cellValue(r,11,sheet).toString();//列K是采样介质
@@ -945,5 +948,31 @@ void StaticDataManager::on_parameterStdBtn_clicked()
 //    }
 //    QMessageBox::information(nullptr,"",QString("操作完成，共修改%1个数据。").arg(n));
 //    ui->status->clear();
+}
+
+
+void StaticDataManager::on_methodDDbtn_clicked()//检测方法去重：因为methodNumber为空时导致唯一约束失效，现手动删除重复。
+{
+    QSqlQuery query(DB.database());
+    DB.database().transaction();
+    if(!query.exec("select GROUP_CONCAT(  id SEPARATOR ','),methodName from test_methods where methodNumber is null group by methodName")){
+        QMessageBox::information(nullptr,"查询方法出错：",query.lastError().text());
+        DB.database().rollback();
+        return;
+    }
+    QStringList allIds;
+    while (query.next()){
+        allIds.append(query.value(0).toString());
+    }
+    for(auto ids:allIds){
+        QStringList IDs=ids.split(",");
+        for(int i=0;i<IDs.count();i++){
+            int id=IDs.at(i).toInt();
+            query.exec(QString("delete from method_parameters where methodID=%1").arg(id));
+            query.exec(QString("delete from test_methods where id=%1").arg(id));
+        }
+    }
+    DB.database().commit();
+
 }
 

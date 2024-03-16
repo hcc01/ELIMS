@@ -73,16 +73,16 @@ TaskSheetUI::~TaskSheetUI()
     delete ui;
 }
 
-void TaskSheetUI::submitProcess(int node)
-{
-    switch(node){
-    case REVIEW:
-    {
+//void TaskSheetUI::submitProcess(int node)
+//{
+//    switch(node){
+//    case REVIEW:
+//    {
 
-    }
-    break;
-    }
-}
+//    }
+//    break;
+//    }
+//}
 
 
 void TaskSheetUI::initMod()
@@ -229,6 +229,7 @@ void TaskSheetUI::initMod()
           "id int AUTO_INCREMENT primary key, "//
           "monitoringInfoID int not null, "//监测信息ID
           "taskSheetID int not null,"//任务单ID
+          "testTypeID int ,"
           "parameterID int not null, "               //检测参数ID
           "parameterName VARCHAR(16) not null, "   //检测参数名称
           "sampleGroup int DEFAULT -1, "           //样品组

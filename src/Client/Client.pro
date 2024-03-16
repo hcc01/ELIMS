@@ -25,6 +25,7 @@ SOURCES += \
     cclient.cpp \
     ctablemodel.cpp \
     cuser.cpp \
+    dbmater.cpp \
     implementingstandardeditor.cpp \
     itemsselectdlg.cpp \
     loginui.cpp \
@@ -69,6 +70,7 @@ HEADERS += \
     cclient.h \
     ctablemodel.h \
     cuser.h \
+    dbmater.h \
     global.h \
     implementingstandardeditor.h \
     itemsselectdlg.h \

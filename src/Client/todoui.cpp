@@ -1,10 +1,12 @@
 #include "todoui.h"
 #include "qpushbutton.h"
+#include "qsqlquery.h"
 #include "qtextedit.h"
 #include "ui_todoui.h"
 #include<QInputDialog>
 #include<QMessageBox>
 #include<mainwindow.h>
+#include"dbmater.h"
 ToDoUI::ToDoUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::ToDoUI)
@@ -70,6 +72,194 @@ void ToDoUI::loadUser(CUser *user, MainWindow *main)
         user->setPhone(r.at(1).toList().at(0).toString());
         user->setID(r.at(1).toList().at(1).toInt());
     },0,{user->name()});
+}
+
+void ToDoUI::updateTypes()
+{
+    QString sql;
+    QSqlQuery query(DB.database());
+    if(!query.exec("create table if not exists test_field (id INTEGER PRIMARY KEY,testField text)")){
+        QMessageBox::information(nullptr,"无法创建检测领域表",query.lastError().text());
+        return;
+    }    if(!query.exec("create table if not exists test_type (id INTEGER PRIMARY KEY,testFieldID INTEGER, testType text)")){
+        QMessageBox::information(nullptr,"无法创建检测类型表",query.lastError().text());
+        return;
+    }
+    if(!query.exec("delete from test_type")){
+        QMessageBox::information(nullptr,"删除检测类型时出错：",query.lastError().text());
+        return;
+    }
+    if(!query.exec("delete from test_field")){
+        QMessageBox::information(nullptr,"删除检测领域时出错：",query.lastError().text());
+        return;
+    }
+
+    bool error=false;
+    sql="select id, testField from test_field;";
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询检测领域表时出错",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        QSqlQuery query(DB.database());
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            query.prepare("insert into test_field values(?,?);");
+            query.addBindValue(row.at(0));
+            query.addBindValue(row.at(1));
+            if(!query.exec()){
+                QMessageBox::information(nullptr,"更新检测领域时出错：",query.lastError().text());
+                error=true;
+                break;
+            }
+        }
+        sqlFinished();
+    });
+    waitForSql();
+    if(error) return;
+    sql="select id, testFieldID, testType from test_type;";
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询检测领域表时出错",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        QSqlQuery query(DB.database());
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            query.prepare("insert into test_type values(?,?,?);");
+            query.addBindValue(row.at(0));
+            query.addBindValue(row.at(1));
+            query.addBindValue(row.at(2));
+            if(!query.exec()){
+                QMessageBox::information(nullptr,"更新检测领域时出错：",query.lastError().text());
+                error=true;
+                break;
+            }
+        }
+        sqlFinished();
+    });
+    waitForSql();
+    if(error) return;
+    QMessageBox::information(nullptr,"","更新成功。");
+}
+
+void ToDoUI::updateParameters()
+{
+    QString sql;
+    QSqlQuery query(DB.database());
+    if(!query.exec("create table if not exists detection_parameters (id INTEGER PRIMARY KEY,testFieldID INTEGER, parameterName text, additive INTEGER)")){
+        QMessageBox::information(nullptr,"无法创建检测参数表",query.lastError().text());
+        return;
+    }
+    if(!query.exec("create table if not exists detection_parameter_alias (id INTEGER PRIMARY KEY,parameterID INTEGER, alias text)")){
+        QMessageBox::information(nullptr,"无法创建参数别名表",query.lastError().text());
+        return;
+    }
+    if(!query.exec("create table if not exists detection_subparameters (id INTEGER PRIMARY KEY,parameterID INTEGER, subName text, subparameterID INTEGER)")){
+        QMessageBox::information(nullptr,"无法创建子参数表",query.lastError().text());
+        return;
+    }
+    if(!query.exec("delete from detection_parameters")){
+        QMessageBox::information(nullptr,"删除检测参数时出错：",query.lastError().text());
+        return;
+    }
+    if(!query.exec("delete from detection_parameter_alias")){
+        QMessageBox::information(nullptr,"删除参数别名时出错：",query.lastError().text());
+        return;
+    }
+    if(!query.exec("delete from detection_subparameters")){
+        QMessageBox::information(nullptr,"删除子参数时出错：",query.lastError().text());
+        return;
+    }
+
+    bool error=false;
+    sql="select id, testFieldID,parameterName, additive from detection_parameters;";
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询检测参数表时出错",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        QSqlQuery query(DB.database());
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            query.prepare("insert into detection_parameters values(?,?,?,?);");
+            query.addBindValue(row.at(0));
+            query.addBindValue(row.at(1));
+            query.addBindValue(row.at(2));
+            query.addBindValue(row.at(3));
+            if(!query.exec()){
+                QMessageBox::information(nullptr,"更新检测领域时出错：",query.lastError().text());
+                error=true;
+                break;
+            }
+        }
+        sqlFinished();
+    });
+    waitForSql();
+    if(error) return;
+    sql="select id ,parameterID , alias  from detection_parameter_alias;";
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询参数别名时出错",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        QSqlQuery query(DB.database());
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            query.prepare("insert into detection_parameter_alias values(?,?,?);");
+            query.addBindValue(row.at(0));
+            query.addBindValue(row.at(1));
+            query.addBindValue(row.at(2));
+            if(!query.exec()){
+                QMessageBox::information(nullptr,"更新参数别名时出错：",query.lastError().text());
+                error=true;
+                break;
+            }
+        }
+        sqlFinished();
+    });
+    waitForSql();
+    if(error) return;
+    sql="select id ,parameterID , subName , subparameterID from detection_subparameters;";
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询子参数时出错",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        QList<QVariant>r=msg.result().toList();
+        QSqlQuery query(DB.database());
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            query.prepare("insert into detection_subparameters values(?,?,?,?);");
+            query.addBindValue(row.at(0));
+            query.addBindValue(row.at(1));
+            query.addBindValue(row.at(2));
+            query.addBindValue(row.at(3));
+            if(!query.exec()){
+                QMessageBox::information(nullptr,"更新子参数时出错：",query.lastError().text());
+                error=true;
+                break;
+            }
+        }
+        sqlFinished();
+    });
+    waitForSql();
+    if(error) return;
+    QMessageBox::information(nullptr,"","更新成功。");
 }
 
 bool ToDoUI::pushProcess(QFlowInfo flowInfo, bool passed, const QString &comments)
@@ -200,14 +390,14 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
     hlay->addWidget(agreeBtn);
     hlay->addWidget(rejectBtn);
     vlay->addLayout(hlay);
-    connect(dlg,&QDialog::close,[dlg, w](){delete dlg;delete w;});
+    connect(dlg,&QDialog::close,[dlg, w](){delete dlg;if(w) delete w;});
     connect(agreeBtn,&QPushButton::clicked,[this, edit, flowInfo, dlg, w](){
         if(edit->toPlainText().length()>254){
             QMessageBox::information(nullptr,"error","审批文本过长。");
             return;
         }
         if(pushProcess(flowInfo,true,edit->toPlainText())){
-            w->pushProcess(flowInfo,true);
+            if(w) w->pushProcess(flowInfo,true);
         }
         dlg->accept();
     });
@@ -217,7 +407,7 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
             return;
         }
         if(pushProcess(flowInfo,false,edit->toPlainText())){
-            w->pushProcess(flowInfo,false);
+           if(w) w->pushProcess(flowInfo,false);
         }
         dlg->accept();
     });

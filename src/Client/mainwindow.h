@@ -60,6 +60,10 @@ private slots:
 
     void on_exitAct_triggered();
 
+    void on_updateTypeAct_triggered();
+
+    void on_updateParameterAct_triggered();
+
 private:
     Ui::MainWindow *ui;    
     CClient _clientSocket;

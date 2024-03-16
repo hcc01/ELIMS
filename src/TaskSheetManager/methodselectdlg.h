@@ -30,12 +30,14 @@ class MethodSelectDlg : public QDialog,public SqlBaseClass
 public:
     explicit MethodSelectDlg(TabWidgetBase *tabWiget);
     ~MethodSelectDlg();
-    void setTestInfo(int taskSheetID,QList<TestInfo*>testInfo);
+    void setTestInfo(QList<TestInfo*>testInfo);
     void showMethods(const QList<QList<QVariant>>&table);
     void addMethod(int testTypeID, int parameterID, QString method) {
         // 创建 QSharedPointer 对象并存储到 m_methods 中
         m_methods[testTypeID][parameterID] = method;
     }
+    bool saveMethod(int taskSheetID);
+    void showMethod(int taskSheetID);
     void reset();
     QList<QList<QVariant>> methodTable()const;
     QString getMethod(int testTypeID,int parameterID)const{return m_methods.value(testTypeID).value(parameterID);}
@@ -47,6 +49,8 @@ private slots:
     void on_OkBtn_clicked();
 
     void on_cancelBtn_clicked();
+
+    void on_clearBtn_clicked();
 
 private:
     Ui::MethodSelectDlg *ui;
@@ -60,7 +64,9 @@ private:
 //    QHash<int,QHash<int,MethodMorePtr>>m_methods;//按类型确认的方法表【类型ID，【参数ID，方法ID】】；使用智能指针，在清空映射时会自动释放资源
     QHash<int,QHash<int,QString>>m_methods;//这个现在用来记录之前选择的方法，在重新加载是，将其列在优先位。
 //    QHash<int,QHash<int,MethodMorePtr>>m_specialMehtods;//特别项目的方法，如果有需要（如进口颗粒物的选用的方法与其它不同。);<点位ID，{<参数ID，方法ID>}>
-    int m_taskSheetID;
+//    int m_taskSheetID;
+    QHash<int,QPair<int,QString>>m_methodGroupInfo;//保存方法的现场测试标识和分组情况，用于保存项目采样样品分组。
+    QHash<int,QHash<int,int>>m_sampleGroups;//<类型：<参数：序号>>
 };
 
 #endif // METHODSELECTDLG_H

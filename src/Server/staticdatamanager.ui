@@ -43,6 +43,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QPushButton" name="methodDDbtn">
+     <property name="text">
+      <string>检测方法去重</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="status">
      <property name="text">
       <string/>

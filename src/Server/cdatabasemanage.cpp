@@ -50,7 +50,7 @@ void CDatabaseManage::connectDb(QString dataBase)
     if(!query.exec("create table if not exists flow_records (id int not null auto_increment, creator  varchar(32) not null,createTime DATETIME ,tabName  varchar(32),flowInfo JSON ,status int default 0, operatorCountNeeded int default 1, operatorCountPassed int default 0, primary key (id)  );")){
         qDebug()<<"query error:"<<query.lastError().text();
     }
-    if(!query.exec("create table if not exists flow_operate_records (id int not null auto_increment, flowID int, operatorID int,operateStatus int default 0, operateComments varchar(255), operateTime DateTime, primary key (id), FOREIGN KEY (flowID) REFERENCES flow_records (id), FOREIGN KEY (operatorID) REFERENCES sys_employee_login (id)  );")){
+    if(!query.exec("create table if not exists flow_operate_records (id int not null auto_increment, flowID int, operatorID int,operateStatus int default 0, operateComments varchar(255), operateTime DateTime, revisionNotes varchar(255), primary key (id), FOREIGN KEY (flowID) REFERENCES flow_records (id), FOREIGN KEY (operatorID) REFERENCES sys_employee_login (id)  );")){
         qDebug()<<"query error:"<<query.lastError().text();
     }
     if(!query.exec("create table if not exists all_flows (id int not null auto_increment, flowID int, identityColumn varchar(32) unique, primary key (id), FOREIGN KEY (flowID) REFERENCES flow_records (id)  );")){
@@ -255,6 +255,8 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
     else db=_db;
     QSqlQuery query(db);
     DB.doLog(QString("用户正在使用%1连接数据库:%2").arg(db.connectionName()).arg(QJsonDocument(sqlCmd.jsCmd()).toJson(QJsonDocument::Compact)),DEBUG_MSG,userID);
+    int page=sqlCmd.queryPage();
+    int totalPage=1;
     if(sqlCmd.useBindMod()){//增加了使用格式化的查询模式
 //        _db.transaction();
         QStringList sqls=sql.split(";");
@@ -293,6 +295,30 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
         }
 
     }
+    else if(sqlCmd.queryPage()){//分页查询
+        sql.replace(";"," ");//分页查询不能有分号，不能多个同时查询。
+        //先获取总页数：
+        QString str=QString("SELECT COUNT(*) FROM ( %1 ) as subquery;").arg(sql);
+        if(!query.exec(str)){
+            _lastError=query.lastError().text();
+            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+        if(!query.next()){
+            return QSqlReturnMsg("无效的查询：没有查询结果。",sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+        totalPage=(query.value(0).toInt()-1)/ITEMS_PER_PAGE+1;
+        if(!totalPage){
+            return QSqlReturnMsg("无效的分页查询：总页数为0。",sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+        //处理分页查询
+//        str=QString("WITH PaginatedResults AS ( SELECT *, ROW_NUMBER() OVER (ORDER BY B.id) AS rn FROM ( %1 ) AS subquery)"
+//                      "SELECT * FROM PaginatedResults WHERE rn BETWEEN %2 AND %3").arg(sql).arg((page-1)*ITEMS_PER_PAGE+1).arg(page*ITEMS_PER_PAGE);
+        str=sql+QString(" LIMIT %1 OFFSET %2").arg(ITEMS_PER_PAGE).arg((page-1)*ITEMS_PER_PAGE);
+        if(!query.exec(str)){
+            _lastError=query.lastError().text();
+            return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+        }
+    }
     else{
         QStringList sqls=sql.split(";");
         for(auto s:sqls){
@@ -309,12 +335,12 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
     QSqlRecord record=query.record();
     QJsonArray row;
     int columns=query.record().count();
-    int rows=query.size();
-    int page=sqlCmd.queryPage();
-    //处理分页显示：
-    int pages=(rows-1)/ITEMS_PER_PAGE+1;
-    int start=(page-1)*ITEMS_PER_PAGE+1;
-    int end=start+ITEMS_PER_PAGE-1;
+//    int rows=query.size();
+//    int page=sqlCmd.queryPage();
+//    //处理分页显示：
+//    int pages=(rows-1)/ITEMS_PER_PAGE+1;
+//    int start=(page-1)*ITEMS_PER_PAGE+1;
+//    int end=start+ITEMS_PER_PAGE-1;
     if(query.size()==-1)//非查询，返回影响的行数
     {
         table={query.numRowsAffected()};
@@ -328,18 +354,18 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
         }
         table.append(row);
 
-        if(!page){//不分页显示
-            start=1;
-            pages=1;
-            end=rows;
-        }
-        if(pages>=1){
-            if(page>pages) page=pages-1;
-        }
-        query.seek(start-2);
+//        if(!page){//不分页显示
+//            start=1;
+//            pages=1;
+//            end=rows;
+//        }
+//        if(pages>=1){
+//            if(page>pages) page=pages-1;
+//        }
+//        query.seek(start-2);
 
         // 逐行获取查询结果，并将数据添加到 JSON 数组中
-        while (query.next() && query.at() < end) {
+        while (query.next() /*&& query.at() < end*/) {
             QJsonArray row;
             for (int i = 0; i < columns; i++) {
                 row.append(query.value(i).toString());
@@ -348,7 +374,7 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
         }
     }
 
-    return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,pages);
+    return QSqlReturnMsg(table,sqlCmd.flag(),sqlCmd.tytle(),false,page,totalPage);
 }
 
 CDatabaseManage::CDatabaseManage(QObject *parent):

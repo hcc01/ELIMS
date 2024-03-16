@@ -110,6 +110,7 @@ private:
     QList<int> m_testFieldIDs;
     QList<int> m_testTypeIDs;
     QStringList m_monitoringParameters;//检测项目
+    QHash<QString ,int> m_standardParameterts;//标准检测项目，用于移出检查列表
     QString m_samplingSites;
     QList<int> m_monitoringParameterIDs;//对应ＩＤ
     int m_limitStandardID;//限值ID

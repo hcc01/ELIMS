@@ -18,6 +18,8 @@ public:
     void removeTodo(int row);
     void agreeFlow();
     void loadUser(CUser* user,MainWindow* main);
+    void updateTypes();//MainWindow更新检测类型数据
+    void updateParameters();//MainWindow更新检测参数
     bool pushProcess(QFlowInfo flowInfo, bool passed,const QString& comments);
 signals:
     void dealFLow(const QFlowInfo&, int operateFlag);//发出审核结果信号，由各自的模块继续流程处理。

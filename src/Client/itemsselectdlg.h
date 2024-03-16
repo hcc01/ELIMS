@@ -76,7 +76,7 @@ public:
     explicit itemsSelectDlg(const QStringList&list,const QList<int>&IDlist={},QWidget *parent = nullptr);
     ~itemsSelectDlg();
     static QStringList getSelectedItems(const QStringList& list,const QString&tytle="");
-    static QList<int> getSelectedItemsID(const QStringList& fromList, const QList<int> &IDList, QStringList &selectedList);
+    static QList<int> getSelectedItemsID(const QStringList& fromList, const QList<int> &IDList, QStringList &selectedList, const QString &tytle="");
     static QString getSelectedItem(const QStringList& fromList);
 private slots:
     void on_pushButton_clicked();

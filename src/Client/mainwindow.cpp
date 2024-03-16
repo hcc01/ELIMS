@@ -22,6 +22,7 @@
 #include"samplingscheduleui.h"
 #include"samplecirculationui.h"
 #include"workhoursatistics.h"
+#include"dbmater.h"
 #include<QSettings>
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
@@ -519,5 +520,19 @@ void MainWindow::on_actionVersion_triggered()
 void MainWindow::on_exitAct_triggered()
 {
     exit(0);
+}
+
+
+void MainWindow::on_updateTypeAct_triggered()
+{
+    ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
+    todoUI->updateTypes();
+}
+
+
+void MainWindow::on_updateParameterAct_triggered()
+{
+    ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
+    todoUI->updateParameters();
 }
 

@@ -31,8 +31,9 @@ public:
         return StatusName.value(status);
         }
     ~TaskSheetUI();
-    void submitProcess(int node);//流程推进
+//    void submitProcess(int node);//流程推进
     virtual void initMod()override;//新增模块时初始化操作，建表等。
+    //流程处理窗口
     virtual FlowWidget *flowWidget(const QFlowInfo &flowInfo) override;//如果要处理流程，需要定义一个流速操作窗口，用于显示流程表格、结果处理(窗口会发送pushProcess信息）等
     void initCMD() override;
     //end

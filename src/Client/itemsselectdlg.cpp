@@ -48,9 +48,10 @@ QStringList itemsSelectDlg::getSelectedItems(const QStringList &list, const QStr
     return dlg.m_selectedItems;
 }
 
-QList<int> itemsSelectDlg::getSelectedItemsID(const QStringList &fromList, const QList<int> &IDList, QStringList& selectedList)
+QList<int> itemsSelectDlg::getSelectedItemsID(const QStringList &fromList, const QList<int> &IDList, QStringList& selectedList,const QString&tytle)
 {
     itemsSelectDlg dlg(fromList,IDList);
+    dlg.setWindowTitle(tytle);
     dlg.exec();
     selectedList= dlg.m_selectedItems;
     return dlg.m_selectedIDs;

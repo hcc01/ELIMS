@@ -6,8 +6,7 @@ MethodSelectDlg::MethodSelectDlg(TabWidgetBase *tabWiget) :
     QDialog(tabWiget),
     SqlBaseClass(tabWiget),
     ui(new Ui::MethodSelectDlg),
-    m_methodLoad(false),
-    m_taskSheetID(0)
+    m_methodLoad(false)
 {
     ui->setupUi(this);
     ui->OkBtn->setDisabled(true);
@@ -15,8 +14,9 @@ MethodSelectDlg::MethodSelectDlg(TabWidgetBase *tabWiget) :
     m_methodBox=new ComboBoxDelegate(ui->tableView,{});
 //    ui->tableView->setItemDelegateForColumn(2,m_methodBox);这个在重新加载方法后设置，不然没数据，会出现原方法点击后消失的问题。
     //当用户改变方法时，检查其它项目是否也存在这种方法并确认是否同时改变
-    connect(m_methodBox,&ComboBoxDelegate::selectChanged,[this](const QString&text,const QModelIndex& index){
+    connect(m_methodBox,&ComboBoxDelegate::selectChanged,this,[this](const QString&text,const QModelIndex& index){
         QString preText=ui->tableView->value(index.row(),index.column()).toString();
+        qDebug()<<"index changed:"<<text<<preText;
         if(preText==text) return;
         qDebug()<<QString("%1 -> %2").arg(preText).arg(text);
         int n=0;
@@ -24,18 +24,24 @@ MethodSelectDlg::MethodSelectDlg(TabWidgetBase *tabWiget) :
             if(ui->tableView->value(i,2).toString()==preText&&m_methodBox->boxItems(i,2).contains(text)) {
                 n++;
             }
-            if(n==2) break;
+            if(n==2) break;//有其它项目存在同样的方法，提示是否应用到其它项目
         }
-        qDebug()<<n;
         if(n==2){
             int a=QMessageBox::question(nullptr,"","是否应用到其它项目？");
             if(a==QMessageBox::Yes){
-                for(int i=0;i<ui->tableView->rowCount();i++){
+                qDebug()<<"yes!";
+                int n=ui->tableView->rowCount();
+                for(int i=0;i<n;i++){
                     if(ui->tableView->value(i,2).toString()==preText&&m_methodBox->boxItems(i,2).contains(text)) {
                         ui->tableView->setData(i,2,text);
+                        m_methodBox->setBoxItemsIndex(i,2,text);
                     }
                 }
             }
+            else{
+                qDebug()<<"No!";
+            }
+            qDebug()<<"finished!";
         }
     });
     ComboBoxDelegate* subpackageEditor=new ComboBoxDelegate(ui->tableView,{"否","是"});
@@ -57,15 +63,142 @@ MethodSelectDlg::~MethodSelectDlg()
 
 }
 
-void MethodSelectDlg::setTestInfo(int taskSheetID, QList<TestInfo *> testInfo)
+void MethodSelectDlg::setTestInfo(QList<TestInfo *> testInfo)
 {
     m_testInfo=testInfo;
     m_methodLoad=false;
-    m_taskSheetID=taskSheetID;
+
+}
+
+void MethodSelectDlg::showMethods(const QList<QList<QVariant> > &table)
+{
+    ui->tableView->clear();
+    for(auto line:table){
+        if(line.count()!=6){
+            QMessageBox::information(nullptr,"","显示方法时错误：参数不匹配");
+            return;
+        }
+        ui->tableView->append(line);
+    }
+}
+
+bool MethodSelectDlg::saveMethod(int taskSheetID)
+{
+    if(!taskSheetID){
+        QMessageBox::information(nullptr,"error","无效的任务单ID！");
+        return false;
+    }
+    QString sql;
+    QJsonArray values;
+    QHash<int,QHash<QString,int>>groupOrders;//保存组名的序号
+    int nowOrder=0;
+    int nowType=0;
+
+    qDebug()<<"正在保存方法：";
+    for(int i=0;i<ui->tableView->rowCount();i++){
+        int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
+        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
+
+        QString methodName=ui->tableView->value(i,"检测方法").toString();
+        int methodID=m_methodIDs.value(methodName);
+
+        //如果已经存在方法，则更新，没有，则插入
+        sql+="INSERT INTO type_methods (taskSheetID, testTypeID, parameterID, testMethodID, subpackage, subpackageDesc, CMA, sampleTypes) "
+          "VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY "
+          "UPDATE taskSheetID = VALUES(taskSheetID),testTypeID=Values(testTypeID), parameterID=Values(parameterID), testMethodID=Values(testMethodID), "
+          "subpackage=Values(subpackage), subpackageDesc=Values(subpackageDesc), CMA=Values(CMA);";
+        values.append(taskSheetID);
+        values.append(testTypeID);
+        values.append(parameterID);
+        values.append(methodID?methodID:QJsonValue());
+        values.append(ui->tableView->value(i,"是否分包").toString()=="是"?1:0);
+        values.append(ui->tableView->value(i,"分包原因").toString());
+        values.append(ui->tableView->value(i,"CMA资质").toString()=="是"?1:0);
+        values.append(ui->tableView->value(i,0).toString());
+    }
+    bool error=false;
+    doSql(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"保存方法时出错：",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        sqlFinished();
+    },0,values);
+    waitForSql("正在保存方法");
+    if(error) {
+        return false;
+    }
+    //确认样品分组：
+    for(int i=0;i<ui->tableView->rowCount();i++){
+        int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
+        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
+        QString methodName=ui->tableView->value(i,"检测方法").toString();
+        int methodID=m_methodIDs.value(methodName);
+        int testMod=m_methodGroupInfo.value(methodID).first;
+        if(testMod) {
+            m_sampleGroups[testTypeID][parameterID]=0;//现场测试的项目，序号为0
+            continue;
+        }
+        QString groupName=m_methodGroupInfo.value(methodID).second;
+        if(testTypeID!=nowType){//下一个类型
+            nowType=testTypeID;
+            nowOrder=1;
+        }
+        if(groupName.isEmpty()){
+            groupName=QString::number(methodID);//没有分组的，同一方法自动一组
+        }
+        if(groupOrders.value(testTypeID).contains(groupName)){//判断下这个类型是否已经存在这个组名分组
+            m_sampleGroups[testTypeID][parameterID]=groupOrders.value(testTypeID).value(groupName);
+        }
+        else{
+            m_sampleGroups[testTypeID][parameterID]=nowOrder;//不存在，继续编号
+            groupOrders[testTypeID][groupName]=nowOrder;  //保存当前组名的编号
+            nowOrder++;
+        }
+    }
+    //开始保存样品分组
+    sql="";
+    values={};
+    for (auto it = m_sampleGroups.constBegin(); it != m_sampleGroups.constEnd(); ++it) {
+        int testTypeID = it.key();
+        const QHash<int, int> &innerHash = it.value();
+
+        // 遍历内层的 QHash
+        for (auto innerIt = innerHash.constBegin(); innerIt != innerHash.constEnd(); ++innerIt) {
+            int parameterID = innerIt.key();
+            int sampleOrder = innerIt.value();
+            sql+="update task_parameters set sampleGroup=? where taskSheetID=? and parameterID=? and testTypeID=?;";
+            values.append(sampleOrder);
+            values.append(taskSheetID);
+            values.append(parameterID);
+            values.append(testTypeID);
+        }
+    }
+    doSql(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"保存方法时出错：",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        sqlFinished();
+    },0,values);
+    if(error){
+        return false;
+    }
+    qDebug()<<"方法保存完成。";
+    return true;
+}
+
+void MethodSelectDlg::showMethod(int taskSheetID)
+{
+    if(!taskSheetID) return;
     //显示已经选择的方法：
     QHash<int,QPair<QList<int>,QStringList>> allInfo;//<检测类型：项目IDs，样品类型>
     QHash<int,QHash<int,QString>>parameterNames;//
-    for(auto info:testInfo){
+    for(auto info:m_testInfo){
         QList<int>parameters=info->parametersIDs;
         for(int i=0;i<parameters.count();i++){
             int p=parameters.at(i);
@@ -77,12 +210,12 @@ void MethodSelectDlg::setTestInfo(int taskSheetID, QList<TestInfo *> testInfo)
         if(!allInfo[info->testTypeID].second.contains(info->sampleType)) allInfo[info->testTypeID].second.append(info->sampleType);
     }
     QString sql;
-    sql="select A.testTypeID, A.parameterID, CONCAT(C.methodName,' ', C.methodNumber),CASE when A.CMA=1 THEN '是' ELSE '否' END, "
+    sql="select A.testTypeID, A.parameterID, CONCAT(C.methodName,' ', IFNULL(C.methodNumber,'')),CASE when A.CMA=1 THEN '是' ELSE '否' END, "
           " CASE when A.subpackage=1 THEN '是' ELSE '否' END, A.subpackageDesc "
           "from type_methods as A "
           "left join detection_parameters as B on A.parameterID=B.id "
           "left join test_methods as C on A.testMethodID=C.id "
-          "where A.taskSheetID=?;";
+          "where A.taskSheetID=? order by A.id;";
     ui->tableView->clear();
     doSql(sql,[this, &allInfo, &parameterNames](const QSqlReturnMsg&msg){
         if(msg.error()){
@@ -98,14 +231,15 @@ void MethodSelectDlg::setTestInfo(int taskSheetID, QList<TestInfo *> testInfo)
             int parameterID=row.at(1).toInt();
             QPair<QList<int>,QStringList>parameter;
 
-            if(!allInfo.contains(testTypeID)) continue;//上次没有确认的方法；
+//            if(!allInfo.contains(testTypeID)) continue;//上次没有确认的方法；
             if(allInfo.value(testTypeID).first.contains(parameterID)){//因为方法表可能因为修改导致多作的方法，不进行显示
-                allInfo[testTypeID].first.removeOne(parameterID);//这个项目检查完成，移出列表
-                if(allInfo[testTypeID].first.isEmpty()) allInfo.remove(testTypeID);
                 row[0]=allInfo.value(testTypeID).second.join("/");
                 row[1]=parameterNames.value(testTypeID).value(parameterID);
                 ui->tableView->append(row);
                 addMethod(testTypeID,parameterID,row.at(2).toString());
+                allInfo[testTypeID].first.removeOne(parameterID);//这个项目检查完成，移出列表
+
+                if(allInfo[testTypeID].first.isEmpty()) allInfo.remove(testTypeID);
             }
         }
         sqlFinished();
@@ -114,18 +248,6 @@ void MethodSelectDlg::setTestInfo(int taskSheetID, QList<TestInfo *> testInfo)
     waitForSql();
     if(allInfo.count()){
         QMessageBox::information(nullptr,"","部分项目没有确认方法，请重新加载确认方法。");
-    }
-}
-
-void MethodSelectDlg::showMethods(const QList<QList<QVariant> > &table)
-{
-    ui->tableView->clear();
-    for(auto line:table){
-        if(line.count()!=6){
-            QMessageBox::information(nullptr,"","显示方法时错误：参数不匹配");
-            return;
-        }
-        ui->tableView->append(line);
     }
 }
 
@@ -229,13 +351,9 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                     QString method=QString("%2 %1").arg(row.at(2).toString()).arg(row.at(1).toString());
                     QString cma=row.at(3).toInt()?"是":"否";
                     int methodID=row.at(0).toInt();
-//                    if(!m_MethodMores.contains(methodID)){
-//                        MethodMore *mm=new MethodMore;
-//                        m_MethodMores[methodID]=MethodMorePtr(mm);
-
-//                        mm->testMod=row.at(9).toInt();
-//                        mm->sampleGroup=row.at(10).toString();//这两个地方为了后续保存方法时进行样品分组
-//                    }
+                    if(!m_methodGroupInfo.contains(methodID)){
+                        m_methodGroupInfo[methodID]={row.at(9).toInt(),row.at(10).toString()};//这两个地方为了后续保存方法时进行样品分组
+                    }
                     methods.append(method);
                     methodToID[method]=(methodID);
                     m_methodIDs[method]=(methodID);//记录方法ID表，用于后面VIEW中识别方法ID
@@ -334,47 +452,7 @@ void MethodSelectDlg::on_OkBtn_clicked()
         this->hide();
         return;
     }
-    QString sql;
-    QJsonArray values;
-    if(!m_taskSheetID){
-        QMessageBox::information(nullptr,"error","你需要先保存任务单。");
-        return;
-    }
-    qDebug()<<"正在保存方法：";
-    for(int i=0;i<ui->tableView->rowCount();i++){
-        int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
-        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
 
-        QString methodName=ui->tableView->value(i,"检测方法").toString();
-        int methodID=m_methodIDs.value(methodName);
-
-
-        sql+="INSERT INTO type_methods (taskSheetID, testTypeID, parameterID, testMethodID, subpackage, subpackageDesc, CMA, sampleTypes) "
-          "VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY "
-          "UPDATE taskSheetID = VALUES(taskSheetID),testTypeID=Values(testTypeID), parameterID=Values(parameterID), testMethodID=Values(testMethodID), "
-          "subpackage=Values(subpackage), subpackageDesc=Values(subpackageDesc), CMA=Values(CMA);";
-        values.append(m_taskSheetID);
-        values.append(testTypeID);
-        values.append(parameterID);
-        values.append(methodID?methodID:QJsonValue());
-        values.append(ui->tableView->value(i,"是否分包").toString()=="是"?1:0);
-        values.append(ui->tableView->value(i,"分包原因").toString());
-        values.append(ui->tableView->value(i,"CMA资质").toString()=="是"?1:0);
-        values.append(ui->tableView->value(i,0).toString());
-    }
-    bool error=false;
-    doSql(sql,[this, &error](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(nullptr,"保存方法时出错：",msg.errorMsg());
-            error=true;
-            sqlFinished();
-            return;
-        }
-        sqlFinished();
-    },0,values);
-    waitForSql("正在保存方法");
-    if(error) return;
-    qDebug()<<"方法保存完成。";
     accept();
 }
 
@@ -382,5 +460,12 @@ void MethodSelectDlg::on_OkBtn_clicked()
 void MethodSelectDlg::on_cancelBtn_clicked()
 {
     reject();
+}
+
+
+void MethodSelectDlg::on_clearBtn_clicked()
+{
+    ui->tableView->clear();
+    m_methods.clear();
 }
 

@@ -25,6 +25,8 @@ private slots:
 
     void on_parameterStdBtn_clicked();
 
+    void on_methodDDbtn_clicked();
+
 private:
     Ui::StaticDataManager *ui;
     QStatusBar* statusBar;

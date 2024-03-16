@@ -8,24 +8,32 @@
 #include<QAction>
 #include<QMenu>
 using ActionFuc = std::function<void()>;
+class ComboBox1:public QComboBox{
+    Q_OBJECT
+public:
+    ComboBox1(QWidget* parent=nullptr):
+        QComboBox(parent),
+        manule(true)
+    {
+
+    }
+    bool manule;
+};
+
 class ComboBoxDelegate : public QStyledItemDelegate {
     Q_OBJECT
 public:
     ComboBoxDelegate(QTableView* view, const QStringList&items={}) : QStyledItemDelegate(view),m_items(items) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
-        QComboBox* editor = new QComboBox(parent);
-        connect(editor,&QComboBox::currentTextChanged,[this, index](const QString&text){
+        ComboBox1* editor = new ComboBox1(parent);
 
-//            if(text==preText) return;
-//            if(preText.isEmpty()){
-//                preText=text;return;
-//            }
-//            qDebug()<<text<<preText<<index.row()<<index.column();
-
+        editor->manule=false;
+        connect(editor,&QComboBox::currentTextChanged,[this, index, editor](const QString&text){
+            if(!editor->manule) return;
             emit selectChanged(text,index);
-//            preText=text;
         });
+
         QPair<int,int> p=QPair<int, int>(index.row(),index.column());
 
         if(m_CellItems.contains(p)){
@@ -34,8 +42,8 @@ public:
         else{
             editor->addItems(m_items);
         }
-
-        editor->setCurrentIndex(0);
+        editor->setCurrentIndex(m_CellItemsCurrentText.value(p));
+        editor->manule=true;
         return editor;
     }
 
@@ -56,12 +64,22 @@ public:
     void clearCellItems(){m_CellItems.clear();}
     QHash<QPair<int,int>,QStringList>cellItems()const {return m_CellItems;}
     QStringList boxItems(int row,int column)const{return m_CellItems.value(QPair<int, int>(row,column));}
+    void setBoxItemsIndex(int row,int column,int index){m_CellItemsCurrentText[QPair<int, int>(row,column)]=index;}
+    void setBoxItemsIndex(int row,int column,const QString&str){
+        qDebug()<<"setBoxItemsIndex start";
+        int index;
+        QPair<int,int>p(row,column);
+        index=m_CellItems.value(p).indexOf(str);
+        m_CellItemsCurrentText[p]=index;
+        qDebug()<<"setBoxItemsIndex end";
+    }
 signals:
     void selectChanged(const QString&text,const QModelIndex& )const;
+
 private:
     QStringList m_items;
     QHash<QPair<int,int>,QStringList>m_CellItems;//保存不同单元格的选择项目列表
-
+    QHash<QPair<int,int>,int>m_CellItemsCurrentText;//保存不同单元格的选择项目列表的当前选项
 };
 
 class MyTableView : public QTableView

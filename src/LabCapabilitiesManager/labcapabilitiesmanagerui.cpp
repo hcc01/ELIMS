@@ -138,7 +138,7 @@ void LabCapabilitiesManagerUI::initMod()
     sql=  "create table IF NOT EXISTS test_methods("
           "id int AUTO_INCREMENT primary key, "
           "methodName varchar(128) not null,  "//标准名称
-          "methodNumber varchar(64) , "//标准编号
+          "methodNumber varchar(64) not null default '', "//标准编号
           "testFieldID int not null,"
           "coverage int not null, "//适用范围
           "testingMode int NOT NULL DEFAULT 0 , "//测试方式，0-实验室，1-现场，2-都可测（对于都可测的项目，将默认使用现场测试，并在合同评审时确认。）
