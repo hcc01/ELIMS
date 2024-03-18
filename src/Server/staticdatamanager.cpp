@@ -954,25 +954,43 @@ void StaticDataManager::on_parameterStdBtn_clicked()
 void StaticDataManager::on_methodDDbtn_clicked()//检测方法去重：因为methodNumber为空时导致唯一约束失效，现手动删除重复。
 {
     QSqlQuery query(DB.database());
-    DB.database().transaction();
-    if(!query.exec("select GROUP_CONCAT(  id SEPARATOR ','),methodName from test_methods where methodNumber is null group by methodName")){
+//    DB.database().transaction();
+//    if(!query.exec("select GROUP_CONCAT(  id SEPARATOR ','),methodName from test_methods where methodNumber is null group by methodName")){
+//        QMessageBox::information(nullptr,"查询方法出错：",query.lastError().text());
+//        DB.database().rollback();
+//        return;
+//    }
+//    QStringList allIds;
+//    while (query.next()){
+//        allIds.append(query.value(0).toString());
+//    }
+//    for(auto ids:allIds){
+//        QStringList IDs=ids.split(",");
+//        for(int i=0;i<IDs.count();i++){
+//            int id=IDs.at(i).toInt();
+//            query.exec(QString("delete from method_parameters where methodID=%1").arg(id));
+//            query.exec(QString("delete from test_methods where id=%1").arg(id));
+//        }
+//    }
+//    DB.database().commit();
+    if(!query.exec("select monitoringInfoID, taskSheetID, testTypeID, parameterID, parameterName, reportNum from task_methods as A left join test_task_info as B on A.taskSheetID=B.id where B.deleted=0")){
         QMessageBox::information(nullptr,"查询方法出错：",query.lastError().text());
-        DB.database().rollback();
         return;
     }
-    QStringList allIds;
-    while (query.next()){
-        allIds.append(query.value(0).toString());
-    }
-    for(auto ids:allIds){
-        QStringList IDs=ids.split(",");
-        for(int i=0;i<IDs.count();i++){
-            int id=IDs.at(i).toInt();
-            query.exec(QString("delete from method_parameters where methodID=%1").arg(id));
-            query.exec(QString("delete from test_methods where id=%1").arg(id));
+    while(query.next()){
+        QSqlQuery q(DB.database());
+        q.prepare("insert into task_parameters (taskSheetID,monitoringInfoID,testTypeID,parameterID,parameterName,reportNum) values(?,?,?,?,?,?)");
+        q.addBindValue(query.value("taskSheetID"));
+        q.addBindValue(query.value("monitoringInfoID"));
+        q.addBindValue(query.value("testTypeID"));
+        q.addBindValue(query.value("parameterID"));
+        q.addBindValue(query.value("parameterName"));
+        q.addBindValue(query.value("reportNum"));
+        if(!q.exec()){
+            QMessageBox::information(nullptr,"拷贝参数时出错：",query.lastError().text());
+            return;
         }
     }
-    DB.database().commit();
-
+    QMessageBox::information(nullptr,"","操作完成");
 }
 

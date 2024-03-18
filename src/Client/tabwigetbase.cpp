@@ -10,7 +10,7 @@ TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
     m_view=new MyTableView;
 
-    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间"});
+    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间","修改情况"});
     m_view->resize(800,400);
 }
 
@@ -153,8 +153,13 @@ void TabWidgetBase::showFlowInfo(const QSqlReturnMsg &flowIDsQueryMsg)
                 qDebug()<<row;
                 break;
             }
-            sql="SELECT JSON_EXTRACT(flowInfo, '$.flowName'), CASE WHEN A.operateStatus = 1 THEN '通过' WHEN A.operateStatus = 2 THEN '驳回' ELSE '审批中' END AS '审批结果', A.operateComments, sys_employee_login.name, DATE_FORMAT(A.operateTime,'%Y/%m/%d %H:%i') FROM "
-                  "(select * from (select flowID,operateStatus,operateComments, operatorID, operateTime from flow_operate_records where flowID=?) as T left join flow_records on T.flowID= flow_records.id) as A left join sys_employee_login on A.operatorID=sys_employee_login.id; ";
+            sql="SELECT JSON_EXTRACT(flowInfo, '$.flowName'), "
+                  "CASE WHEN A.operateStatus = 1 THEN '通过' WHEN A.operateStatus = 2 THEN '驳回' ELSE '审批中' END AS '审批结果', "
+                  "A.operateComments, sys_employee_login.name, DATE_FORMAT(A.operateTime,'%Y/%m/%d %H:%i'),A.revisionNotes "
+                  "FROM flow_operate_records as A "
+                  "left join flow_records as B on A.flowID= B.id "
+                  "left join sys_employee_login on A.operatorID=sys_employee_login.id "
+                  "where A.flowID=? ";
 
             doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
                 if(msg.error()){
@@ -227,8 +232,12 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         sql+="insert into flow_operate_records(flowID,operatorID) values(@flowID,?);";
         values.append(id);
     }
-    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+    bool error=false;
+    connectDB(CMD_START_Transaction);
+    doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
         if(msg.error()){
+            releaseDB(CMD_ROLLBACK_Transaction);
+            error=true;
             QMessageBox::information(nullptr,"新建流程出错：",msg.result().toString());
 //            emit sqlFinished();
             sqlEnd();
@@ -238,11 +247,13 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         sqlEnd();
     },0,values);
     waitForSql();
-
+    if(error) return 0;
     sql="select @flowID;";
 
-    doSqlQuery(sql,[this, &ret](const QSqlReturnMsg&msg){
+    doSqlQuery(sql,[this, &ret, &error](const QSqlReturnMsg&msg){
         if(msg.error()){
+            releaseDB(CMD_ROLLBACK_Transaction);
+            error=true;
             QMessageBox::information(nullptr,"获取流程ID出错：",msg.result().toString());
 //            emit sqlFinished();
             sqlEnd();
@@ -250,6 +261,8 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         }
         QList<QVariant>r=msg.result().toList();
         if(r.count()!=2){
+            releaseDB(CMD_ROLLBACK_Transaction);
+            error=true;
             QMessageBox::information(nullptr,"获取流程ID出错：","无法获取ID。");
 //            emit sqlFinished();
             sqlEnd();
@@ -260,11 +273,14 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         sqlEnd();
     });
     waitForSql();
+    if(error) return 0;
     //更新流程记录
     if(ret&&!tableName.isEmpty()){
         sql=QString("insert into %1(%2,%3) values(?,?);").arg(tableName).arg(identityColumn).arg(flowIDColumn);
-        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+        doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
             if(msg.error()){
+                releaseDB(CMD_ROLLBACK_Transaction);
+                error=true;
                 QMessageBox::information(nullptr,"更新流程记录出错：",msg.result().toString());
                 sqlEnd();
                 return;
@@ -273,6 +289,8 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
         },0,{identityValue,ret});
     }
     waitForSql();
+    if(error) return 0;
+    releaseDB(CMD_COMMIT_Transaction);
     //通知操作人员待办消息
 
     return ret;//传回所建流程ID，让发送者进行下一步处理

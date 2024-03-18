@@ -27,7 +27,7 @@ public:
               {SAMPLING,"采样"},{TESTING,"分析"},{REPORT_COMPILATION,"报告编制"},{REPORT_REVIEW1,"报告初审"},
                {REPORT_REVIEW2,"报告审核"},{REPORT_REVIEW3,"报告签发"},{REPORT_MODIFY,"报告修改"},{REPORT_ARCHIVING,"报告归档"},
                 {FINISHED,"完结"},{SAMPLE_CIRCULATION,"样品流转"}
-};
+            };
         return StatusName.value(status);
         }
     ~TaskSheetUI();
@@ -36,7 +36,6 @@ public:
     //流程处理窗口
     virtual FlowWidget *flowWidget(const QFlowInfo &flowInfo) override;//如果要处理流程，需要定义一个流速操作窗口，用于显示流程表格、结果处理(窗口会发送pushProcess信息）等
     void initCMD() override;
-    //end
     bool updateTaskStatus(int taskID, int status);
     TaskSheetEditor* sheetEditorDlg(int openMode=TaskSheetEditor::NewMode);
     void viewTaskSheet(const QString &taskSheetNum);
@@ -62,11 +61,16 @@ private slots:
 
 //    void on_printLabelBtn_clicked();
 
+    void on_filterBox_currentIndexChanged(int index);
+
+    void on_findEdit_returnPressed();
+
 private:
     Ui::TaskSheetUI *ui;
     TaskSheetEditor* m_sheet;
     QHash<QString,int>m_taskIDs;
     ContractReviewDlg m_contractReviewDlg;
+    bool manual;
 };
 
 #endif // TASKSHEETUI_H

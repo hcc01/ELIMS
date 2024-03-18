@@ -257,49 +257,18 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
     DB.doLog(QString("用户正在使用%1连接数据库:%2").arg(db.connectionName()).arg(QJsonDocument(sqlCmd.jsCmd()).toJson(QJsonDocument::Compact)),DEBUG_MSG,userID);
     int page=sqlCmd.queryPage();
     int totalPage=1;
-    if(sqlCmd.useBindMod()){//增加了使用格式化的查询模式
-//        _db.transaction();
-        QStringList sqls=sql.split(";");
+    QJsonArray values=sqlCmd.getBindValues();
 
-        static QRegularExpression re("\\?");
-        int nowPos=0;
-        QJsonArray values=sqlCmd.getBindValues();
-
-        qDebug()<<"bindValues:"<<values;
-        for(auto s:sqls){
-            if(s.isEmpty()) continue;
-            query.clear();
-            QRegularExpressionMatchIterator i = re.globalMatch(s);
-            int parameterCount = 0;
-            while (i.hasNext()) {
-                i.next();
-                ++parameterCount;
-            }
-            if(nowPos+parameterCount>values.count()){
-                return QSqlReturnMsg("参数数量不匹配",sqlCmd.flag(),sqlCmd.tytle(),true);
-            }
-            query.prepare(s);
-            qDebug()<<s;
-            for(int i=nowPos;i<nowPos+parameterCount;i++){
-                query.bindValue(i-nowPos,values.at(i).toVariant());
-                qDebug()<<values.at(i).toVariant();
-            }
-
-            if(!query.exec()){
-                _lastError=query.lastError().text();
-                //            _db.rollback();
-                return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
-            }
-            nowPos+=parameterCount;
-
-        }
-
-    }
-    else if(sqlCmd.queryPage()){//分页查询
+    if(page&&(sql.indexOf("SELECT")!=-1||sql.indexOf("select")!=-1)){//分页查询
         sql.replace(";"," ");//分页查询不能有分号，不能多个同时查询。
+
         //先获取总页数：
         QString str=QString("SELECT COUNT(*) FROM ( %1 ) as subquery;").arg(sql);
-        if(!query.exec(str)){
+        query.prepare(str);
+        for(auto v:values){
+            query.addBindValue(v.toVariant());
+        }
+        if(!query.exec()){
             _lastError=query.lastError().text();
             return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
         }
@@ -314,23 +283,69 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
 //        str=QString("WITH PaginatedResults AS ( SELECT *, ROW_NUMBER() OVER (ORDER BY B.id) AS rn FROM ( %1 ) AS subquery)"
 //                      "SELECT * FROM PaginatedResults WHERE rn BETWEEN %2 AND %3").arg(sql).arg((page-1)*ITEMS_PER_PAGE+1).arg(page*ITEMS_PER_PAGE);
         str=sql+QString(" LIMIT %1 OFFSET %2").arg(ITEMS_PER_PAGE).arg((page-1)*ITEMS_PER_PAGE);
-        if(!query.exec(str)){
+        query.prepare(str);
+        for(auto v:values){
+            query.addBindValue(v.toVariant());
+        }
+        if(!query.exec()){
             _lastError=query.lastError().text();
             return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
         }
     }
     else{
-        QStringList sqls=sql.split(";");
-        for(auto s:sqls){
-            if(s.isEmpty()) continue;
-            query.clear();
-            if(!query.exec(s)){
-                _lastError=query.lastError().text();
-                return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+        if(sqlCmd.useBindMod()){//增加了使用格式化的查询模式
+    //        _db.transaction();
+            QStringList sqls=sql.split(";");
+
+            static QRegularExpression re("\\?");
+            int nowPos=0;
+            QJsonArray values=sqlCmd.getBindValues();
+
+            qDebug()<<"bindValues:"<<values;
+            for(auto s:sqls){
+                if(s.isEmpty()) continue;
+                query.clear();
+                QRegularExpressionMatchIterator i = re.globalMatch(s);
+                int parameterCount = 0;
+                while (i.hasNext()) {
+                    i.next();
+                    ++parameterCount;
+                }
+                if(nowPos+parameterCount>values.count()){
+                    return QSqlReturnMsg("参数数量不匹配",sqlCmd.flag(),sqlCmd.tytle(),true);
+                }
+                query.prepare(s);
+                qDebug()<<s;
+                for(int i=nowPos;i<nowPos+parameterCount;i++){
+                    query.bindValue(i-nowPos,values.at(i).toVariant());
+                    qDebug()<<values.at(i).toVariant();
+                }
+
+                if(!query.exec()){
+                    _lastError=query.lastError().text();
+                    //            _db.rollback();
+                    return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+                }
+                nowPos+=parameterCount;
+
             }
+
         }
 
+        else{
+            QStringList sqls=sql.split(";");
+            for(auto s:sqls){
+                if(s.isEmpty()) continue;
+                query.clear();
+                if(!query.exec(s)){
+                    _lastError=query.lastError().text();
+                    return QSqlReturnMsg(_lastError,sqlCmd.flag(),sqlCmd.tytle(),true);
+                }
+            }
+
+        }
     }
+
     QJsonArray table;
     QSqlRecord record=query.record();
     QJsonArray row;

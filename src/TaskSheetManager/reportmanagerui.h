@@ -28,10 +28,12 @@ private slots:
 
     void on_splitBtn_clicked();
 
-    void on_sortTypeBox_currentIndexChanged(int index);
+
+    void on_searchEdit_returnPressed();
 
 private:
     Ui::ReportManagerUI *ui;
+    bool manual;
 };
 
 #endif // REPORTMANAGERUI_H

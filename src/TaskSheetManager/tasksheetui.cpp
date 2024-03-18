@@ -8,9 +8,16 @@
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::TaskSheetUI),
-    m_sheet(nullptr)
+    m_sheet(nullptr),
+    manual(true)
 {
     ui->setupUi(this);
+    manual=false;
+    ui->filterBox->clear();
+    for(int i=0;i<=FINISHED;i++){
+        ui->filterBox->addItem(getStatusName(i));
+    }
+    manual=true;
     ui->tableView->setHeader({"任务单号","录单员","业务员" ,"委托单位","受检单位","项目名称","当前状态","委托类型"});
     ui->tableView->addContextAction("编辑",[this](){
 
@@ -161,7 +168,7 @@ void TaskSheetUI::initMod()
             "subpackage TINYINT NOT NULL DEFAULT 1,"//是否允许分包说明
            "otherRequirements VARCHAR(255),"//其它要求
            "remarks VARCHAR(255),"//备注
-           "taskStatus  int, "          //任务状态
+           "taskStatus  int not null default 0, "          //任务状态
            "creator  varchar(32),"//创建人
           "createDate datetime, "//创建时间
           "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
@@ -565,7 +572,7 @@ void TaskSheetUI::submitReview(int sheetID,const QString&taskNum,bool DeliveryTe
     flowInfo.setFlowAbs(taskNum);
     flowInfo.setNode(REVIEW);//
     flowInfo.setBackNode(MODIFY);
-    if(DeliveryTest) flowInfo.setNextNode(TESTING);//送样分析，直接到分析节点
+    if(DeliveryTest) flowInfo.setNextNode(SAMPLE_CIRCULATION);//送样分析，进入流转节点
     else flowInfo.setNextNode(SCHEDULING);//采样分析，下一步采样安排
     QList<int>operateorIDs;//操作人员的ID列表
     //找到任务单审核人员，由技术负责人或质量负责人或实验室主管负责审核任务单
@@ -803,4 +810,85 @@ void TaskSheetUI::on_submitBtn_clicked()
 
 //    }
 //}
+
+
+void TaskSheetUI::on_filterBox_currentIndexChanged(int index)
+{
+    if(!manual) return;
+    ui->tableView->clear();
+    m_taskIDs.clear();
+    QString sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus , sampleSource,A.id "
+                          "from test_task_info  as A "
+                          "left join users on A.salesRepresentative=users.id "
+                          "where creator='%1' and deleted!=1 and taskStatus=%2 ORDER BY createDate DESC;").arg(user()->name()).arg(ui->filterBox->currentIndex());
+    if(user()->position()&(CUser::LabManager|CUser::LabSupervisor))
+        sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus ,sampleSource ,A.id "
+                      "from test_task_info as A "
+                      "left join users on A.salesRepresentative=users.id   "
+                      "where deleted!=1 and taskStatus=%1 ORDER BY createDate DESC;").arg(ui->filterBox->currentIndex());
+    DealFuc f=[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
+                return;
+            }
+            QList<QVariant> r=msg.result().toList();
+            ui->tableView->clear();
+            for(int i=1;i<r.count();i++){
+                QList<QVariant>row=r.at(i).toList();
+                int status=row.at(6).toInt();
+                row[6]=getStatusName(status);
+                if(row.at(7).toBool()){
+                    row[7]="送样检测";
+                }
+                else row[7]="采样检测";
+                ui->tableView->append(row);
+                ui->tableView->setCellFlag(i-1,6,status);
+                m_taskIDs[row.at(0).toString()]=row.at(8).toInt();
+            }
+            qDebug()<<msg.jsCmd();
+    };
+    ui->pageCtrl->startSql(this,sql,1,{},f);
+}
+
+
+void TaskSheetUI::on_findEdit_returnPressed()
+{
+    QStringList findType={"taskNum","clientName","inspectedEentityName","inspectedProject"};
+    QString what=ui->findEdit->text();
+    if(what.isEmpty()) return;
+    QString sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus , sampleSource,A.id "
+                          "from test_task_info  as A "
+                          "left join users on A.salesRepresentative=users.id "
+                          "where creator='%1' and deleted!=1 and %2 like '%%3%'"
+                          "ORDER BY createDate DESC;").arg(user()->name()).arg(findType.at(ui->findTypeBox->currentIndex())).arg(what);
+    if(user()->position()&(CUser::LabManager|CUser::LabSupervisor))
+        sql=QString("SELECT taskNum, creator, users.name, clientName, inspectedEentityName, inspectedProject, taskStatus ,sampleSource ,A.id "
+                      "from test_task_info as A "
+                      "left join users on A.salesRepresentative=users.id   "
+                      "where deleted!=1 and %1 like '%%2%' "
+                      "ORDER BY createDate DESC;").arg(findType.at(ui->findTypeBox->currentIndex())).arg(what);
+    DealFuc f=[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(this,"获取任务单信息失败",msg.result().toString());
+                return;
+            }
+            QList<QVariant> r=msg.result().toList();
+            ui->tableView->clear();
+            for(int i=1;i<r.count();i++){
+                QList<QVariant>row=r.at(i).toList();
+                int status=row.at(6).toInt();
+                row[6]=getStatusName(status);
+                if(row.at(7).toBool()){
+                    row[7]="送样检测";
+                }
+                else row[7]="采样检测";
+                ui->tableView->append(row);
+                ui->tableView->setCellFlag(i-1,6,status);
+                m_taskIDs[row.at(0).toString()]=row.at(8).toInt();
+            }
+            qDebug()<<msg.jsCmd();
+    };
+    ui->pageCtrl->startSql(this,sql,1,{},f);
+
+}
 

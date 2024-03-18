@@ -161,7 +161,7 @@ void SamplingScheduleUI::updateScheduledView()
 {
     QString sql;
     sql="select A.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, A.remark,scheduler ,A.taskSheetID from "
-          "samplingSchedul as A left join test_task_info as B on  A.taskSheetID=B.id where B.deleted=0 order by schedulTime desc ;";
+          "samplingSchedul as A left join test_task_info as B on  A.taskSheetID=B.id where B.deleted=0 and B.taskStatus<? order by startDate ;";
     ui->pageCtrl2->startSql(this,sql,1,{TaskSheetUI::SAMPLING},[this](const QSqlReturnMsg&msg){
         QList<QVariant>r=msg.result().toList();
         ui->taskScheduledView->clear();

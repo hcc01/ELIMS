@@ -30,11 +30,6 @@
       <widget class="QComboBox" name="searchTypeBox">
        <item>
         <property name="text">
-         <string>按报告编号</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
          <string>按任务单号</string>
         </property>
        </item>

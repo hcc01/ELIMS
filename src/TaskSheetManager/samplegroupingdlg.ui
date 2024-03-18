@@ -151,7 +151,7 @@
         <item>
          <widget class="QLabel" name="label_4">
           <property name="text">
-           <string>选择周期：</string>
+           <string>采样持续天数：</string>
           </property>
          </widget>
         </item>

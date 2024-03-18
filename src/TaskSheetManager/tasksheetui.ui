@@ -24,10 +24,10 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit"/>
+      <widget class="QLineEdit" name="findEdit"/>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox_3">
+      <widget class="QComboBox" name="findTypeBox">
        <item>
         <property name="text">
          <string>按任务单号</string>
@@ -58,7 +58,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox_2">
+      <widget class="QComboBox" name="filterBox">
        <item>
         <property name="text">
          <string>待处理</string>
