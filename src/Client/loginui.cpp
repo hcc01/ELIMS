@@ -5,13 +5,14 @@
 #include"../../depends/MessageHeader.h"
 #include<QFile>
 #include<QDebug>
-LoginUI::LoginUI(QWidget *parent) :
+LoginUI::LoginUI(QString company, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::LoginUI)
 {
     ui->setupUi(this);
 //    setWindowFlags(Qt::FramelessWindowHint | Qt::Tool);
     setWindowTitle("请登录:");
+    ui->comLabel->setText(company);
     QFile file("./users");
     if(!file.open(QFile::ReadOnly)) return;
     QString user=file.readAll();

@@ -7,20 +7,20 @@
     <x>0</x>
     <y>0</y>
     <width>301</width>
-    <height>165</height>
+    <height>160</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <property name="topMargin">
       <number>1</number>
      </property>
      <item row="1" column="1">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="comLabel">
        <property name="font">
         <font>
          <family>华文楷体</family>
@@ -28,7 +28,7 @@
         </font>
        </property>
        <property name="text">
-        <string>厦门市政南方海洋检测有限公司</string>
+        <string/>
        </property>
       </widget>
      </item>
@@ -51,7 +51,7 @@
      <item row="1" column="0" rowspan="2">
       <widget class="QLabel" name="label_5">
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/iamge/pic/logo.png);</string>
+        <string notr="true">border-image: url(./logo.png);</string>
        </property>
        <property name="text">
         <string/>

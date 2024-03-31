@@ -621,7 +621,7 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
 
     },0,{m_taskSheetID});
     waitForSql("载入检测信息...");
-
+    m_userOpereate=true;
 /*
     m_userOpereate=true;
     QList<QVariant>r;

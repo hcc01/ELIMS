@@ -4,5 +4,6 @@
     </qresource>
     <qresource prefix="/iamge">
         <file>pic/logo.png</file>
+        <file>pic/logo1.png</file>
     </qresource>
 </RCC>

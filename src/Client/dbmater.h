@@ -13,6 +13,7 @@ public:
         return dm;
     }
     QSqlDatabase database(){return m_db;}
+    int getParameterID(const QString&parameterName);
 private:
     explicit DBMater(QObject *parent = nullptr);
 

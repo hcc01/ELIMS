@@ -72,6 +72,7 @@ private:
     QDialog _waitDlg;
     CUser* m_user;
     QHash<QString,TabWidgetBase*>m_modules;//模块集，对于非交互界面的模块操作，创建的模块放在这里。
+    QString m_company;
 
 };
 #endif // MAINWINDOW_H

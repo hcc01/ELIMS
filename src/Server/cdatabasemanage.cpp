@@ -43,7 +43,7 @@ void CDatabaseManage::connectDb(QString dataBase)
     qDebug()<<"db opened";
     _dbOpen=true;
     QSqlQuery query(_db);
-
+    query.exec(QString("use %1").arg(dataBase));
     if(!query.exec("create table if not exists sys_employee_login (id int not null auto_increment, name  char(32) not null unique, password  char(32),last_login_time datetime ,last_login_ip char(16), primary key (id)  );")){
         qDebug()<<"query error:"<<query.lastError().text();
     }
@@ -250,9 +250,10 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
         if(!db.isOpen()){
             DB.doLog("用户数据库异常，sql: "+sql,ERROR_MSG,userID);
         }
-        db.exec(QString("use %1").arg(m_dataBaseName));
+
     }
     else db=_db;
+    db.exec(QString("use %1").arg(m_dataBaseName));
     QSqlQuery query(db);
     DB.doLog(QString("用户正在使用%1连接数据库:%2").arg(db.connectionName()).arg(QJsonDocument(sqlCmd.jsCmd()).toJson(QJsonDocument::Compact)),DEBUG_MSG,userID);
     int page=sqlCmd.queryPage();
@@ -402,13 +403,12 @@ CDatabaseManage::CDatabaseManage(QObject *parent):
     if(!set.value("Database").isValid()){
         set.setValue("Database","elims");
         Database="elims";
-        qDebug()<<"set.is not exist";
     }
     else{
-        Database=set.value("Database","elims").toString();
-        qDebug()<<"set is exist";
+        Database=set.value("Database").toString();
+        qDebug()<<"Database"<<Database;
     }
-
+    qDebug()<<"use database:"<<Database;
     connectDb(Database);
 }
 

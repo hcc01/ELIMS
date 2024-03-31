@@ -110,7 +110,6 @@ void DBManagerUI::on_comboBox_currentTextChanged(const QString &arg1)
 
 void DBManagerUI::initCMD()
 {
-    doSqlQuery("use elims");
     doSqlQuery("show tables",[this](const QSqlReturnMsg&msg){
         QJsonArray a=msg.result().toJsonArray();
                 qDebug()<<"BManagerUI::onSqlReturn: result="<<a;

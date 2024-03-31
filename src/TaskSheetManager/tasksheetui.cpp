@@ -299,34 +299,34 @@ void TaskSheetUI::initMod()
         }
     });
 
-    //方法评审表(报告编号也在这个表中保存，方便按类型、资质、分包情况进行分包）这个表作废！
-    sql="CREATE TABLE IF NOT EXISTS task_methods("
-           "id int AUTO_INCREMENT primary key, "//
-           "monitoringInfoID int not null, "//监测信息ID
-           "taskSheetID int not null,"//任务单ID
-           "testTypeID int not null , "//检测类型ID
-           "parameterID int not null, "               //检测参数ID
-           "parameterName VARCHAR(16) not null, "   //检测参数名称
-           "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
-           "testMethodName  VARCHAR(100), "         //检测方法名称
-           "fieldTesting  TINYINT NOT NULL DEFAULT 0, "          //是否现场测试
-           "sampleGroup int DEFAULT -1, "           //样品组
-           "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
-           "subpackageDesc VARCHAR(255),"//分包说明
-            "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
-           "reportNum varchar(32), "
-          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
-           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
-           "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
-           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
-           "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
-           ");";
-    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(this,"task_methods error",msg.result().toString());
-            return;
-        }
-    });
+//    //方法评审表(报告编号也在这个表中保存，方便按类型、资质、分包情况进行分包）这个表作废！
+//    sql="CREATE TABLE IF NOT EXISTS task_methods("
+//           "id int AUTO_INCREMENT primary key, "//
+//           "monitoringInfoID int not null, "//监测信息ID
+//           "taskSheetID int not null,"//任务单ID
+//           "testTypeID int not null , "//检测类型ID
+//           "parameterID int not null, "               //检测参数ID
+//           "parameterName VARCHAR(16) not null, "   //检测参数名称
+//           "testMethodID  int , "    //检测方法ID，此部分往下为后续方法评审时保存数据
+//           "testMethodName  VARCHAR(100), "         //检测方法名称
+//           "fieldTesting  TINYINT NOT NULL DEFAULT 0, "          //是否现场测试
+//           "sampleGroup int DEFAULT -1, "           //样品组
+//           "subpackage TINYINT NOT NULL DEFAULT 0, "          //是否分包
+//           "subpackageDesc VARCHAR(255),"//分包说明
+//            "CMA TINYINT NOT NULL DEFAULT 0,"//是否在资质范围内
+//           "reportNum varchar(32), "
+//          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+//           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
+//           "FOREIGN KEY (testTypeID) REFERENCES test_type (id), "
+//           "FOREIGN KEY (parameterID) REFERENCES detection_parameters (id), "
+//           "FOREIGN KEY (testMethodID) REFERENCES method_parameters (id)"
+//           ");";
+//    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+//        if(msg.error()){
+//            QMessageBox::information(this,"task_methods error",msg.result().toString());
+//            return;
+//        }
+//    });
     //合同评审记录表：
     sql="CREATE TABLE IF NOT EXISTS contract_review_info("
           "id int AUTO_INCREMENT primary key, "//
@@ -341,11 +341,11 @@ void TaskSheetUI::initMod()
             return;
         }
     });
-    //样品采集信息表：
+    //样品采集信息表：包括交接表
     sql="CREATE TABLE IF NOT EXISTS sampling_info("
           "id int AUTO_INCREMENT primary key, "//
           "monitoringInfoID int not null,"//监测信息ID
-          "samplingSiteName varchar(64),"
+//          "samplingSiteName varchar(64),"
           "samplingRound  int default 1, "
           "samplingPeriod  int default 1, "
           "sampleOrder int, "
@@ -353,6 +353,10 @@ void TaskSheetUI::initMod()
           "samplingParameters json,"
           "samplers varchar(12),"
           "siteOrder int, "
+          "deleiver varchar(16) ,"
+          "receiver varchar(16), "
+          "receiveTime DateTime, "
+          "taskNum varchar(32),"//任务单号
           "UNIQUE (monitoringInfoID, samplingRound,samplingPeriod,sampleOrder),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id) "
           ");";
@@ -363,23 +367,23 @@ void TaskSheetUI::initMod()
         }
     });
 
-        //样品流转表：
-        sql="CREATE TABLE IF NOT EXISTS sample_circulate("
-          "id int AUTO_INCREMENT primary key, "//
-          "taskNum varchar(32) not null,"//任务单号
-          "sampleNum varchar(32) unique,"//样品编号
-          "deleiver varchar(16) ,"
-          "receiver varchar(16), "
-          "receiveTime DateTime, "
-          "tasksheetID int,"
-          "FOREIGN KEY (tasksheetID) REFERENCES test_task_info (id) "
-          ");";
-    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
-        if(msg.error()){
-            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sample_circulate",msg.result().toString());
-            return;
-        }
-    });
+//        //样品流转表：
+//        sql="CREATE TABLE IF NOT EXISTS sample_circulate("
+//          "id int AUTO_INCREMENT primary key, "//
+//          "taskNum varchar(32) not null,"//任务单号
+//          "sampleNum varchar(32) unique,"//样品编号
+//          "deleiver varchar(16) ,"
+//          "receiver varchar(16), "
+//          "receiveTime DateTime, "
+//          "tasksheetID int,"
+//          "FOREIGN KEY (tasksheetID) REFERENCES test_task_info (id) "
+//          ");";
+//    doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
+//        if(msg.error()){
+//            QMessageBox::information(this,"CREATE TABLE IF NOT EXISTS sample_circulate",msg.result().toString());
+//            return;
+//        }
+//    });
     //报告审批状态表：
     sql="CREATE TABLE IF NOT EXISTS report_status("
           "id int AUTO_INCREMENT primary key, "//
@@ -684,9 +688,25 @@ bool TaskSheetUI::on_tasksheetEditBtn_clicked()//编辑任务单
     int status=ui->tableView->cellFlag(row,6).toInt();
     if(user()->name()!=ui->tableView->value(row,1).toString()) return false;//非本人不可编辑
     qDebug()<<status;
-    if(status!=CREATE&&status!=MODIFY) {
-        QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
+    if(status>SCHEDULING) {
+        QMessageBox::information(nullptr,"","已经开始的任务不能修改。");
         return false;//提交审核后，任务单锁定不能编辑
+    }
+
+    if(status!=CREATE&&status!=MODIFY){
+        //更新任务单状态为修改
+        bool error=false;
+        doSqlQuery("update test_task_info set taskStatus=? where taskNum=?",[this, &error](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更改任务单状态时出错：",msg.errorMsg());
+                sqlFinished();
+                error=true;
+                return;
+            }
+            sqlFinished();
+        });
+        waitForSql();
+        if(error) return false;
     }
     taskNum=ui->tableView->value(row,0).toString();
     TaskSheetEditor* sheet=sheetEditorDlg(TaskSheetEditor::EditMode);
@@ -709,7 +729,14 @@ void TaskSheetUI::on_tasksheetViewBtn_clicked()
 
 void TaskSheetUI::on_tableView_doubleClicked(const QModelIndex &index)
 {
-    if(!on_tasksheetEditBtn_clicked()) on_tasksheetViewBtn_clicked();
+    int row=ui->tableView->selectedRow();
+    if(row<0) return ;
+    int status=ui->tableView->cellFlag(row,6).toInt();
+    if(status!=CREATE&&status!=MODIFY){
+        if(!on_tasksheetEditBtn_clicked()) on_tasksheetViewBtn_clicked();
+        return;
+    }
+    on_tasksheetViewBtn_clicked();
 }
 
 
@@ -721,9 +748,9 @@ void TaskSheetUI::on_deleteBtn_clicked()
     int status=ui->tableView->cellFlag(row,6).toInt();
     if(user()->name()!=ui->tableView->value(row,1).toString()) return ;//非本人不可编辑
     qDebug()<<status;
-    if(status!=CREATE&&status!=MODIFY) {
-        QMessageBox::information(nullptr,"","已提交的任务单不能编辑。");
-        return ;//提交审核后，任务单锁定不能编辑
+    if(status>WAIT_SAMPLING) {
+        QMessageBox::information(nullptr,"","任务单已经开始执行，无法删除。");
+        return ;
     }
     taskNum=ui->tableView->value(row,0).toString();
     int a=QMessageBox::question(nullptr,"",QString("确认删除任务单%1").arg(taskNum));

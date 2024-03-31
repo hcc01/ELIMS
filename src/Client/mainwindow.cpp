@@ -97,6 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
     //实验室主管
     if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
         ui->btEmployeeManage->show();
+        ui->workHourStatisticsBtn->show();
     }
     //采样和采样组长
     if(m_user->position()&(CUser::Sampler|CUser::SamplerLeader)){
@@ -137,6 +138,13 @@ void MainWindow::DoConnect()
     QSettings set("settings",QSettings::IniFormat);
 
     QHostInfo info = QHostInfo::fromName("127.0.0.1");
+    if(set.value("company").isValid()){
+        m_company=set.value("company").toString();
+    }
+    else{
+        set.setValue("company","实验室信息管理系统");
+        m_company="实验室信息管理系统";
+    }
     if(set.value("server/ip").isValid()){
         info= QHostInfo::fromName(set.value("server/ip").toString());
     }
@@ -172,7 +180,7 @@ void MainWindow::DoLogin()
     static bool logining=false;
     if(logining) return;
     logining=true;
-    LoginUI loginUI;
+    LoginUI loginUI(m_company);
     connect(&loginUI,&LoginUI::login,this,[&](const QString& id, const QString& password){
         netmsg_Login msgLogin;
         memcpy(msgLogin.userName,id.toUtf8().data(),32);
@@ -180,6 +188,7 @@ void MainWindow::DoLogin()
         _clientSocket.SendData(&msgLogin);
     });
     connect(this,&MainWindow::loginResult,&loginUI, &LoginUI::onLoginResult);
+
     loginUI.exec();
     logining=false;
 }
@@ -235,7 +244,7 @@ void MainWindow::onNestMsg(netmsg_DataHeader *header)
         else{
             m_user->reset(lr->name,lr->position);
         }
-        setWindowTitle(QString("%1 -厦门市政南方海洋检测有限公司").arg(lr->name));
+        setWindowTitle(QString("%1 -&2").arg(lr->name).arg(m_company));
 
     }
         break;
@@ -513,7 +522,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.4.0");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.4.5");
 }
 
 

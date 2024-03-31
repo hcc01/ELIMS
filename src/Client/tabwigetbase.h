@@ -57,7 +57,7 @@ public:
     virtual FlowWidget* flowWidget(const QFlowInfo &flowInfo){return nullptr;}//用于流程审批的窗口，各模块自定义
     void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
     int submitFlow(const QFlowInfo& flowInfo, QList<int> operatorIDs,const QString& identityValue,int operatorCount=1, const QString&tableName="all_flows",
-                   const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID");
+                   const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID",const QString& remark="");
     QWidget* showFlowRecord(const QString& identityValue, const QString &tableName="all_flows", const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID");
     void setUser(CUser* user){m_user=user;}
     void setTabName(const QString&name){m_tabName=name;}

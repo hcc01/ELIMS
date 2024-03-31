@@ -1,13 +1,16 @@
 #include "samplegroupingdlg.h"
 
 #include "qcalendarwidget.h"
+#include "qpainter.h"
 #include "tasksheetui.h"
 #include "ui_samplegroupingdlg.h"
 #include"itemsselectdlg.h"
-#include"QExcel.h"
+#include"exceloperator.h"
 #include "QZXing.h"
 #include<QDir>
 #include"dbmater.h"
+#include<QFileDialog>
+#include<QScreen>
 SampleGroupingDlg::SampleGroupingDlg(TabWidgetBase *parent) :
     QDialog(parent),
     SqlBaseClass(parent),
@@ -328,6 +331,7 @@ void SampleGroupingDlg::initNum(const QDate&dateStart,int days)
         QString sql;
         int order=0;
         //按所给采样日期的采样任务单顺序编号
+        //先确认下这个日期中已经安排的任务单
         sql="select taskSheetID,number from sampling_task_order "
               "where samplingDate=?";
         doSql(sql,[this, &r, &error](const QSqlReturnMsg&msg){
@@ -347,15 +351,15 @@ void SampleGroupingDlg::initNum(const QDate&dateStart,int days)
         QHash<int,int>nums;
         for(int i=1;i<r.count();i++){
             QList<QVariant>row=r.at(i).toList();
-            nums[row.at(0).toInt()]=row.at(1).toInt();
+            nums[row.at(0).toInt()]=row.at(1).toInt();//记录各个任务单的编号
         }
         if(nums.contains(m_taskSheetID)){
-            order=nums.value(m_taskSheetID);
+            order=nums.value(m_taskSheetID);//如果任务单已经编号，使用该编号（这种情况出现在前天有采样的情况）
         }
         else{
             QList<int> usedOrders=nums.values();
             int i=1;
-            while (usedOrders.contains(i)) {
+            while (usedOrders.contains(i)) {//从1开始，看看哪个编号没有使用，就用哪个号
                 i++;
             }
             order=i;
@@ -407,7 +411,7 @@ QString SampleGroupingDlg::testTypeNum(int testTypeID, int start)
     }
     qDebug()<<QString(("select testType from test_type where id=%1;")).arg(testTypeID);
     if(!query.next()){
-        QMessageBox::information(nullptr,"error","未找到检测类型。");
+        QMessageBox::information(nullptr,"error",QString("未找到检测类型,id:%1。").arg(testTypeID));
         return "";
     }
     testType=query.value(0).toString();
@@ -746,10 +750,10 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
 //                        showedNum=QString("%1%2%3%4%5").arg(clientNum).arg(dateNum).arg(typeNum).arg(SeriesNum).arg(roundNum);
 
 
-                        sql+="insert into sampling_info(monitoringInfoID, samplingSiteName, samplingRound, samplingPeriod, sampleNumber, samplers,siteOrder,sampleOrder) "
-                              "values(?,?,?,?,?,?,?,?) ;";
+                        sql+="insert into sampling_info(monitoringInfoID, samplingRound, samplingPeriod, sampleNumber, samplers,siteOrder,sampleOrder) "
+                              "values(?,?,?,?,?,?,?) ;";
                         values.append(siteID);
-                        values.append(m_allSides.value(siteID).first);
+//                        values.append(m_allSides.value(siteID).first);
                         values.append(i+1);
                         values.append(nowPeriod);
                         values.append(sampleNum);
@@ -799,10 +803,8 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
             QMessageBox::information(nullptr,"","请选择需要打印的标签");
             return;
         }
-        EXCEL.setScreenUpdating(false);
-        EXCEL.setEnableEvents(false);
-        Range* usedRange;
-        Range* range;
+        ExcelOperator excel;
+
         int startRow;
         int startColumn;
 
@@ -825,108 +827,134 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
             return;
         }
 
-        WorkBook* book=EXCEL.OpenBook(".\\采样标签.xlsx",QVariant(),true);
-        if(!book){
-            QMessageBox::information(nullptr,"无法打开样品标签文件:",EXCEL.LastError());
+        if(!excel.openExcel(".\\采样标签.xlsx"))
+        {
+            QMessageBox::information(nullptr,"无法打开样品标签文件:",excel.LastError());
             return;
         }
-        WorkSheet* sheet=book->sheet(1);
-        if(!sheet){
-            QMessageBox::information(nullptr,"无法打开样品标签表格:",EXCEL.LastError());
+        if(! excel.document()->selectSheet("采样标签")){
+            QMessageBox::information(nullptr,"表格错误:","缺少采样标签表");
+                                     return;
+        }
+         if(! excel.document()->selectSheet("标签数据")){
+            QMessageBox::information(nullptr,"表格错误:","缺少标签数据表");
             return;
         }
-        WorkSheet* sheet2=book->sheet(2);
-        if(!sheet2){
-            QMessageBox::information(nullptr,"无法打开样品标签数据表格:",EXCEL.LastError());
+
+        excel.document()->selectSheet("采样标签");
+        CellRange range=excel.find("[开始]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位标签开始位置");
             return;
         }
-         usedRange=sheet->usedRange();
-        range=usedRange->find("[开始]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位标签开始位置:",EXCEL.LastError());
-            return;
-        }
-        range->clear();
-        startRow=range->row();
-        startColumn=range->column();
+        excel.setValue(range,"");
+        startRow=range.firstRow();
+        startColumn=range.firstColumn();
         qDebug()<<"startRow"<<startRow;
         qDebug()<<"startColumn"<<startColumn;
-        range=usedRange->find("[结束]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位标签结束位置:",EXCEL.LastError());
+        range=excel.find("[结束]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位标签结束位置");
             return;
         }
-        range->clear();
+         excel.setValue(range,"");
 
-        int endRow=range->row();
-        int endColumn=range->column();
+        int endRow=range.firstRow();
+         int endColumn=range.firstColumn();
         int leftStart=startColumn;
         int labelWidth=endColumn-startColumn+1;
         int labelHeight=endRow-startRow+1;
-        delete range;
 
-        range=usedRange->find("[二维码]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位标签二维码位置:",EXCEL.LastError());
+        range=excel.find("[二维码]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位标签二维码位置");
             return;
         }
-        range->setValue("");
-        int codeRow=range->row()-startRow;
-        int codeColumn=range->column()-startColumn;
-        delete range;
+        excel.setValue(range,"");
+        int codeRow=range.firstRow()-startRow;
+        int codeColumn=range.firstColumn()-startColumn;
+        //获取二维码单元格的大小：
+        Format format=excel.document()->cellAt(range.firstRow(),range.firstColumn())->format();
+        QFont font = format.font();
+        // 创建一个 QPainter 对象来绘制到内存中（不需要实际的窗口或控件）
+        QPainter painter;
+        // 开始绘制到一个QImage上，这只是一个临时步骤，用于获取字体度量
+        QImage dummyImage(1, 1, QImage::Format_ARGB32);
+        dummyImage.fill(Qt::transparent);
+        painter.begin(&dummyImage);
 
-        range=usedRange->find("[样品类型]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位检测类型位置:",EXCEL.LastError());
+        // 获取字体度量
+        QFontMetrics metrics(font);
+        int charPixelWidth = metrics.horizontalAdvance('W'); // 使用'W'字符作为参考宽度
+        int charPixelHeight = metrics.ascent() + metrics.descent(); // 字符的总高度
+
+        // 结束绘制
+        painter.end();
+
+        // 获取A1单元格的宽度和高度（以字符的 1/256 为单位）
+        double cellWidthInChars = 0.0;
+        double cellHeightInChars = 0.0;
+        for(int row=range.firstRow();row<=range.lastRow();row++){
+            cellHeightInChars+=excel.rowHeight(row);
+        }
+        for(int col=range.firstColumn();col<=range.lastColumn();col++){
+            cellWidthInChars+=excel.columnWidth(col);
+        }
+
+        // 将字符宽度和高度转换为像素
+        int pixelWidth = static_cast<int>(cellWidthInChars * charPixelWidth);
+        int pixelHeight = static_cast<int>(cellHeightInChars * charPixelHeight);
+        int l=qMin(pixelWidth,pixelHeight);
+        // 创建 QSize 对象
+        QSize cellSize(l, l);//这个用来给二维码定大小。
+        qDebug()<<"cellSize"<<cellSize;
+
+        range=excel.find("[样品类型]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位检测类型位置:");
             return;
         }
-        int typeRow=range->row()-startRow;
-        int typeColumn=range->column()-startColumn;
-        delete range;
+        int typeRow=range.firstRow()-startRow;
+        int typeColumn=range.firstColumn()-startColumn;
 
-        range=usedRange->find("[点位名称]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位点位名称位置:",EXCEL.LastError());
+        range=excel.find("[点位名称]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位点位名称位置");
             return;
         }
-        int siteRow=range->row()-startRow;
-        int siteColumn=range->column()-startColumn;
-        delete range;
+        int siteRow=range.firstRow()-startRow;
+        int siteColumn=range.firstColumn()-startColumn;
 
-        range=usedRange->find("[采样日期]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位采样日期位置:",EXCEL.LastError());
+        range=excel.find("[采样日期]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位采样日期位置");
             return;
         }
-        int dateRow=range->row()-startRow;
-        int dateColumn=range->column()-startColumn;
-        delete range;
+        int dateRow=range.firstRow()-startRow;
+        int dateColumn=range.firstColumn()-startColumn;
 
-        range=usedRange->find("[样品编号]");
-        if(!range){
-            QMessageBox::information(nullptr,"无法定位样品编号位置:",EXCEL.LastError());
+        range=excel.find("[样品编号]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位样品编号位置");
             return;
         }
-        int numRow=range->row()-startRow;
-        int numColumn=range->column()-startColumn;
-        delete range;
+        int numRow=range.firstRow()-startRow;
+        int numColumn=range.firstColumn()-startColumn;
 
-        range=usedRange->find("[检测项目]");
-        if(!range){
+        range=excel.find("[检测项目]");
+        if(!range.isValid()){
             QMessageBox::information(nullptr,"无法定位检测项目位置:",EXCEL.LastError());
             return;
         }
-        int itemRow=range->row()-startRow;
-        int itemColumn=range->column()-startColumn;
-        delete range;
+        int itemRow=range.firstRow()-startRow;
+        int itemColumn=range.firstColumn()-startColumn;
         int sheet2Row=2;
-        Range *nowRange=nullptr;
-        Range* nextRange=nullptr;
 
-
+        //标签占用的行数
         int labelsPerRow=4;
         int nowLabelPosInRow=1;
 
+        CellRange usedRange=excel.usedRange();
         for(auto index:indexs){
             if(index.column()!=0) continue;
             int row=index.row();
@@ -945,6 +973,11 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                 series.append(QChar('a'+i));
             }
             QString sampleDate=QString("20%1-%2-%3").arg(sampleNum.mid(1,2)).arg(sampleNum.mid(3,2)).arg(sampleNum.mid(5,2));
+            QDate date(sampleDate.split("-").first().toInt(),sampleDate.split("-").at(1).toInt(),sampleDate.split("-").last().toInt());
+//            if(date<QDate::currentDate()){
+//                int a=QMessageBox::question(nullptr,"","当前标签时间已过期，是否继续使用？");
+//                if(a!=QMessageBox::Yes) return;
+//            }
             if(seriesCount){
                 for(auto s:series){
                     showSampleNums.append(QString("%1%2%3").arg(num1).arg(s).arg(num2));
@@ -953,15 +986,13 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
             else showSampleNums.append(QString("%1%2").arg(num1).arg(num2));
             for(auto num:showSampleNums){
                 if(toLabel){
-                    QString path="./qrcode.png";
-                    QZXing::encodeData(sampleNum,QZXing::EncoderFormat_QR_CODE,QSize(100, 100)).save(path);
-                    path=QDir::current().absoluteFilePath(path);
-                    sheet->insertPic(path,startRow+codeRow,startColumn+codeColumn);//二维码
-                    sheet->setValue(sampleType,startRow+typeRow,startColumn+typeColumn);//样品类型
-                    sheet->setValue(sampleDate,startRow+dateRow,startColumn+dateColumn);//采样日期
-                    sheet->setValue(siteName,startRow+siteRow,startColumn+siteColumn);//点位名称
-                    sheet->setValue(testItems,startRow+itemRow,startColumn+itemColumn);//检测项目
-                    sheet->setValue(num,startRow+numRow,startColumn+numColumn);//样品编号
+                    excel.document()->selectSheet("采样标签");
+                    excel.document()->insertImage(startRow+codeRow-1,startColumn+codeColumn-1,QZXing::encodeData(sampleNum,QZXing::EncoderFormat_QR_CODE,cellSize));//二维码
+                    excel.setValue(sampleType,startRow+typeRow,startColumn+typeColumn);//样品类型
+                    excel.setValue(sampleDate,startRow+dateRow,startColumn+dateColumn);//采样日期
+                    excel.setValue(siteName,startRow+siteRow,startColumn+siteColumn);//点位名称
+                    excel.setValue(testItems,startRow+itemRow,startColumn+itemColumn);//检测项目
+                    excel.setValue(num,startRow+numRow,startColumn+numColumn);//样品编号
                     nowLabelPosInRow++;
                     qDebug()<<"nowLabelPosInRow"<<nowLabelPosInRow;
                     bool newLine=false;
@@ -980,33 +1011,29 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                     }
         //
                     if(newLine){
-                        nextRange=sheet->selectRange(startRow,startColumn,endRow,endColumn);
-                        range=nextRange->entireRow();
-                        range->copy();
-                        range=sheet->selectRow(startRow);
-                        range->insert();
-                        delete range;
-                        delete nextRange;
-                        nextRange=nullptr;
+                        CellRange nextRange(startRow,startColumn,usedRange.lastRow(),usedRange.lastColumn());
+                        excel.copyAll(startRow,startColumn,usedRange.lastRow(),usedRange.lastColumn(),startRow+labelHeight,startColumn);
                     }
                 }
-                sheet2->setValue(sampleType,sheet2Row,1);
-                sheet2->setValue(sampleDate,sheet2Row,4);
-                sheet2->setValue(siteName,sheet2Row,2);
-                sheet2->setValue(testItems,sheet2Row,5);
-                sheet2->setValue(num,sheet2Row,3);
+                excel.document()->selectSheet("标签数据");
+                excel.setValue(sampleType,sheet2Row,1);
+                excel.setValue(sampleDate,sheet2Row,4);
+                excel.setValue(siteName,sheet2Row,2);
+                excel.setValue(testItems,sheet2Row,5);
+                excel.setValue(num,sheet2Row,3);
                 sheet2Row++;
 
             }
 
         }
-        range=sheet->selectRange(startRow+labelHeight,startColumn,endRow+labelHeight,endColumn);
-        range=range->entireRow();
-        range->Delete();
-        EXCEL.setScreenUpdating(true);
-        EXCEL.setEnableEvents(true);
+        excel.document()->selectSheet("采样标签");
+        excel.setValue(CellRange(startRow+labelHeight,startColumn,usedRange.lastRow(),usedRange.lastColumn()),"");
+        QString filename=QFileDialog::getSaveFileName(nullptr,"采样标签保存为","","EXCEL文件(*.xlsx)");
+        if(filename.isEmpty()) return;
+        excel.saveAs(filename);
+        excel.close();
+//        excel.show();
         QMessageBox::information(nullptr,"","操作完成。");
-        delete book;
     }
 
 }
@@ -1122,7 +1149,7 @@ void SampleGroupingDlg::on_radioPrint_clicked()
     ui->tableView->clear();
     m_samplingSideID.clear();
     QString sql;
-    sql=QString("select A.monitoringInfoID,A.samplingSiteName,A.sampleNumber,A.sampleOrder ,B.sampleType,B.testTypeID ,E.seriesConnection "
+    sql=QString("select A.monitoringInfoID,B.samplingSiteName,A.sampleNumber,A.sampleOrder ,B.sampleType,B.testTypeID ,E.seriesConnection "
                   "from sampling_info as A "
           "left join site_monitoring_info as B on A.monitoringInfoID=B.id "
                   "left join (select min(parameterID) as p,taskSheetID, sampleGroup from task_parameters group by taskSheetID, sampleGroup  )  as C on B.taskSheetID=C.taskSheetID and A.sampleOrder=C.sampleGroup "

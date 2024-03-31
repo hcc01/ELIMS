@@ -12,7 +12,7 @@ class LoginUI : public QDialog
     Q_OBJECT
 
 public:
-    explicit LoginUI(QWidget *parent = nullptr);
+    explicit LoginUI(QString company="",QWidget *parent = nullptr);
     ~LoginUI();
     void onLoginResult(int result);
     void reject()override;

@@ -36,8 +36,8 @@ ReportManagerUI::ReportManagerUI(QWidget *parent) :
                           "from site_monitoring_info as C  "
                           "left join test_task_info as B on C.taskSheetID=B.id "
                           "left join ("
-                          "select max(X.receiveTime) as rt,X.taskNum from  sample_circulate as X  group by X.taskNum  "
-                          ") as E on E.taskNum=B.taskNum "
+                          "select max(X.receiveTime) as rt,X.monitoringInfoID from sampling_info as X  group by X.monitoringInfoID  "
+                          ") as E on E.monitoringInfoID=C.id  "
                           "left join task_parameters as A on A.monitoringInfoID=C.id "
                           "left join report_status as D on A.reportNum=D.reportNum "
                           "where B.taskStatus>=%1 and D.status is null and B.deleted=0").arg(TaskSheetUI::TESTING);
@@ -46,8 +46,8 @@ ReportManagerUI::ReportManagerUI(QWidget *parent) :
                       "from site_monitoring_info as C  "
                       "left join test_task_info as B on C.taskSheetID=B.id "
                       "left join ("
-                      "select max(X.receiveTime) as rt,X.taskNum from  sample_circulate as X  group by X.taskNum  "
-                      ") as E on E.taskNum=B.taskNum "
+                      "select max(X.receiveTime) as rt,X.monitoringInfoID from sampling_info as X  group by X.monitoringInfoID  "
+                      ") as E on E.monitoringInfoID=C.id  "
                       "left join task_parameters as A on A.monitoringInfoID=C.id "
                       "left join report_status as D on A.reportNum=D.reportNum "
                       "where ( D.status=%2) and  B.deleted=0").arg(s);
@@ -78,48 +78,7 @@ ReportManagerUI::~ReportManagerUI()
 void ReportManagerUI::initCMD()
 {
     QString sql;
-    switch(ui->sortTypeBox->currentIndex()){
-    case 0://未完成
-    {
-        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status from task_parameters as A "
-              "left join test_task_info as B on A.taskSheetID=B.id "
-              "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
-              "left join report_status as D on A.reportNum=D.reportNum "
-//                      "left join (select "//后面要选择样品交接时间并排序
-                      "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0").arg(TaskSheetUI::TESTING).arg(TaskSheetUI::REPORT_REVIEW3);
-        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
-            sql+=QString(" and B.creator='%1'").arg(user()->name());
-        }
-        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
-    }
-    break;
-    case 1://待归档
-    {
-        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT C.sampleType SEPARATOR '/'),D.status from task_parameters as A "
-                      "left join test_task_info as B on A.taskSheetID=B.id "
-                      "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
-                      "left join report_status as D on A.reportNum=D.reportNum "
-                      "where D.status=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
-        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
-            sql+=QString(" and B.creator='%1'").arg(user()->name());
-        }
-         sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
-    }
-    break;
-    case 2://已完成
-    {
-        sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT C.sampleType SEPARATOR '/'),D.status from task_parameters as A "
-                      "left join test_task_info as B on A.taskSheetID=B.id "
-                      "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
-                      "left join report_status as D on A.reportNum=D.reportNum "
-                      "where D.status>=%1 and D.status is not null and B.deleted=0").arg(TaskSheetUI::REPORT_ARCHIVING);
-        if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
-            sql+=QString(" and B.creator='%1'").arg(user()->name());
-        }
-        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status";
-    }
-    break;
-    }
+
     sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status from task_parameters as A "
                   "left join test_task_info as B on A.taskSheetID=B.id "
                   "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
@@ -130,7 +89,7 @@ void ReportManagerUI::initCMD()
 //          "from site_monitoring_info as C  "
 //          "left join test_task_info as B on C.taskSheetID=B.id "
 //          "left join ("
-//          "select max(X.receiveTime) as rt,Z.reportNum, Z.taskSheetID from  sample_circulate as X "
+//          "select max(X.receiveTime) as rt,Z.reportNum, Z.taskSheetID from sampling_info as X "
 //          "left join sampling_info as Y on X.sampleNum=Y.sampleNumber "
 //          "left join task_parameters as Z on Y.sampleOrder=Z.sampleGroup "
 //          "Group by Z.reportNum,Z.taskSheetID "
@@ -138,15 +97,16 @@ void ReportManagerUI::initCMD()
 //          "left join report_status as D on E.reportNum=D.reportNum "
 //          "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0";
     //目前样品交接没有记录样品编号，先按以下查询显示交接时间
+    //采样状态即可进入报告显示，因为可能只有监测，不存在样品流转的情况；也可能分多次采样，可以对部分项目先拆分出报告。
     sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,E.rt "
           "from site_monitoring_info as C  "
           "left join test_task_info as B on C.taskSheetID=B.id "
           "left join ("
-          "select max(X.receiveTime) as rt,X.taskNum from  sample_circulate as X  group by X.taskNum  "
-          ") as E on E.taskNum=B.taskNum "
+          "select max(X.receiveTime) as rt,X.monitoringInfoID from sampling_info as X  group by X.monitoringInfoID  "
+          ") as E on E.monitoringInfoID=C.id  "
           "left join task_parameters as A on A.monitoringInfoID=C.id "
           "left join report_status as D on A.reportNum=D.reportNum "
-                  "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0").arg(TaskSheetUI::TESTING).arg(TaskSheetUI::REPORT_REVIEW3);
+                  "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0").arg(TaskSheetUI::SAMPLING).arg(TaskSheetUI::REPORT_REVIEW3);
     if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
         sql+=QString(" and B.creator='%1'").arg(user()->name());
     }
@@ -225,14 +185,13 @@ void ReportManagerUI::initCMD()
 
 }
 
-FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
+FlowWidget* ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
 {
     FlowWidget *w = new FlowWidget;
     QVBoxLayout* lay=new QVBoxLayout(w);
     w->setLayout(lay);
 
     QString flowName=flowInfo.flowName();
-
     QString reportNum=flowInfo.flowAbs();
     QWidget* r=showFlowRecord(reportNum,"report_flows","reportNum");
     lay->addWidget(r);
@@ -241,7 +200,9 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
             QString sql;
             bool error=false;
             //更新状态表
+            qDebug()<<"报告初审";
             sql="update report_status set status=? where reportNum=?";
+            qDebug()<<sql;
             doSqlQuery(sql,[this, &error](const QSqlReturnMsg&msg){
                 if(msg.error()){
                     QMessageBox::information(nullptr,"更新状态表时出错：",msg.errorMsg());
@@ -253,8 +214,10 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
             },0,{passed?TaskSheetUI::REPORT_REVIEW2:TaskSheetUI::REPORT_MODIFY,reportNum});
             waitForSql("正在更新状态表");
             if(error) return;
+            qDebug()<<"更新状态表完成";
             if(passed){
                 //提交至报告审核
+                qDebug()<<"查询审核人员";
                 sql="select A.id from sys_employee_login as A left join users on A.name=users.name where position & ?;";
                 QList<int>reviewerIDs;
                 doSqlQuery(sql,[this, &reviewerIDs](const QSqlReturnMsg&msg){
@@ -270,6 +233,7 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                     sqlFinished();
                 },0,{CUser::ReportReviewer|CUser::AuthorizedSignatory});
                 waitForSql();
+                qDebug()<<"查询审核人员完成";
                 if(!reviewerIDs.count()){
                     QMessageBox::information(nullptr,"error","未找到合适的审核人员.");
                     return;
@@ -278,7 +242,9 @@ FlowWidget *ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
                 info.setNode(TaskSheetUI::REPORT_REVIEW2);
                 info.setFlowAbs(reportNum);
                 info.setCreator(flowInfo.creator());
+                qDebug()<<"开始提交审核";
                 submitFlow(info,reviewerIDs,reportNum,1,"report_flows","reportNum","flowID");
+                qDebug()<<"开始提交审核完成";
             }
         });
         return w;
@@ -388,9 +354,13 @@ void ReportManagerUI::on_submitBtn_clicked()
     waitForSql();
     if(error) return;
     if(status!=TaskSheetUI::REPORT_COMPILATION&&status!=TaskSheetUI::REPORT_MODIFY) return;
+    //增加提交时添加备注功能：
+    QString comments;
+    QString oldFlow;
+    QList<int>operateIDs;
     if(status==TaskSheetUI::REPORT_MODIFY){//报告修改，提交至上一审批人
         QList<QVariant>r;
-        sql="select A.operateComments,A.operatorID,C.flowInfo,A.flowID "
+        sql="select A.operateComments,A.operatorID,C.flowInfo "
               "from flow_operate_records as A "
               "left join report_flows as B on B.flowID=A.flowID "
               "left join flow_records as C on A.flowID=C.id "
@@ -414,12 +384,31 @@ void ReportManagerUI::on_submitBtn_clicked()
         waitForSql("正在查询当前流程信息");
         if(error) return;
         QList<QVariant>row=r.at(1).toList();
-        QString comments=row.first().toString();
-        int flowID=row.at(3).toInt();
+        comments=row.first().toString();
+
+        operateIDs={row.at(1).toInt()};
+        oldFlow=row.at(2).toString();
+//        if(!submitFlow(flowInfo,{operatorID},reportNum,1,"report_flows","reportNum","flowID")) return;
+//        //更新状态
+//        sql="update report_status set status=? where reportNum=?;";
+//        sql+="update flow_operate_records set revisionNotes=? where flowID=? and operatorID=?;";//更新修改说明
+//        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+//            if(msg.error()){
+//                QMessageBox::information(nullptr,"更新流程时出错：",msg.errorMsg());
+//                sqlFinished();
+//                return;
+//            }
+//            sqlFinished();
+//        },0,{flowInfo.node(),reportNum,comments,flowID,operatorID});
+//        waitForSql();
+//        initCMD();
+//        return;
+    }
+    //
         QDialog dlg;
         QTextEdit *edit=new QTextEdit(&dlg);
         QVBoxLayout *lay=new QVBoxLayout(&dlg);
-        QLabel* label=new QLabel("请填写修改情况说明：",&dlg);
+        QLabel* label=new QLabel("请填写审批备注：",&dlg);
         QHBoxLayout* hlay=new QHBoxLayout(&dlg);
         QPushButton* okBtn=new QPushButton("提交",&dlg);
         QPushButton* cancelBtn=new QPushButton("取消",&dlg);
@@ -442,51 +431,38 @@ void ReportManagerUI::on_submitBtn_clicked()
         });
         dlg.exec();
         if(cancel) return;
-        int operatorID=row.at(1).toInt();
-        QFlowInfo flowInfo=QFlowInfo(row.at(2).toString());
-        if(!submitFlow(flowInfo,{operatorID},reportNum,1,"report_flows","reportNum","flowID")) return;
-        //更新状态
-        sql="update report_status set status=? where reportNum=?;";
-        sql+="update flow_operate_records set revisionNotes=? where flowID=? and operatorID=?;";//更新修改说明
-        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+    //提交流程
+
+    QFlowInfo flowinfo("报告初审",this->tabName());
+    if(!oldFlow.isEmpty()) flowinfo=QFlowInfo(oldFlow);
+    else{
+        flowinfo.setNode(TaskSheetUI::REPORT_REVIEW1);
+        flowinfo.setFlowAbs(reportNum);
+        flowinfo.setCreator(user()->name());
+
+        sql="select B.name ,B.id from users left join sys_employee_login as B on users.name=B.name where position&?;";
+
+        QStringList names;
+        doSqlQuery(sql,[this, &operateIDs, &names](const QSqlReturnMsg&msg){
+            qDebug()<<"hehe";
             if(msg.error()){
-                QMessageBox::information(nullptr,"更新流程时出错：",msg.errorMsg());
+                QMessageBox::information(nullptr,"查询操作人员时出错：",msg.errorMsg());
                 sqlFinished();
                 return;
             }
+            QList<QVariant>r=msg.result().toList();
+            for(int i=0;i<r.count();i++){
+                operateIDs.append(r.at(i).toList().at(1).toInt());
+                names.append(r.at(i).toList().at(0).toString());
+            }
             sqlFinished();
-        },0,{flowInfo.node(),reportNum,comments,flowID,operatorID});
+        },0,{CUser::ReportWriter});
         waitForSql();
-        initCMD();
-        return;
+        if(!operateIDs.count()) return;
+        operateIDs=itemsSelectDlg::getSelectedItemsID(names,operateIDs,names);
+        if(!operateIDs.count()) return;
     }
-    //提交流程
-    QFlowInfo flowinfo("报告初审",this->tabName());
-    flowinfo.setNode(TaskSheetUI::REPORT_REVIEW1);
-    flowinfo.setFlowAbs(reportNum);
-    flowinfo.setCreator(user()->name());
-    sql="select B.name ,B.id from users left join sys_employee_login as B on users.name=B.name where position&?;";
-    QList<int>ids;
-    QStringList names;
-    doSqlQuery(sql,[this, &ids, &names](const QSqlReturnMsg&msg){
-        qDebug()<<"hehe";
-        if(msg.error()){
-            QMessageBox::information(nullptr,"查询操作人员时出错：",msg.errorMsg());
-            sqlFinished();
-            return;
-        }
-        QList<QVariant>r=msg.result().toList();
-        for(int i=0;i<r.count();i++){
-            ids.append(r.at(i).toList().at(1).toInt());
-            names.append(r.at(i).toList().at(0).toString());
-        }
-        sqlFinished();
-    },0,{CUser::ReportWriter});
-    waitForSql();
-    if(!ids.count()) return;
-    ids=itemsSelectDlg::getSelectedItemsID(names,ids,names);
-    if(!ids.count()) return;
-    if(!submitFlow(flowinfo,ids,reportNum,1,"report_flows","reportNum","flowID")) return;
+    if(!submitFlow(flowinfo,operateIDs,reportNum,1,"report_flows","reportNum","flowID",comments)) return;
     //更新状态
     sql="update report_status set status=? where reportNum=?;";
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
@@ -496,7 +472,7 @@ void ReportManagerUI::on_submitBtn_clicked()
             return;
         }
         sqlFinished();
-    },0,{TaskSheetUI::REPORT_REVIEW1,reportNum});
+    },0,{flowinfo.node(),reportNum});
     waitForSql();
     initCMD();
 }
@@ -615,8 +591,8 @@ void ReportManagerUI::on_searchEdit_returnPressed()
                   "from site_monitoring_info as C  "
                   "left join test_task_info as B on C.taskSheetID=B.id "
                   "left join ("
-                  "select max(X.receiveTime) as rt,X.taskNum from  sample_circulate as X  group by X.taskNum  "
-                  ") as E on E.taskNum=B.taskNum "
+                  "select max(X.receiveTime) as rt,X.monitoringInfoID from sampling_info as X  group by X.monitoringInfoID  "
+                  ") as E on E.monitoringInfoID=C.id  "
                   "left join task_parameters as A on A.monitoringInfoID=C.id "
                   "left join report_status as D on A.reportNum=D.reportNum "
                   "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0 and B.%3 like '%%4%'")

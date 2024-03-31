@@ -90,6 +90,7 @@ public:
     void resizeEvent(QResizeEvent *event) override;
     void init(const QVariant &data);
     void setHeader(const QStringList& header);    //设置列名，初始化表格。
+    QStringList headerText()const{return m_header;}
     void addContextAction(const QString&action, ActionFuc f);//添加右键命令
     void append(const QList<QVariant> &);//添加一行数据
     int rowCount()const{return m_model->rowCount();}
@@ -99,6 +100,7 @@ public:
     QVariant value(int row,const QString&head)const;
     QVariant value(const QModelIndex& index)const;
     QVariant cellFlag(int row,int column)const;
+    int findInColumn(const QVariant&value,int column)const;
     void clear();//清空
     bool setData(int row,int colunm, const QVariant &value, int role = Qt::EditRole);
     void setBackgroundColor(int row,int colunm,const QColor& color);
@@ -121,6 +123,7 @@ private:
     QAction* m_removeAction;
     QAction* m_infoAction;
     QMenu *m_contextMenu;
+    QStringList m_header;
 
 };
 

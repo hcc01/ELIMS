@@ -1,4 +1,5 @@
 #include "methodselectdlg.h"
+#include "dbmater.h"
 #include "ui_methodselectdlg.h"
 #include<QMessageBox>
 #include<QJsonArray>
@@ -97,7 +98,11 @@ bool MethodSelectDlg::saveMethod(int taskSheetID)
     qDebug()<<"正在保存方法：";
     for(int i=0;i<ui->tableView->rowCount();i++){
         int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
-        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
+//        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
+        int parameterID=DB.getParameterID(ui->tableView->value(i,"检测项目").toString());
+        if(!parameterID){
+            return false;
+        }
 
         QString methodName=ui->tableView->value(i,"检测方法").toString();
         int methodID=m_methodIDs.value(methodName);

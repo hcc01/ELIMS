@@ -103,3 +103,11 @@ INCLUDEPATH += $$PWD/../sqlPageControleUI
 DEPENDPATH += $$PWD/../sqlPageControleUI
 
 include(../qzxing/QZXing.pri)
+include(../QXlsx/QXlsx.pri)
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lExcelOperator
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lExcelOperatord
+else:unix: LIBS += -L$$PWD/../../lib/ -lExcelOperator
+
+INCLUDEPATH += $$PWD/../ExcelOperator
+DEPENDPATH += $$PWD/../ExcelOperator

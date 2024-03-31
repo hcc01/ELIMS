@@ -10,7 +10,7 @@ TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
     m_view=new MyTableView;
 
-    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间","修改情况"});
+    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间","备注"});
     m_view->resize(800,400);
 }
 
@@ -218,7 +218,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJs
 
 }
 //流程操作：提交到流程
-int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, const QString&identityValue, int operatorCount, const QString &tableName, const QString &identityColumn, const QString &flowIDColumn)
+int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs, const QString&identityValue, int operatorCount, const QString &tableName, const QString &identityColumn, const QString &flowIDColumn, const QString &remark)
 {
     int ret=0;
     QString sql;
@@ -229,8 +229,9 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
     values={creator,flowInfo.flowInfo(),operatorCount};
 
     for(int id:operatorIDs){
-        sql+="insert into flow_operate_records(flowID,operatorID) values(@flowID,?);";
+        sql+="insert into flow_operate_records(flowID,operatorID,revisionNotes) values(@flowID,?,?);";
         values.append(id);
+        values.append(remark);
     }
     bool error=false;
     connectDB(CMD_START_Transaction);
@@ -287,8 +288,9 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
             }
             sqlEnd();
         },0,{identityValue,ret});
+
+        waitForSql();
     }
-    waitForSql();
     if(error) return 0;
     releaseDB(CMD_COMMIT_Transaction);
     //通知操作人员待办消息

@@ -965,10 +965,10 @@ void WorkSheet::insertPic(const QString &path, int row, int column)
     double heightRatio = cellHeight / imageSize.height();
     double ratio = qMin(widthRatio, heightRatio);
 
-    int pictureWidth = static_cast<int>(imageSize.width() * ratio);
-    int pictureHeight = static_cast<int>(imageSize.height() * ratio);
+    int pictureWidth = static_cast<int>(imageSize.width() * ratio)-2;
+    int pictureHeight = static_cast<int>(imageSize.height() * ratio)-2;
 
-    EXCEL.insertPic(m_sheet,range,path,0,0,pictureWidth,pictureHeight);
+    EXCEL.insertPic(m_sheet,range,path,1,-1,pictureWidth,pictureHeight);
     range->clear();
     mergeArea->clear();
 }

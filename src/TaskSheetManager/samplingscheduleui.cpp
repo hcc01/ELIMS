@@ -130,7 +130,7 @@ void SamplingScheduleUI::doSchedule(QString startDate, QString endDate, QString 
         else{
 
             taskNum=ui->taskScheduledView->value(index).toString();
-            taskSheetID=ui->taskToScheduledView->cellFlag(index.row(),0).toInt();
+            taskSheetID=ui->taskScheduledView->cellFlag(index.row(),0).toInt();
         }
 
         if(!m_reschedule) {
@@ -162,7 +162,7 @@ void SamplingScheduleUI::updateScheduledView()
     QString sql;
     sql="select A.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, A.remark,scheduler ,A.taskSheetID from "
           "samplingSchedul as A left join test_task_info as B on  A.taskSheetID=B.id where B.deleted=0 and B.taskStatus<? order by startDate ;";
-    ui->pageCtrl2->startSql(this,sql,1,{TaskSheetUI::SAMPLING},[this](const QSqlReturnMsg&msg){
+    ui->pageCtrl2->startSql(this,sql,1,{TaskSheetUI::TESTING},[this](const QSqlReturnMsg&msg){
         QList<QVariant>r=msg.result().toList();
         ui->taskScheduledView->clear();
         for(int i=1;i<r.count();i++){
@@ -224,10 +224,18 @@ void SamplingScheduleUI::on_myTaskBtn_clicked(bool checked)
 {
     if(!checked) return;
     QString sql;
-    sql=QString("select samplingSchedul.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, samplingSchedul.remark,scheduler from "
-                        "samplingSchedul left join test_task_info on  samplingSchedul.taskNum=test_task_info.taskNum where (samplers like ? or samplerLeader=?) and taskStatus=? and test_task_info.deleted=0 order by startDate asc;");
-
-    ui->pageCtrl2->startSql(this,sql,1,{QString("%%1%").arg(user()->name()),user()->name(),TaskSheetUI::WAIT_SAMPLING},[this](const QSqlReturnMsg&msg){
+    sql=QString(
+        "select samplingSchedul.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, samplingSchedul.remark,scheduler "
+        "from samplingSchedul "
+        "left join test_task_info on  samplingSchedul.taskNum=test_task_info.taskNum "
+        "where (samplers like ? or samplerLeader=?) and taskStatus=? and test_task_info.deleted=0 "
+        "order by startDate asc;");
+    sql="select A.taskNum, inspectedProject, startDate, endDate, samplerLeader, samplers, A.remark,scheduler ,A.taskSheetID "
+          "from samplingSchedul as A "
+          "left join test_task_info as B on  A.taskSheetID=B.id "
+          "where B.deleted=0 and (samplers like ? or samplerLeader=?) and B.taskStatus<=? "
+          "order by startDate ;";
+    ui->pageCtrl2->startSql(this,sql,1,{QString("%%1%").arg(user()->name()),user()->name(),TaskSheetUI::SAMPLING},[this](const QSqlReturnMsg&msg){
         QList<QVariant>table=msg.result().toList();
         ui->taskScheduledView->clear();
         for(int i=1;i<table.count();i++){

@@ -411,7 +411,7 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
         }
         dlg->accept();
     });
-    dlg->show();
+    dlg->exec();
 
 }
 

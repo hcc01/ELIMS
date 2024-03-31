@@ -23,8 +23,8 @@ public:
     QString dateNum(const QDate&date);//日期编号
     QString clientNum(const QDate&date, int taskSheetID);//采样单顺序信号
     void initNum(const QDate&dateStart,int days);
-    QString testTypeNum(int testTypeID, int start=0);//采样类型
-    QString testTypeNum(QString testType, int start=0, bool resetNum=false);//采样类型+点位号
+    static QString testTypeNum(int testTypeID, int start=0);//采样类型
+    static QString testTypeNum(QString testType, int start=0, bool resetNum=false);//采样类型+点位号
 private slots:
 
 //    void on_typeView_itemClicked(QListWidgetItem *item);

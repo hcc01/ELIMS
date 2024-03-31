@@ -1,6 +1,10 @@
 ﻿#include "mytableview.h"
+#include "qapplication.h"
 #include "qheaderview.h"
+#include "qmimedata.h"
 #include<QMessageBox>
+#include<QApplication>
+#include<QClipboard>
 MyTableView::MyTableView(QWidget *parent)
     : QTableView{parent}
 {
@@ -25,6 +29,37 @@ MyTableView::MyTableView(QWidget *parent)
         m_contextMenu->exec(mapToGlobal(pos));
     });
     //    m_contextMenu->addAction(m_infoAction);
+    addContextAction("复制表格",[this](){
+        QModelIndexList indexes = selectionModel()->selectedIndexes();
+        if (indexes.empty()) {
+            return;
+        }
+        int minRow = INT_MAX, maxRow = INT_MIN, minCol = INT_MAX, maxCol = INT_MIN;
+        for (const auto& index : indexes) {
+            minRow = qMin(minRow, index.row());
+            maxRow = qMax(maxRow, index.row());
+            minCol = qMin(minCol, index.column());
+            maxCol = qMax(maxCol, index.column());
+        }
+        QMimeData* data = new QMimeData();
+        QString text;
+        for(auto header:m_header){
+            text+=header+"\t";
+        }
+        text += "\n";
+        for (int row = minRow; row <= maxRow; row++) {
+            for (int col = minCol; col <= maxCol; col++) {
+                if (col > minCol) {
+                    text += "\t";
+                }
+                QString item = m_model->data(row, col).toString();
+                text += item;
+            }
+            text += "\n";
+        }
+        data->setText(text);
+        QApplication::clipboard()->setMimeData(data);
+    });
 
 }
 
@@ -61,7 +96,7 @@ void MyTableView::init(const QVariant &data)
 
 void MyTableView::setHeader(const QStringList &header)
 {
-
+    m_header=header;
     m_model->setHeader(header);
 }
 
@@ -106,6 +141,19 @@ QVariant MyTableView::value(const QModelIndex &index) const
 QVariant MyTableView::cellFlag(int row, int column) const
 {
     return m_model->data(row,column,Qt::UserRole);
+}
+
+int MyTableView::findInColumn(const QVariant &value, int column) const
+{
+    int allRows=rowCount();
+    int row=-1;
+    for(int i=0;i<allRows;i++){
+        if(this->value(i,column)==value){
+            row=i;
+            break;
+        }
+    }
+    return row;
 }
 
 

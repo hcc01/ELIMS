@@ -23,6 +23,7 @@ void LabCapabilitiesManagerUI::dealProcess(const ProcessNoticeCMD &)
 void LabCapabilitiesManagerUI::initMod()
 {
     //检测领域
+    QMessageBox::information(nullptr,"","initMod");
     QString sql=  "create table IF NOT EXISTS test_field("
                   "id int AUTO_INCREMENT primary key, "
                   "testField varchar(32) unique,  "
@@ -32,6 +33,8 @@ void LabCapabilitiesManagerUI::initMod()
             QMessageBox::information(this,"test_field error",msg.result().toString());
             return;
         }
+        qDebug()<<"test_field ok";
+        QMessageBox::information(nullptr,"","test_field ok");
     });
     //检测类型
     sql=  "create table IF NOT EXISTS test_type("
