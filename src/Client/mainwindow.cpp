@@ -136,7 +136,7 @@ void MainWindow::DoConnect()
 {
 
     QSettings set("settings",QSettings::IniFormat);
-
+    set.setIniCodec("UTF-8");
     QHostInfo info = QHostInfo::fromName("127.0.0.1");
     if(set.value("company").isValid()){
         m_company=set.value("company").toString();
@@ -522,7 +522,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.4.5");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.4.7");
 }
 
 

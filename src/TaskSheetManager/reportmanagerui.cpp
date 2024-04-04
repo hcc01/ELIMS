@@ -193,7 +193,7 @@ FlowWidget* ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
 
     QString flowName=flowInfo.flowName();
     QString reportNum=flowInfo.flowAbs();
-    QWidget* r=showFlowRecord(reportNum,"report_flows","reportNum");
+    QWidget* r=flowRecordView(reportNum,"report_flows","reportNum");
     lay->addWidget(r);
     if(flowName=="报告初审"){
         connect(w,&FlowWidget::pushProcess,[this, reportNum](const QFlowInfo&flowInfo,bool passed){
@@ -550,7 +550,7 @@ void ReportManagerUI::on_reviewRecordBtn_clicked()
     QString taskNum=ui->tableView->value(row,0).toString();
     QString reportNum=ui->tableView->value(row,1).toString();
     if(reportNum.isEmpty()) return;
-    showFlowRecord(reportNum,"report_flows","reportNum","flowID");
+    showFlowInfo(reportNum,"report_flows","reportNum","flowID");
 }
 
 

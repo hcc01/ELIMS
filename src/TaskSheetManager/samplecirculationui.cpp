@@ -58,7 +58,19 @@ void SampleCirculationUI::initCMD()
 //            ui->tableView->setCellFlag(i-1,0,id);
 //        }
 //    });
-
+    QString sql="select name from users where position&?;";
+    doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询采样人员时出错：",msg.errorMsg());
+            return;
+        }
+        auto r=msg.result().toList();
+        ui->submitterBox->clear();
+        for(int i=1;i<r.count();i++){
+            ui->submitterBox->addItem(r.at(i).toList().at(0).toString());
+        }
+        ui->submitterBox->setCurrentIndex(-1);
+    },0,{CUser::Sampler});
     on_samplingBtn_clicked();
 }
 
@@ -507,7 +519,7 @@ void SampleCirculationUI::doDeliveryReceive()
             excel.setValue(QDate::currentDate().toString("yyyy-MM-dd"),startRow+dateRow,startColumn+dateColumn);//采样日期
             excel.setValue(view->value(row,0).toString(),startRow+siteRow,startColumn+siteColumn);//点位名称
             excel.setValue(view->value(row,5).toString(),startRow+itemRow,startColumn+itemColumn);//检测项目
-            excel.setValue(view->value(row,2).toString(),startRow+numRow,startColumn+numColumn);//样品编号
+            excel.setValue(view->value(row,3).toString(),startRow+numRow,startColumn+numColumn);//样品编号
                 nowLabelPosInRow++;
                 qDebug()<<"nowLabelPosInRow"<<nowLabelPosInRow;
                 bool newLine=false;
@@ -595,6 +607,8 @@ void SampleCirculationUI::on_samplingBtn_clicked()
     ui->groupBox_2->show();
     ui->groupBox->hide();
     ui->groupBox_3->hide();
+    QString sql;
+
 
 }
 

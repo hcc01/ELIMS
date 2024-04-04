@@ -369,9 +369,10 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
 //    emit dealFLow(m_flowInfos.at(ui->tableView->currentIndex().row()),VIEWINFO);//发出操作信号，让各自模块去处理流程
     auto flowInfo=m_flowInfos.at(ui->tableView->currentIndex().row());
     qDebug()<<flowInfo.object();
-    QDialog* dlg=new QDialog;
-    dlg->resize(800,600);
-    QVBoxLayout* vlay=new QVBoxLayout(dlg);
+    QDialog dlg;
+//    dlg.setWindowFlags(dlg.windowFlags() & ~Qt::WindowCloseButtonHint);
+    dlg.resize(800,600);
+    QVBoxLayout* vlay=new QVBoxLayout(&dlg);
     TabWidgetBase*tab=m_main->getModule(flowInfo.tabName());
     if(!tab){
             QMessageBox::information(nullptr,"error：","无法打开模块。");
@@ -379,19 +380,30 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
     }
     FlowWidget* w=tab->flowWidget(flowInfo);
     if(w) vlay->addWidget(w);
-    QLabel* lab=new QLabel("审批意见：",dlg);
+    QLabel* lab=new QLabel("审批意见：",&dlg);
     vlay->addWidget(lab);
-    QTextEdit* edit=new QTextEdit(dlg);
+    QTextEdit* edit=new QTextEdit(&dlg);
     vlay->addWidget(edit);
-    dlg->setLayout(vlay);
-    QHBoxLayout* hlay=new QHBoxLayout(dlg);
-    QPushButton *agreeBtn=new QPushButton("同意",dlg);
-    QPushButton *rejectBtn=new QPushButton("驳回",dlg);
+    dlg.setLayout(vlay);
+    QHBoxLayout* hlay=new QHBoxLayout(&dlg);
+    QPushButton *agreeBtn=new QPushButton("同意",&dlg);
+    QPushButton *rejectBtn=new QPushButton("驳回",&dlg);
     hlay->addWidget(agreeBtn);
     hlay->addWidget(rejectBtn);
     vlay->addLayout(hlay);
-    connect(dlg,&QDialog::close,[dlg, w](){delete dlg;if(w) delete w;});
-    connect(agreeBtn,&QPushButton::clicked,[this, edit, flowInfo, dlg, w](){
+//    connect(&dlg,&QDialog::accepted,[ w](){
+//        if(w) {
+//            qDebug()<<"delete w";
+//            delete w;
+//        }});
+//    connect(&dlg,&QDialog::rejected,this,[  w](){
+//        if(w) {
+//            qDebug()<<"delete w";
+//            delete w;
+//        }
+//    });
+
+    connect(agreeBtn,&QPushButton::clicked,[this, edit, flowInfo, &dlg, w](){
         if(edit->toPlainText().length()>254){
             QMessageBox::information(nullptr,"error","审批文本过长。");
             return;
@@ -399,9 +411,9 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
         if(pushProcess(flowInfo,true,edit->toPlainText())){
             if(w) w->pushProcess(flowInfo,true);
         }
-        dlg->accept();
+        dlg.accept();
     });
-    connect(rejectBtn,&QPushButton::clicked,[this, edit, flowInfo, dlg, w](){
+    connect(rejectBtn,&QPushButton::clicked,[this, edit, flowInfo, &dlg, w](){
         if(edit->toPlainText().length()>254){
             QMessageBox::information(nullptr,"error","审批文本过长。");
             return;
@@ -409,9 +421,10 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
         if(pushProcess(flowInfo,false,edit->toPlainText())){
            if(w) w->pushProcess(flowInfo,false);
         }
-        dlg->accept();
+        dlg.accept();
+
     });
-    dlg->exec();
+    dlg.exec();
 
 }
 

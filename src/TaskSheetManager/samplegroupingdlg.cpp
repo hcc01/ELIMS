@@ -176,6 +176,30 @@ void SampleGroupingDlg::init(int taskSheetID, const QStringList &samplers)
     },0,{taskSheetID});
     waitForSql();
     if(error) return;
+    //获取点位的样品分组。
+    sql="select A.monitoringInfoID, A.sampleGroup, GROUP_CONCAT(DISTINCT A.parameterID SEPARATOR ',') "
+          "from task_parameters as A "
+          "left join site_monitoring_info as B on A.monitoringInfoID=B.id "
+          "where A.taskSheetID=? "
+          "group by A.monitoringInfoID, A.sampleGroup;";
+    doSql(sql,[this, &error](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"查询样品分组结果时出错：",msg.errorMsg());
+            error=true;
+            sqlFinished();
+            return;
+        }
+        auto r=msg.result().toList();
+        m_siteGroups.clear();
+        for(int i=1;i<r.count();i++){
+            auto row=r.at(i).toList();
+            for(auto id:row.at(2).toString().split(","))
+                m_siteGroups[row.first().toInt()][row.at(1).toInt()].append(id.toInt());
+        }
+        sqlFinished();
+    },0,{taskSheetID});
+    waitForSql();
+    if(error) return;
 
     showGroup();
     /*
@@ -590,6 +614,7 @@ void SampleGroupingDlg::on_saveBtn_clicked()//保存分组
     },0,values);
     waitForSql();
     m_groupChanged=false;
+    init(m_taskSheetID,m_samplers);
 }
 
 
@@ -730,7 +755,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                 nowPeriod=day-leftDay+i;//当前采的第几个周期（总体的第几天）
                 dateNum=ui->dateEdit->date().addDays(start-1).toString("yyMMdd");//时间编号；多个周期连续采样的，时间要推移
 
-                QList<int>groupOrders=m_groups.value(typeID).keys();
+                QList<int>groupOrders=m_siteGroups.value(siteID).keys();
                 for(int samplerOrder:groupOrders){
                     if(samplerOrder==0) continue;//现场监测，没有样品编号
                     QString orderNum=QString("%1").arg(samplerOrder,2,10,QChar('0'));//样品编号
@@ -1021,6 +1046,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                 excel.setValue(siteName,sheet2Row,2);
                 excel.setValue(testItems,sheet2Row,5);
                 excel.setValue(num,sheet2Row,3);
+                excel.setValue(sampleNum,sheet2Row,6);
                 sheet2Row++;
 
             }
@@ -1171,7 +1197,7 @@ void SampleGroupingDlg::on_radioPrint_clicked()
             QString sampleType=row.at(4).toString();
             int typeID=row.at(5).toInt();
             int series=row.at(6).toInt();
-            QString items=parameterNames(m_groups.value(typeID).value(sampleOrder)).join("、");
+            QString items=parameterNames(m_siteGroups.value(siteID).value(sampleOrder)).join("、");
             ui->tableView->append({sampleType,siteName,items,row.at(2)});
             ui->tableView->setCellFlag(i-1,0,siteID);
             ui->tableView->setCellFlag(i-1,1,series);//保存在串联情况

@@ -5,13 +5,12 @@
 #include<QDebug>
 int DBMater::getParameterID(const QString &parameterName)
 {
-    QSqlQuery query;
-    query.prepare("select id from detection_parameters as A "
-                  "left join detection_parameter_alias as B on A.id=B.parameterID "
-                  "where A.parameterName=? or B.alias =?;");
-    query.addBindValue(parameterName);
-    query.addBindValue(parameterName);
-    if(!query.exec()){
+    QSqlQuery query(m_db);
+    QString sql=QString("SELECT A.id FROM detection_parameters AS A "
+                          "LEFT JOIN detection_parameter_alias AS B ON A.id = B.parameterID "
+                          "WHERE A.parameterName = '%1' OR B.alias = '%1'").arg(parameterName);
+
+    if(!query.exec(sql)){
         QMessageBox::information(nullptr,"查询项目ID时出错：",query.lastError().text());
         return 0;
     }
@@ -20,6 +19,7 @@ int DBMater::getParameterID(const QString &parameterName)
                                                                 return 0;
     }
     return query.value(0).toInt();
+
 }
 
 DBMater::DBMater(QObject *parent)

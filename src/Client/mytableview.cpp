@@ -63,6 +63,11 @@ MyTableView::MyTableView(QWidget *parent)
 
 }
 
+MyTableView::~MyTableView()
+{
+    qDebug()<<"mytableview deleted!";
+}
+
 void MyTableView::resizeEvent(QResizeEvent *event)
 {
     // 调用基类的 resizeEvent 以保持默认行为

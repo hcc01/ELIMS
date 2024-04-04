@@ -87,6 +87,7 @@ class MyTableView : public QTableView
     Q_OBJECT
 public:
     explicit MyTableView(QWidget *parent = nullptr);
+    virtual ~MyTableView();
     void resizeEvent(QResizeEvent *event) override;
     void init(const QVariant &data);
     void setHeader(const QStringList& header);    //设置列名，初始化表格。

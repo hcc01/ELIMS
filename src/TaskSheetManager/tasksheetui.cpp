@@ -777,15 +777,15 @@ void TaskSheetUI::on_reviewCommentsBtn_clicked()
     int row=ui->tableView->selectedRow();
     if(row<0) return ;
     taskNum=ui->tableView->value(row,0).toString();
-    int flowID;
-    QString sql="select flowID from task_status where taskSheetID=(select id from test_task_info where taskNum=?); ";
-    QJsonObject m;
-    doSqlQuery(sql,[this, &m](const QSqlReturnMsg&msg){
-        m=msg.jsCmd();
-        sqlFinished();
-    },0,{taskNum});
-    waitForSql();
-    showFlowInfo(QSqlReturnMsg(m));
+//    int flowID;
+//    QString sql="select flowID from task_status where taskSheetID=(select id from test_task_info where taskNum=?); ";
+//    QJsonObject m;
+//    doSqlQuery(sql,[this, &m](const QSqlReturnMsg&msg){
+//        m=msg.jsCmd();
+//        sqlFinished();
+//    },0,{taskNum});
+//    waitForSql();
+    showFlowInfo(QString::number(m_taskIDs.value(taskNum)),"task_status","taskSheetID");
 
 }
 

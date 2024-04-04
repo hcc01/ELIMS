@@ -8,15 +8,12 @@
 #include<QDesktopWidget>
 TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
-    m_view=new MyTableView;
 
-    m_view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间","备注"});
-    m_view->resize(800,400);
 }
 
 TabWidgetBase::~TabWidgetBase()
 {
-    if(m_view) delete m_view;
+
 }
 
 void TabWidgetBase::onSqlReturn(const QSqlReturnMsg &jsCmd)
@@ -130,59 +127,14 @@ bool TabWidgetBase::pushProcess(QFlowInfo flowInfo, bool passed,const QString& c
 
 }
 
-void TabWidgetBase::showFlowInfo(const QSqlReturnMsg &flowIDsQueryMsg)
+void TabWidgetBase::showFlowInfo(const QString &identityValue, const QString &tableName, const QString &identityColumn, const QString &flowIDColumn)
 {
-        if(flowIDsQueryMsg.error()){
-            QMessageBox::information(nullptr,"查询流程信息时出错：",flowIDsQueryMsg.errorMsg());
-            return;
-        }
-        QList<QVariant>r=flowIDsQueryMsg.result().toList();
-        if(r.count()<2){
-            QMessageBox::information(nullptr,"error：","没有可查询的操作流程。");
-            return;
-        }
-        QString sql;
 
-        bool ok=false;
-        m_view->clear();
-        for(int i=1;i<r.count();i++){
-            QList<QVariant>row=r.at(i).toList();
-            int flowID=row.at(0).toInt();
-            if(!flowID){
-                QMessageBox::information(nullptr,"error:","错误的流程ID信息。");
-                qDebug()<<row;
-                break;
-            }
-            sql="SELECT JSON_EXTRACT(flowInfo, '$.flowName'), "
-                  "CASE WHEN A.operateStatus = 1 THEN '通过' WHEN A.operateStatus = 2 THEN '驳回' ELSE '审批中' END AS '审批结果', "
-                  "A.operateComments, sys_employee_login.name, DATE_FORMAT(A.operateTime,'%Y/%m/%d %H:%i'),A.revisionNotes "
-                  "FROM flow_operate_records as A "
-                  "left join flow_records as B on A.flowID= B.id "
-                  "left join sys_employee_login on A.operatorID=sys_employee_login.id "
-                  "where A.flowID=? ";
-
-            doSqlQuery(sql,[this, &ok](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(nullptr,"获取审批信息时出错:",msg.errorMsg());
-                    sqlFinished();
-                    return;
-                }
-                QList<QVariant>r=msg.result().toList();
-//                if(r.count()<2){
-//                    QMessageBox::information(nullptr,"error:","没有相关流程信息。");
-//                    sqlFinished();
-//                    return;
-//                }
-                for(int i=1;i<r.count();i++){
-                    auto row=r.at(i);
-                    m_view->append(row.toList());
-                }
-                ok=true;
-                sqlFinished();
-            },1,{flowID});
-            waitForSql("正在查询流程信息...");
-        }
-        m_view->show();
+        QDialog dlg;
+        dlg.resize(800,600);
+        QVBoxLayout *lay=new QVBoxLayout(&dlg);
+        lay->addWidget(flowRecordView(identityValue,tableName,identityColumn,flowIDColumn));
+        dlg.exec();
 }
 
 void TabWidgetBase::initMod()
@@ -298,45 +250,96 @@ int TabWidgetBase::submitFlow(const QFlowInfo &flowInfo, QList<int> operatorIDs,
     return ret;//传回所建流程ID，让发送者进行下一步处理
 }
 
-QWidget *TabWidgetBase::showFlowRecord(const QString& identityValue, const QString &tableName, const QString&identityColumn, const QString&flowIDColumn)
+QWidget *TabWidgetBase::flowRecordView(const QString& identityValue, const QString &tableName, const QString&identityColumn, const QString&flowIDColumn)
 {
     QString sql;
     sql=QString("select %1 from %2 where %3=?;").arg(flowIDColumn).arg(tableName).arg(identityColumn);
-    QJsonObject m;
-    doSqlQuery(sql,[this, &m](const QSqlReturnMsg&msg){
+
+    QList<QVariant>r;
+    doSqlQuery(sql,[this,  &r](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询审批记录时出错：",msg.errorMsg());
             sqlFinished();
             return;
         }
-        m=msg.jsCmd();
+        r=msg.result().toList();
+
         sqlFinished();
     },0,{identityValue});
     waitForSql();
-    if(!m.isEmpty()){
-        showFlowInfo(QSqlReturnMsg(m));
-    }
-    QLayout *layout = m_view->layout();
+//    if(!m.isEmpty()){
+//        showFlowInfo(QSqlReturnMsg(m));
+//    }
+
+        if(r.count()<2){
+            QMessageBox::information(nullptr,"error：","没有可查询的操作流程。");
+            return nullptr;
+        }
+
+        bool ok=false;
+
+        MyTableView* view=new MyTableView;
+        view->setHeader({"流程名称","审批结果","审批意见","审批人","审批时间","备注"});
+        view->resize(800,400);
+        for(int i=1;i<r.count();i++){
+            QList<QVariant>row=r.at(i).toList();
+            int flowID=row.at(0).toInt();
+            if(!flowID){
+                QMessageBox::information(nullptr,"error:","错误的流程ID信息。");
+                qDebug()<<row;
+                break;
+            }
+            sql="SELECT JSON_EXTRACT(flowInfo, '$.flowName'), "
+                  "CASE WHEN A.operateStatus = 1 THEN '通过' WHEN A.operateStatus = 2 THEN '驳回' ELSE '审批中' END AS '审批结果', "
+                  "A.operateComments, sys_employee_login.name, DATE_FORMAT(A.operateTime,'%Y/%m/%d %H:%i'),A.revisionNotes "
+                  "FROM flow_operate_records as A "
+                  "left join flow_records as B on A.flowID= B.id "
+                  "left join sys_employee_login on A.operatorID=sys_employee_login.id "
+                  "where A.flowID=? ";
+
+            doSqlQuery(sql,[this, &ok, view](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"获取审批信息时出错:",msg.errorMsg());
+                    sqlFinished();
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+//                if(r.count()<2){
+//                    QMessageBox::information(nullptr,"error:","没有相关流程信息。");
+//                    sqlFinished();
+//                    return;
+//                }
+                for(int i=1;i<r.count();i++){
+                    auto row=r.at(i);
+                    view->append(row.toList());
+                }
+                ok=true;
+                sqlFinished();
+            },1,{flowID});
+            waitForSql("正在查询流程信息...");
+        }
+
+    QLayout *layout = view->layout();
     if (layout) {
-        layout->removeWidget(m_view);
+        layout->removeWidget(view);
         qDebug()<<"1";
     }
-    m_view->setParent(nullptr);
+    view->setParent(nullptr);
     // 移动窗口到屏幕中央
     QDesktopWidget *desktop = QApplication::desktop();
     int screenWidth = desktop->width();
     int screenHeight = desktop->height();
-    int widgetWidth = m_view->width();
-    int widgetHeight = m_view->height();
+    int widgetWidth = view->width();
+    int widgetHeight = view->height();
 
     // 计算窗口应该移动到的位置
     int x = (screenWidth - widgetWidth) / 2;
     int y = (screenHeight - widgetHeight) / 2;
 
     // 移动窗口
-    m_view->move(x, y);
-    m_view->show();
-    return m_view;
+    view->move(x, y);
+    view->show();
+    return view;
 }
 
 void TabWidgetBase::waitForSql(const QString &msg)

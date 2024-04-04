@@ -71,6 +71,7 @@ private:
 
 
     QMap<int,QMap<int,QList<int>>>m_groups;//分组情况<类型ID：<样品序号：参数列表>>
+    QMap<int,QMap<int ,QList<int>>>m_siteGroups;//各点位的分组情况<点位ID：<样品序号：参数列表>>；因为不同点位的监测项目可能不一样。
     QMap<int,int>m_typeOrder;//<类型ID：序号>记录各类型已经使用的序号
     bool m_groupChanged;
     QStringList m_clientNum;//保存全周期的采样客户序号编码

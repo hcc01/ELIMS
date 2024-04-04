@@ -7,7 +7,7 @@ class MyModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    explicit MyModel(const QStringList& header={""},QObject *parent = nullptr);
+    explicit MyModel(const QStringList& header=QStringList(),QObject *parent = nullptr);
     void setHeader(const QStringList& header);
     bool setRawData(QList<QVariant> data);
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

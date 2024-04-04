@@ -1,6 +1,7 @@
 ﻿#include "mymodel.h"
 #include "qbrush.h"
 #include "qcolor.h"
+#include "qdebug.h"
 
 MyModel::MyModel(const QStringList &header, QObject *parent)
     : QAbstractTableModel{parent},
@@ -167,6 +168,7 @@ bool MyModel::removeRows(int row, int count, const QModelIndex &parent)
 
 void MyModel::removeAll()
 {
+    if(!m_data.size()) return;
     beginRemoveRows(QModelIndex(), 0,  m_data.size()-1);
     m_data.clear();
     endRemoveRows();
