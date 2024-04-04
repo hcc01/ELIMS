@@ -36,7 +36,7 @@ void SqlPageControleUI::setCurrentPage(int page)
     ui->currentPage->setText(QString::number(page));
 }
 
-void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, QJsonArray v, DealFuc f)
+void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, QJsonArray v, DealFuc f, int ipp)
 {
     m_sqlClass=tab;
     m_sql=sql;m_currentPage=p;m_values=v;m_dealFuc=f;
@@ -52,7 +52,7 @@ void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, 
 //            qDebug()<<msg.jsCmd();
             m_dealFuc(msg);
             m_sqlClass->sqlFinished();
-        },p,v);
+        },p,v,ipp);
     tab->waitForSql();
 }
 

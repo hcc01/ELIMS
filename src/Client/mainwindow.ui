@@ -27,7 +27,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_5">
        <property name="geometry">
@@ -92,7 +92,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="btTaskSheet_4">
+         <widget class="QPushButton" name="testManagerBtn">
           <property name="text">
            <string>分析任务管理</string>
           </property>

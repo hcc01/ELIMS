@@ -16,7 +16,7 @@ public:
     ~ImplementingStandardEditor();
     void init();
 signals:
-    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
+    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={},int ipp=0);
 private slots:
     void on_standardEidtBtn_clicked();
 

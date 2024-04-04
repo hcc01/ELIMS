@@ -19,7 +19,7 @@ public:
 private:
     void setAddMode(bool addMode);
 signals:
-    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={});
+    void doSql(const QString&sql,DealFuc f,int p=0,const QJsonArray& bindValuse={},int ipp=0);
 private slots:
     void on_OKBtn_clicked();
 

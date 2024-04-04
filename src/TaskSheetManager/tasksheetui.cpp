@@ -241,6 +241,10 @@ void TaskSheetUI::initMod()
           "parameterName VARCHAR(16) not null, "   //检测参数名称
           "sampleGroup int DEFAULT -1, "           //样品组
           "reportNum varchar(32), "
+          "result json,"
+          "testor varchar(16) ,"
+          "startTime datetime, "
+          "finishedtime datetime, "
           "UNIQUE (monitoringInfoID, parameterID),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "

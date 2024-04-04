@@ -262,7 +262,8 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
 
     if(page&&(sql.indexOf("SELECT")!=-1||sql.indexOf("select")!=-1)){//分页查询
         sql.replace(";"," ");//分页查询不能有分号，不能多个同时查询。
-
+        int itemsPerPage=sqlCmd.itemsPerPage();
+        if(!itemsPerPage) itemsPerPage=ITEMS_PER_PAGE;
         //先获取总页数：
         QString str=QString("SELECT COUNT(*) FROM ( %1 ) as subquery;").arg(sql);
         query.prepare(str);
@@ -276,14 +277,15 @@ QSqlReturnMsg CDatabaseManage::doQuery(const QSqlCmd &sqlCmd,int userID)
         if(!query.next()){
             return QSqlReturnMsg("无效的查询：没有查询结果。",sqlCmd.flag(),sqlCmd.tytle(),true);
         }
-        totalPage=(query.value(0).toInt()-1)/ITEMS_PER_PAGE+1;
+        totalPage=(query.value(0).toInt()-1)/itemsPerPage+1;
         if(!totalPage){
             return QSqlReturnMsg("无效的分页查询：总页数为0。",sqlCmd.flag(),sqlCmd.tytle(),true);
         }
         //处理分页查询
 //        str=QString("WITH PaginatedResults AS ( SELECT *, ROW_NUMBER() OVER (ORDER BY B.id) AS rn FROM ( %1 ) AS subquery)"
 //                      "SELECT * FROM PaginatedResults WHERE rn BETWEEN %2 AND %3").arg(sql).arg((page-1)*ITEMS_PER_PAGE+1).arg(page*ITEMS_PER_PAGE);
-        str=sql+QString(" LIMIT %1 OFFSET %2").arg(ITEMS_PER_PAGE).arg((page-1)*ITEMS_PER_PAGE);
+
+        str=sql+QString(" LIMIT %1 OFFSET %2").arg(itemsPerPage).arg((page-1)*itemsPerPage);
         query.prepare(str);
         for(auto v:values){
             query.addBindValue(v.toVariant());

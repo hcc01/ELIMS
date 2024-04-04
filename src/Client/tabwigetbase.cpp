@@ -143,13 +143,16 @@ void TabWidgetBase::initMod()
 }
 
 
-void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page,const QJsonArray&bindValues)
+void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page, const QJsonArray&bindValues, int itemsPerPage)
 {
 //    static int flag=0;
         qDebug()<<"tab:"<<this;
     QSqlCmd cmd(sql,flag,page);
     if(bindValues.count()){
         cmd.bindValue(bindValues);
+    }
+    if(itemsPerPage){
+        cmd.setItemsPerPage(itemsPerPage);
     }
     QString sqlinfo=sql;
     int p=sqlinfo.indexOf("?");

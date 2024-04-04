@@ -24,6 +24,7 @@
 #include"workhoursatistics.h"
 #include"dbmater.h"
 #include<QSettings>
+#include"testmanager.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -58,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(SamplingScheduleUI,ui->btSamplingSchedule);
     ADD_MODULE(SampleCirculationUI,ui->samplecirculationBtn);
     ADD_MODULE(WorkHourSatistics,ui->workHourStatisticsBtn);
+    ADD_MODULE(TestManager,ui->testManagerBtn);
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();

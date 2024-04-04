@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TestManager</class>
+ <widget class="QWidget" name="TestManager">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>查找：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="findEdit"/>
+     </item>
+     <item>
+      <widget class="QComboBox" name="findTypeBox">
+       <item>
+        <property name="text">
+         <string>按任务单号</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按委托单位</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按受检单位</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>按项目名称</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>过滤：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="filterBox">
+       <item>
+        <property name="text">
+         <string>待处理</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>未完成</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>已完成</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>全部</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="MyTableView" name="tableView"/>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPushButton" name="refleshBtn">
+         <property name="text">
+          <string>刷新</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="newSheetBtn">
+         <property name="text">
+          <string>新建</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="tasksheetEditBtn">
+         <property name="text">
+          <string>修改</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="tasksheetViewBtn">
+         <property name="text">
+          <string>查看</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="deleteBtn">
+         <property name="text">
+          <string>删除</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="submitBtn">
+         <property name="text">
+          <string>提交审核</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="reviewCommentsBtn">
+         <property name="text">
+          <string>审批记录</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="SqlPageControleUI" name="pageCtrl" native="true"/>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MyTableView</class>
+   <extends>QTableView</extends>
+   <header>mytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SqlPageControleUI</class>
+   <extends>QWidget</extends>
+   <header>../sqlPageControleUI/sqlpagecontroleui.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

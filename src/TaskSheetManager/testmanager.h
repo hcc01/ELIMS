@@ -1,0 +1,23 @@
+#ifndef TESTMANAGER_H
+#define TESTMANAGER_H
+
+#include <QWidget>
+#include"tabwigetbase.h"
+#include"TaskSheetManager_global.h"
+namespace Ui {
+class TestManager;
+}
+
+class  TASKSHEETMANAGER_EXPORT TestManager : public TabWidgetBase
+{
+    Q_OBJECT
+
+public:
+    explicit TestManager(QWidget *parent = nullptr);
+    ~TestManager();
+    void initCMD();
+private:
+    Ui::TestManager *ui;
+};
+
+#endif // TESTMANAGER_H

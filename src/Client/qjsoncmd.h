@@ -158,6 +158,8 @@ public:
     void setSql(const QString& sql){ _cmd["sql"]=sql;}
     void setFlag(int flag){ _cmd["flag"]=flag;}
     void setPage(int page){_cmd["queryPage"]=page;}
+    int itemsPerPage()const{return _cmd.value("ipp").toInt();}
+    void setItemsPerPage(int i){_cmd["ipp"]=i;}
     void setTabTitle(const QString&tytle){_cmd["tytle"]=tytle;}//模块窗体标识，在mainWindow的onOpenTab中进行标识，用于服务器识别操作窗口。
     QString tytle()const;
     QString sql() const;

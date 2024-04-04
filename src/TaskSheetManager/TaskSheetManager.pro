@@ -32,6 +32,7 @@ SOURCES += \
     tasksheeteditor.cpp \
     tasksheetui.cpp \
     testinfoeditor.cpp \
+    testmanager.cpp \
     workhoursatistics.cpp
 
 HEADERS += \
@@ -59,6 +60,7 @@ HEADERS += \
     tasksheeteditor.h \
     tasksheetui.h \
     testinfoeditor.h \
+    testmanager.h \
     workhoursatistics.h
 
 # Default rules for deployment.
@@ -82,6 +84,7 @@ FORMS += \
     tasksheeteditor.ui \
     tasksheetui.ui \
     testinfoeditor.ui \
+    testmanager.ui \
     workhoursatistics.ui
 
 

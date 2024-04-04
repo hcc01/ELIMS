@@ -55,7 +55,7 @@ public:
     virtual void initMod();//新增模块时初始化操作，建表等。
     virtual void initCMD(){}//初次调用模块窗口时需要进行的初始化操作。
     virtual FlowWidget* flowWidget(const QFlowInfo &flowInfo){return nullptr;}//用于流程审批的窗口，各模块自定义
-    void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={});
+    void doSqlQuery(const QString&sql,DealFuc f=nullptr,int page=0, const QJsonArray&bindValue={},int itemsPerPage=0);
     int submitFlow(const QFlowInfo& flowInfo, QList<int> operatorIDs,const QString& identityValue,int operatorCount=1, const QString&tableName="all_flows",
                    const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID",const QString& remark="");
     QWidget* flowRecordView(const QString& identityValue, const QString &tableName="all_flows", const QString&identityColumn="identityColumn", const QString&flowIDColumn="flowID");

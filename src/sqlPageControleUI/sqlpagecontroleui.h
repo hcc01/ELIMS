@@ -19,7 +19,7 @@ public:
     void setTabWidget(TabWidgetBase* tab){m_sqlClass=tab;};
     void setTotalPage(int totalPage);
     void setCurrentPage(int page);
-    void startSql(TabWidgetBase *tab, const QString& sql, int p, QJsonArray v={}, DealFuc f=nullptr);//这是新的使用方式
+    void startSql(TabWidgetBase *tab, const QString& sql, int p, QJsonArray v={}, DealFuc f=nullptr,int itemsPerPage=0);//这是新的使用方式
     void setSql(const QString& sql,int p){m_sql=sql;m_currentPage=p;}//这个是之前的使用方式，保留，避免修改
     void updatePage();
     void dealSqlReturn(const QSqlReturnMsg &msg);
