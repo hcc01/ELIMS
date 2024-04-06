@@ -16,6 +16,9 @@ public:
     explicit TestManager(QWidget *parent = nullptr);
     ~TestManager();
     void initCMD();
+private slots:
+    void on_myTask_clicked();
+
 private:
     Ui::TestManager *ui;
 };

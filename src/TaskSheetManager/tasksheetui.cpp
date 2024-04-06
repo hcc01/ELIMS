@@ -352,7 +352,7 @@ void TaskSheetUI::initMod()
 //          "samplingSiteName varchar(64),"
           "samplingRound  int default 1, "
           "samplingPeriod  int default 1, "
-          "sampleOrder int, "
+          "sampleOrder int default -1, "
           "sampleNumber varchar(32) unique ,"
           "samplingParameters json,"
           "samplers varchar(12),"
@@ -692,11 +692,14 @@ bool TaskSheetUI::on_tasksheetEditBtn_clicked()//编辑任务单
     int status=ui->tableView->cellFlag(row,6).toInt();
     if(user()->name()!=ui->tableView->value(row,1).toString()) return false;//非本人不可编辑
     qDebug()<<status;
-    if(status>SCHEDULING) {
+    if(status>SAMPLING&&status!=SAMPLE_CIRCULATION) {
         QMessageBox::information(nullptr,"","已经开始的任务不能修改。");
         return false;//提交审核后，任务单锁定不能编辑
     }
-
+    if(status==REVIEW) {
+        QMessageBox::information(nullptr,"","任务单正在审核中，请在审核后再修改。");
+        return false;//提交审核后，任务单锁定不能编辑
+    }
     if(status!=CREATE&&status!=MODIFY){
         //更新任务单状态为修改
         bool error=false;
@@ -736,11 +739,11 @@ void TaskSheetUI::on_tableView_doubleClicked(const QModelIndex &index)
     int row=ui->tableView->selectedRow();
     if(row<0) return ;
     int status=ui->tableView->cellFlag(row,6).toInt();
-    if(status!=CREATE&&status!=MODIFY){
-        if(!on_tasksheetEditBtn_clicked()) on_tasksheetViewBtn_clicked();
+    if(status!=CREATE&&status!=MODIFY){//非新建或编辑状态，使用查看模式
+        on_tasksheetViewBtn_clicked();
         return;
     }
-    on_tasksheetViewBtn_clicked();
+    if(!on_tasksheetEditBtn_clicked()) on_tasksheetViewBtn_clicked();
 }
 
 

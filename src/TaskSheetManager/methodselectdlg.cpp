@@ -99,7 +99,7 @@ bool MethodSelectDlg::saveMethod(int taskSheetID)
     for(int i=0;i<ui->tableView->rowCount();i++){
         int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
 //        int parameterID=m_parameterIDs.value(testTypeID).value(ui->tableView->value(i,"检测项目").toString());
-        int parameterID=DB.getParameterID(ui->tableView->value(i,"检测项目").toString());
+        int parameterID=DB.getParameterID(testTypeID,ui->tableView->value(i,"检测项目").toString());
         if(!parameterID){
             return false;
         }
@@ -135,6 +135,8 @@ bool MethodSelectDlg::saveMethod(int taskSheetID)
     if(error) {
         return false;
     }
+    //送样样品，不分组
+    if(m_testInfo.at(0)->delieveryTest) return true;
     //确认样品分组：
     for(int i=0;i<ui->tableView->rowCount();i++){
         int testTypeID=m_typeIDs.value(ui->tableView->value(i,0).toString().split("/").first());//样品类型可能有多个合在一起
@@ -331,6 +333,7 @@ void MethodSelectDlg::on_loadMethodBtn_clicked()//加载方法
                 if(!type.contains(thisType))  ui->tableView->setData(r,0,QString("%1/%2").arg(type).arg(thisType));
                 continue;//已经有相同类型相同项目，在样品类型列中增加新的样品类型
             }
+
             allTypeParameters[testTypeID][parameterID]=row;//记录下参数的行号，下次如果有相同类型的参数，使用这行方法
 
             //开始查找合适的方法
