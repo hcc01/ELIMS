@@ -19,6 +19,8 @@ public:
 private slots:
     void on_myTask_clicked();
 
+    void on_onSamplingBtn_clicked();
+
 private:
     Ui::TestManager *ui;
 };

@@ -332,21 +332,26 @@ void TaskSheetEditor::doSave()
                     values.append(info->sampleDesc);
 
                     sql += "INSERT INTO task_parameters ( monitoringInfoID, taskSheetID, "
-                           " parameterID, parameterName,testTypeID) "
+                           " parameterID, parameterName,testTypeID, period,Frequency) "
                            "VALUES ";
                     // 开始保存点位监测项目
-
-                    for (int i = 0; i < info->monitoringParameters.count(); i++) {
-                        sql += "(@site_id,?, ?, ?,?)";
-                        if (i == info->monitoringParameters.count() - 1) {
-                            sql += ";";
-                        } else
-                            sql += ",";
-                        values.append(m_taskSheetID);
-                        values.append(info->parametersIDs.at(i));
-                        values.append(info->monitoringParameters.at(i));
-                        values.append(info->testTypeID);
-                    }                    
+                    for(int p=1;p<=info->samplingPeriod;p++){
+                        for(int f=1;f<info->samplingFrequency;f++){
+                            for (int i = 0; i < info->monitoringParameters.count(); i++) {
+                                sql += "(@site_id,?, ?, ?,?,?,?)";
+                                if(i==info->monitoringParameters.count()-1&&p==info->samplingPeriod&&f==info->samplingFrequency) {
+                                    sql += ";";
+                                } else
+                                    sql += ",";
+                                values.append(m_taskSheetID);
+                                values.append(info->parametersIDs.at(i));
+                                values.append(info->monitoringParameters.at(i));
+                                values.append(info->testTypeID);
+                                values.append(p);
+                                values.append(f);
+                            }
+                        }
+                    }
                 }
             }
             doSql(sql,[this, &error](const QSqlReturnMsg&msg){
@@ -431,18 +436,22 @@ void TaskSheetEditor::doSave()
                 values.append(info->sampleCount);
                 values.append(info->sampleDesc);
 
-                sql+="INSERT INTO task_parameters ( monitoringInfoID, taskSheetID, parameterID, parameterName, testTypeID) "
+                sql+="INSERT INTO task_parameters ( monitoringInfoID, taskSheetID, parameterID, parameterName, testTypeID, period,Frequency) "
                        "VALUES ";
 
                 //开始保存点位监测项目
-                for(int i=0;i<info->monitoringParameters.count();i++){
-                    sql+="(@site_id,@taskSheetID, ?, ?,?)";
-                    if(i==info->monitoringParameters.count()-1){
-                        sql+=";";
+                for(int p=1;p<=info->samplingPeriod;p++){
+                    for(int f=1;f<=info->samplingFrequency;f++){
+                        for(int i=0;i<info->monitoringParameters.count();i++){
+                            sql+="(@site_id,@taskSheetID, ?, ?,?,?,?)";
+                            if(i==info->monitoringParameters.count()-1&&p==info->samplingPeriod&&f==info->samplingFrequency){
+                                sql+=";";
+                            }
+                            else sql+=",";
+                            QJsonArray a={info->parametersIDs.at(i),info->monitoringParameters.at(i),info->testTypeID,p,f};
+                            foreach(auto x,a) values.append(x);
+                        }
                     }
-                    else sql+=",";
-                    QJsonArray a={info->parametersIDs.at(i),info->monitoringParameters.at(i),info->testTypeID};
-                    foreach(auto x,a) values.append(x);
                 }
             }
         }
@@ -543,7 +552,7 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
 
     sql="SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, "
           "B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc, "
-          "GROUP_CONCAT(D.parameterID  ORDER BY D.id ASC SEPARATOR ','), GROUP_CONCAT(D.parameterName ORDER BY D.id ASC SEPARATOR '/' )  "
+          "GROUP_CONCAT(DISTINCT D.parameterID SEPARATOR ','), GROUP_CONCAT(DISTINCT D.parameterName SEPARATOR '/' )  "
           "from task_parameters as D "
           "left join site_monitoring_info as A on  D.monitoringInfoID=A.id "
           "left join implementing_standards as B on A.limitValueID = B.id "

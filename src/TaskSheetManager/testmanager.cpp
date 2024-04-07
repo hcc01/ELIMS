@@ -45,23 +45,23 @@ void TestManager::initCMD()
     sql="select B.sampleNumber,C.sampleType ,GROUP_CONCAT(A.parameterName SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
           " DATE_FORMAT(B.receiveTime, '%m-%d %H:%i') as T ,GROUP_CONCAT(A.id SEPARATOR ',')"
           "from task_parameters as A "
-          "left join sampling_info as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleGroup=B.sampleOrder "
+          "left join sampling_info as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleGroup=B.sampleOrder and A.Period=B.samplingPeriod and A.Frequency=B.samplingRound "
           "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
           "left join type_methods as D on D.taskSheetID=A.taskSheetID and D.testTypeID=A.testTypeID and D.parameterID=A.parameterID "
           "left join test_methods as E on D.testMethodID=E.id "
-          "where A.testor is null and B.receiveTime is not null and D.subpackage=0 "
+          "where A.testor =? and A.finishedtime is null "
           "group by B.sampleNumber,C.sampleType,M,T "
           "order by M , T;";
-    sql="select A.sampleNumber, C.sampleType ,GROUP_CONCAT(B.parameterName SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
-          " DATE_FORMAT(A.receiveTime, '%m-%d %H:%i') as T ,GROUP_CONCAT(B.id SEPARATOR ',') "
-          "from sampling_info as A "
-          "left join task_parameters as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleOrder=B.sampleGroup "
-          "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
-          "left join type_methods as D on D.taskSheetID=B.taskSheetID and D.testTypeID=B.testTypeID and D.parameterID=B.parameterID "
-          "left join test_methods as E on D.testMethodID=E.id "
-          "where B.testor is null and A.receiveTime is not null and D.subpackage=0 "
-          "group by A.sampleNumber,C.sampleType,M,T "
-          "order by M , T;";
+//    sql="select A.sampleNumber, C.sampleType ,GROUP_CONCAT(DISTINCT B.parameterName SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
+//          " DATE_FORMAT(A.receiveTime, '%m-%d %H:%i') as T ,GROUP_CONCAT(B.id SEPARATOR ',') "
+//          "from sampling_info as A "
+//          "left join task_parameters as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleOrder=B.sampleGroup and A.Period=B.samplingPeriod and A.Frequency=B.samplingRound "
+//          "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
+//          "left join type_methods as D on D.taskSheetID=B.taskSheetID and D.testTypeID=B.testTypeID and D.parameterID=B.parameterID "
+//          "left join test_methods as E on D.testMethodID=E.id "
+//          "where B.testor is null and A.receiveTime is not null and D.subpackage=0 "
+//          "group by A.sampleNumber,C.sampleType,M,T "
+//          "order by M , T;";
     DealFuc f=[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询分析任务时出错：",msg.errorMsg());
@@ -92,15 +92,15 @@ void TestManager::on_myTask_clicked()
           "where A.testor =? and A.finishedtime is null "
           "group by B.sampleNumber,C.sampleType,M,T "
           "order by M , T;";
-    sql="select A.sampleNumber, ,C.sampleType ,GROUP_CONCAT(B.parameterName SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
-          "from sampling_info as A "
-          "left join task_parameters as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleOrder=B.sampleGroup "
-          "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
-          "left join type_methods as D on D.taskSheetID=A.taskSheetID and D.testTypeID=A.testTypeID and D.parameterID=A.parameterID "
-          "left join test_methods as E on D.testMethodID=E.id "
-          "where A.testor =? and A.finishedtime is null "
-          "group by B.sampleNumber,C.sampleType,M,T "
-          "order by M , T;";
+//    sql="select A.sampleNumber, C.sampleType ,GROUP_CONCAT(B.parameterName SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
+//          "from sampling_info as A "
+//          "left join task_parameters as B on A.monitoringInfoID=B.monitoringInfoID and A.sampleOrder=B.sampleGroup "
+//          "left join site_monitoring_info as C on A.monitoringInfoID=C.id "
+//          "left join type_methods as D on D.taskSheetID=A.taskSheetID and D.testTypeID=A.testTypeID and D.parameterID=A.parameterID "
+//          "left join test_methods as E on D.testMethodID=E.id "
+//          "where A.testor =? and A.finishedtime is null "
+//          "group by B.sampleNumber,C.sampleType,M,T "
+//          "order by M , T;";
     DealFuc f=[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询分析任务时出错：",msg.errorMsg());
@@ -115,5 +115,11 @@ void TestManager::on_myTask_clicked()
         }
     };
     ui->pageCtrl->startSql(this,sql,1,{},f,50);
+}
+
+
+void TestManager::on_onSamplingBtn_clicked()
+{
+
 }
 

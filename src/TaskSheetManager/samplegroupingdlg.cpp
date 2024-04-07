@@ -139,6 +139,36 @@ SampleGroupingDlg::SampleGroupingDlg(TabWidgetBase *parent) :
         }
         ui->checkBox->setChecked(false);
     });
+    ui->tableView->addContextAction("撤销标签",[this](){
+        if(!ui->radioPrint->isChecked()) return;
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+        int a=QMessageBox::question(nullptr,"","此操作将删除整个点位所有项目和周期的标签，确认？");
+        if(a!=QMessageBox::Yes) return;
+        QModelIndexList indexs=ui->tableView->selectedIndexes();
+        QString sql;
+        QJsonArray values;
+        int nowID=0;
+        for(auto index:indexs){
+            if(index.column()==0){
+                int sideID=ui->tableView->cellFlag(index.row(),0).toInt();
+                if(sideID==nowID) continue;
+                nowID=sideID;
+                sql+="delete from sampling_info where monitoringInfoID=? and receiveTime is null;";
+                values.append(sideID);
+            }
+        }
+        doSql(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"删除标签时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            sqlFinished();
+        },0,values);
+        waitForSql();
+        on_radioPrint_clicked();
+    });
 }
 
 SampleGroupingDlg::~SampleGroupingDlg()
@@ -1092,7 +1122,7 @@ void SampleGroupingDlg::on_radioGenerate_clicked()
     QString sql;
     ui->sortGroup->hide();
     ui->printGroup->show();
-    sql="select B.sampleType, B.samplingSiteName,GROUP_CONCAT(A.parameterName SEPARATOR '、'), CONCAT(B.samplingFrequency,'次*', B.samplingPeriod,'天(剩',B.samplingPeriod-COALESCE(C.samplingPeriod,0),'天)') as c ,B.id ,C.siteOrder,B.testTypeID "
+    sql="select B.sampleType, B.samplingSiteName,GROUP_CONCAT(DISTINCT A.parameterName SEPARATOR '、'), CONCAT(B.samplingFrequency,'次*', B.samplingPeriod,'天(剩',B.samplingPeriod-COALESCE(C.samplingPeriod,0),'天)') as c ,B.id ,C.siteOrder,B.testTypeID "
           "from task_parameters as A "
           "left join site_monitoring_info as B on A.monitoringInfoID=B.id   "
           "left join (select monitoringInfoID , siteOrder, max(samplingPeriod) as samplingPeriod from sampling_info group by monitoringInfoID,siteOrder) as C on C.monitoringInfoID=B.id "

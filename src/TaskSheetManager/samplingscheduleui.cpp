@@ -240,6 +240,7 @@ void SamplingScheduleUI::on_myTaskBtn_clicked(bool checked)
         ui->taskScheduledView->clear();
         for(int i=1;i<table.count();i++){
             ui->taskScheduledView->append(table.at(i).toList());
+            ui->taskScheduledView->setCellFlag(i-1,0,table.at(i).toList().last());
         }
     });
 }

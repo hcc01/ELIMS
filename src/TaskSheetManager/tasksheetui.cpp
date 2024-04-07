@@ -245,6 +245,8 @@ void TaskSheetUI::initMod()
           "testor varchar(16) ,"
           "startTime datetime, "
           "finishedtime datetime, "
+          "Period int not null default 1, "
+          "Frequency int not null default 1, "
           "UNIQUE (monitoringInfoID, parameterID),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "

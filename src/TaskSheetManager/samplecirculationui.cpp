@@ -71,7 +71,7 @@ void SampleCirculationUI::initCMD()
         }
         ui->submitterBox->setCurrentIndex(-1);
     },0,{CUser::Sampler});
-    on_samplingBtn_clicked();
+//    on_samplingBtn_clicked();
 }
 
 void SampleCirculationUI::doSamplingReceive()
@@ -120,9 +120,10 @@ void SampleCirculationUI::doSamplingReceive()
             waitForSql("正在查询样品");
             if(error) return;
             if(ui->samplingView->findInColumn(taskNum,0)<0){
-                sql="select A.sampleNumber, GROUP_CONCAT( DISTINCT C.parameterName SEPARATOR ','), A.receiver from sampling_info as A "
+                sql="select A.sampleNumber, GROUP_CONCAT( DISTINCT C.parameterName SEPARATOR ','), A.receiver "
+                      "from sampling_info as A "
                       "left join site_monitoring_info as B on B.id=A.monitoringInfoID "
-                      "left join task_parameters as C on C.taskSheetID=B.taskSheetID and C.sampleGroup=A.sampleOrder "
+                      "left join task_parameters as C on C.monitoringInfoID=B.id and C.sampleGroup=A.sampleOrder "
                       "where C.taskSheetID=? "
                       "group by A.sampleNumber,A.receiver;";
                 doSqlQuery(sql,[this, &error, taskNum, edit](const QSqlReturnMsg&msg){

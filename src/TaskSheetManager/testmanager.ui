@@ -41,6 +41,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QRadioButton" name="onSamplingBtn">
+       <property name="text">
+        <string>正在采样</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QComboBox" name="filterBox">
        <item>
         <property name="text">
