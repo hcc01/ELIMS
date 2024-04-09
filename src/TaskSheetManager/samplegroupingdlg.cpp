@@ -1,6 +1,7 @@
 #include "samplegroupingdlg.h"
 
 #include "qcalendarwidget.h"
+#include "qinputdialog.h"
 #include "qpainter.h"
 #include "tasksheetui.h"
 #include "ui_samplegroupingdlg.h"
@@ -167,6 +168,94 @@ SampleGroupingDlg::SampleGroupingDlg(TabWidgetBase *parent) :
             sqlFinished();
         },0,values);
         waitForSql();
+        on_radioPrint_clicked();
+    });
+    ui->tableView->addContextAction("变更层数（海水、土壤）",[this](){
+        if(!ui->radioPrint->isChecked()) return;
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+
+        int typeID=ui->tableView->cellFlag(row,2).toInt();
+        QString type=DB.getTypeName(typeID);
+        qDebug()<<"要变更的样品类型："<<type;
+        if(type!="海水"&&type!="土壤") return;
+        int a=QMessageBox::question(nullptr,"","此操作将更改整个点位所有项目所有周期的层数，确认？");
+        if(a!=QMessageBox::Yes) return;
+        int f=0;
+        int siteID=ui->tableView->cellFlag(row,0).toInt();
+        QString sql;
+        sql="select samplingFrequency from site_monitoring_info where id=?";
+        doSql(sql,[this, &f](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"查询层次时出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            auto r=msg.result().toList();
+            if(r.count()!=2){
+                QMessageBox::information(nullptr,"查询层次时出错：","数量错误");
+                                         sqlFinished();
+                                         return;
+            }
+            f=r.at(1).toList().at(0).toInt();
+            sqlFinished();
+        },0,{siteID});
+        waitForSql();
+        int newF=QInputDialog::getInt(nullptr,"",QString("当前点位需要采集%1层，请输入实际采样的层数：").arg(f));
+        if(newF<=0||newF==f||newF>10) {
+             QMessageBox::information(nullptr,"","你的输入有误！");
+            return;
+        }
+        //开始更改层次，涉及点位信息表、检测参数表、样品采集信息表
+        QJsonArray values;
+        sql="update site_monitoring_info set samplingFrequency=? where id=?;";
+        values.append(newF);
+        values.append(siteID);
+        if(newF<f){
+            while(f>newF){
+                sql+="delete from task_parameters where monitoringInfoID=? and Frequency=?;";
+                values.append(siteID);
+                values.append(f);
+                sql+="delete from sampling_info where monitoringInfoID=? and samplingRound=?;";
+                values.append(siteID);
+                values.append(f);
+                f--;
+            }
+        }
+        else{
+            while(f<newF){
+                sql+="insert into task_parameters (taskSheetID,monitoringInfoID,testTypeID,parameterID,parameterName,sampleGroup,Period,Frequency) "
+                       "select taskSheetID,monitoringInfoID,testTypeID,parameterID,parameterName,sampleGroup,Period, ? "
+                       "from (select taskSheetID,monitoringInfoID,testTypeID,parameterID,parameterName,sampleGroup,Period from task_parameters "
+                       "where monitoringInfoID=? and Frequency=?) AS subquery;";
+                values.append(f+1);
+                values.append(siteID);
+                values.append(f);
+
+                sql+=QString("insert into sampling_info(monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,sampleNumber,samplingRound) "
+                       "select monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,num,? "
+                       "from (select monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,CONCAT(sampleNumber,'-%1') as num "
+                               "from sampling_info where monitoringInfoID=? and samplingRound=?) AS subquery;").arg(f+1);
+                values.append(f+1);
+                values.append(siteID);
+                values.append(f);
+                f++;
+
+
+            }
+        }
+        tabWiget()->connectDB(CMD_START_Transaction);
+        doSql(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                    tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
+                QMessageBox::information(nullptr,"更新数据库出错：",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            sqlFinished();
+        },0,values);
+        waitForSql();
+        tabWiget()->releaseDB(CMD_COMMIT_Transaction);
         on_radioPrint_clicked();
     });
 }
@@ -554,7 +643,7 @@ QString SampleGroupingDlg::testTypeNum(QString testType, int start, bool resetNu
         N++;
         return QString("L%1").arg(N,2,10,QChar('0'));
     }
-    if(testType=="沉积物"){
+    if(testType=="海洋沉积物"){
         int &N=num[12];
         if(start)N=start-1;
         N++;
@@ -763,7 +852,10 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
 //                else typeOrder++;//当前类型的点位序号
 //            }
             typeNum=testTypeNum(typeID,typeOrder);//获取类型与点位编码
-            if(typeNum.isEmpty()) return;
+            if(typeNum.isEmpty()) {
+                QMessageBox::information(nullptr,"error",QString("无法获取正确的类型编号:类型ID：%1，siteID:%2。").arg(typeID).arg(siteID));
+                return;
+            }
 //            QString siteNum=QString("%1").arg(typeOrder,2,10,QChar('0'));//类型编号
 //            QString type;
             int day=1;
@@ -1212,7 +1304,7 @@ void SampleGroupingDlg::on_radioPrint_clicked()
 
                   "left join type_methods as D on B.taskSheetID=D.taskSheetID and B.testTypeID=D.testTypeID and C.p=D.parameterID "
                   "left join test_methods as E on E.id=D.testMethodID "
-                  "where B.taskSheetID=?  "
+                  "where B.taskSheetID=?  and A.receiveTime is null "
                   "order by B.id;");
     ui->pageCtrl->startSql(this->tabWiget(),sql,0,{m_taskSheetID},[this](const QSqlReturnMsg&msg){
         ui->tableView->clear();
@@ -1231,6 +1323,7 @@ void SampleGroupingDlg::on_radioPrint_clicked()
             ui->tableView->append({sampleType,siteName,items,row.at(2)});
             ui->tableView->setCellFlag(i-1,0,siteID);
             ui->tableView->setCellFlag(i-1,1,series);//保存在串联情况
+            ui->tableView->setCellFlag(i-1,2,typeID);//保存类型
             qDebug() << "series" << series;
         }
     });

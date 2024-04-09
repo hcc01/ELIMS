@@ -100,6 +100,7 @@ MainWindow::MainWindow(QWidget *parent)
     if(m_user->position()&(CUser::LabManager|CUser::LabSupervisor)){
         ui->btEmployeeManage->show();
         ui->workHourStatisticsBtn->show();
+        ui->testManagerBtn->show();
     }
     //采样和采样组长
     if(m_user->position()&(CUser::Sampler|CUser::SamplerLeader)){
@@ -108,6 +109,10 @@ MainWindow::MainWindow(QWidget *parent)
     //样品管理员
     if(m_user->position()&(CUser::SampleAdministrator)){
         ui->samplecirculationBtn->show();
+    }
+    //分析人员
+    if(m_user->position()&(CUser::InorganicAnalyst|CUser::PhysicalChemicalAnalyst|CUser::OrganicAnalyst)){
+        ui->testManagerBtn->show();
     }
     ui->btnToDo->clicked();
     ToDoUI* todoUI=static_cast<ToDoUI* >( getTabWidget("我的待办"));
@@ -524,7 +529,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.4.8");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.5.0");
 }
 
 

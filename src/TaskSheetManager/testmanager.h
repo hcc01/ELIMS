@@ -21,6 +21,14 @@ private slots:
 
     void on_onSamplingBtn_clicked();
 
+    void on_UnassignedBtn_clicked();
+
+    void on_AssignedBtn_clicked();
+
+    void on_startTestBtn_clicked();
+
+    void on_submitBtn_clicked();
+
 private:
     Ui::TestManager *ui;
 };

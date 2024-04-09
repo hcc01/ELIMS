@@ -23,6 +23,22 @@ int DBMater::getParameterID(int testTypeID, const QString &parameterName)
 
 }
 
+QString DBMater::getTypeName(int testTypeID)
+{
+    QSqlQuery query(m_db);
+    QString sql=QString("SELECT testType FROM test_type where id=%1").arg(testTypeID);
+
+    if(!query.exec(sql)){
+        QMessageBox::information(nullptr,"查询类型时出错：",query.lastError().text());
+        return 0;
+    }
+    if(!query.next()){
+        QMessageBox::information(nullptr,"查询类型时出错：","未知的类型ID：");
+                                                                return 0;
+    }
+    return query.value(0).toString();
+}
+
 DBMater::DBMater(QObject *parent)
     : QObject{parent}
 {

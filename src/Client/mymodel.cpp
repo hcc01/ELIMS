@@ -171,6 +171,10 @@ void MyModel::removeAll()
     if(!m_data.size()) return;
     beginRemoveRows(QModelIndex(), 0,  m_data.size()-1);
     m_data.clear();
+    m_flags.clear();
+    m_backgroundColors.clear();
+    m_relateions.clear();
+    m_relatedData.clear();
     endRemoveRows();
 }
 

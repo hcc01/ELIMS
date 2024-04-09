@@ -5,7 +5,8 @@ SqlPageControleUI::SqlPageControleUI(QWidget *tab):
     QWidget(tab),
     ui(new Ui::SqlPageControleUI),
     m_currentPage(1),
-    m_dealFuc(nullptr)
+    m_dealFuc(nullptr),
+    m_ipp(0)
 {
     ui->setupUi(this);
 //    this->setVisible(false);
@@ -41,6 +42,7 @@ void SqlPageControleUI::startSql(TabWidgetBase* tab, const QString &sql, int p, 
     m_sqlClass=tab;
     m_sql=sql;m_currentPage=p;m_values=v;m_dealFuc=f;
     qDebug()<<"数据库查询页面控件收到sql:"<<sql;
+    m_ipp=ipp;
     tab->doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
             if(msg.error()){
                 QMessageBox::information(nullptr,"error",msg.errorMsg());
@@ -96,7 +98,7 @@ void SqlPageControleUI::on_btNext_clicked()
     else{
         m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
                 dealSqlReturn(msg);
-                },m_currentPage,m_values);
+                },m_currentPage,m_values,m_ipp);
     }
 }
 
@@ -119,7 +121,7 @@ void SqlPageControleUI::on_btPre_clicked()
     else{
         m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
                 dealSqlReturn(msg);
-            },m_currentPage,m_values);
+            },m_currentPage,m_values,m_ipp);
     }
 }
 
@@ -143,7 +145,7 @@ void SqlPageControleUI::on_btGo_clicked()
     else{
         m_sqlClass->doSqlQuery(m_sql,[this](const QSqlReturnMsg&msg){
                 dealSqlReturn(msg);
-            },m_currentPage,m_values);
+            },m_currentPage,m_values,m_ipp);
 
     }
 }

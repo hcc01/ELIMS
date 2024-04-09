@@ -186,32 +186,6 @@ void SampleCirculationUI::doSamplingReceive()
         ui->samplingView->setData(row,3,"交接完成");
     });
 
-    connect(&dlg,&QDialog::rejected,[this](){
-        //检查是否全部完成
-        if(!ui->samplingView->rowCount()) return;
-        if(ui->samplingView->findInColumn("",2)<0){
-            int a=QMessageBox::question(nullptr,"","还有样品没有完成交接，确认退出？");
-            if(a!=QMessageBox::Yes) doSamplingReceive();
-            else{
-                //没交接完成，需要确认原因（取消部分点位或频次、下次继续采样）
-            }
-        }
-        else{
-            //交接完成
-            m_taskSheetID=0;
-            //更新状态
-            QString sql="update test_task_info set taskStatus=? where id=?;";
-            doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    QMessageBox::information(nullptr,"更新任务单状态时出错：",msg.errorMsg());
-                    sqlFinished();
-                    return;
-                }
-                sqlFinished();
-            },0,{TaskSheetUI::TESTING,m_taskSheetID});
-            waitForSql();
-        }
-    });
     dlg.exec();
 }
 
@@ -640,7 +614,73 @@ void SampleCirculationUI::on_samplingReceiveBtn_clicked()
 
 void SampleCirculationUI::on_nextBtn_clicked()
 {
-    ui->samplingView->clear();
+    //检查是否全部完成
+    if(!ui->samplingView->rowCount()) return;
+    bool finished=true;
+    if(ui->samplingView->findInColumn("",2)<0){
+//        int a=QMessageBox::question(nullptr,"","还有样品没有完成交接，确认退出？");
+//        if(a!=QMessageBox::Yes) doSamplingReceive();
+//        else{
+//            //没交接完成，需要确认原因（取消部分点位或频次、下次继续采样）
+//        }
+        QDialog dlg;
+        dlg.setWindowTitle("样品交接未完成，请选择原因：");
+        QRadioButton* btn1=new QRadioButton("采样未完成，等待下次采样",&dlg);
+        QRadioButton* btn2=new QRadioButton("其它样品取消采样",&dlg);
+        QLineEdit* edit=new QLineEdit(&dlg);
+        QLabel* lab=new QLabel("请填写取消采样原因：",&dlg);
+        btn1->setChecked(true);
+        QVBoxLayout* layout=new QVBoxLayout(&dlg);
+        layout->addWidget(btn1);
+        layout->addWidget(btn2);
+        layout->addWidget(lab);
+        layout->addWidget(edit);
+        QPushButton* okBtn=new QPushButton("确认",&dlg);
+        layout->addWidget(okBtn);
+        connect(okBtn,&QPushButton::clicked,this,[this, &dlg, btn1, &finished, edit](){
+            if(btn1->isChecked()){
+                finished=false;//采样未完成
+            }
+            else{
+                if(edit->text().isEmpty()){
+                    QMessageBox::information(nullptr,"error","请填写取消原因");
+                    return;
+                }
+                QString sql;
+                sql="update test_task_info set remarks=? where id=?";
+                doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+                    if(msg.error()){
+                        QMessageBox::information(nullptr,"更新任务单备注时出错：",msg.errorMsg());
+                        sqlFinished();
+                        return;
+                    }
+                    sqlFinished();
+                },0,{edit->text(),m_taskSheetID});
+                waitForSql();
+            }
+            dlg.accept();
+        });
+        dlg.exec();
+    }
+
+        m_taskSheetID=0;
+        //更新状态
+        if(finished){
+            QString sql="update test_task_info set taskStatus=? where id=?;";
+            doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    QMessageBox::information(nullptr,"更新任务单状态时出错：",msg.errorMsg());
+                    sqlFinished();
+                    return;
+                }
+                sqlFinished();
+            },0,{TaskSheetUI::TESTING,m_taskSheetID});
+            waitForSql();
+        }
+
+
+        ui->samplingView->clear();
+
 }
 
 

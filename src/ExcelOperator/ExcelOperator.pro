@@ -12,12 +12,14 @@ include(../QXlsx/QXlsx.pri)
 
 SOURCES += \
     ../Client/qexcel.cpp \
-    exceloperator.cpp
+    exceloperator.cpp \
+    qwrod.cpp
 
 HEADERS += \
     ../Client/QExcel.h \
     ExcelOperator_global.h \
-    exceloperator.h
+    exceloperator.h \
+    qwrod.h
 
 # Default rules for deployment.
 unix {

@@ -14,6 +14,7 @@ public:
     }
     QSqlDatabase database(){return m_db;}
     int getParameterID(int testTypeID,const QString&parameterName);
+    QString getTypeName(int testTypeID);
 private:
     explicit DBMater(QObject *parent = nullptr);
 

@@ -41,6 +41,7 @@ private:
     QIntValidator _vali;
     DealFuc m_dealFuc;//查询处理函数
     TabWidgetBase* m_sqlClass;
+    int m_ipp;
 };
 
 #endif // SQLPAGECONTROLEUI_H

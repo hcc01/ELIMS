@@ -119,7 +119,7 @@
           <item>
            <widget class="QPushButton" name="nextBtn">
             <property name="text">
-             <string>下一单</string>
+             <string>完成接样</string>
             </property>
            </widget>
           </item>

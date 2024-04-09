@@ -81,51 +81,16 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QPushButton" name="refleshBtn">
+        <widget class="QPushButton" name="startTestBtn">
          <property name="text">
-          <string>刷新</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="newSheetBtn">
-         <property name="text">
-          <string>新建</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="tasksheetEditBtn">
-         <property name="text">
-          <string>修改</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="tasksheetViewBtn">
-         <property name="text">
-          <string>查看</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="deleteBtn">
-         <property name="text">
-          <string>删除</string>
+          <string>领样测试</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="submitBtn">
          <property name="text">
-          <string>提交审核</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="reviewCommentsBtn">
-         <property name="text">
-          <string>审批记录</string>
+          <string>提交数据</string>
          </property>
         </widget>
        </item>
