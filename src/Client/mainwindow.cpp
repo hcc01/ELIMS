@@ -25,6 +25,7 @@
 #include"dbmater.h"
 #include<QSettings>
 #include"testmanager.h"
+#include"businessmanagerui.h"
 //REGISTER_TAB(RMManageUI);
 //REGISTER_TAB(EmployeeManageUI);
 //REGISTER_TAB(DBManagerUI);
@@ -60,14 +61,17 @@ MainWindow::MainWindow(QWidget *parent)
     ADD_MODULE(SampleCirculationUI,ui->samplecirculationBtn);
     ADD_MODULE(WorkHourSatistics,ui->workHourStatisticsBtn);
     ADD_MODULE(TestManager,ui->testManagerBtn);
+    ADD_MODULE(BusinessManagerUI,ui->saleManagerBtn);
+
     _waitDlg.setWindowFlag(Qt::FramelessWindowHint);
     QLabel* label=new QLabel("请等待……",&_waitDlg);
     _waitDlg.show();
-    connect(&_clientSocket,&CClient::onConnectError,this,[&](const char* error){
+    _clientSocket=new CClient;
+    connect(_clientSocket,&CClient::onConnectError,this,[&](const char* error){
         DoConnect();
         if(isLogined) DoLogin();//已经登录过了，断线后重新登录。（否则就是在登录界面等待登录，不要再重走这个步骤）；目前这个设置不完善，待优化
     });
-    connect(&_clientSocket,&CClient::netMsg,this,&MainWindow::onNestMsg,Qt::BlockingQueuedConnection);//第五个参数很重要，否则当服务器连续发送消息时不能及时处理，只重复处理到最后一条。
+    connect(_clientSocket,&CClient::netMsg,this,&MainWindow::onNestMsg,Qt::BlockingQueuedConnection);//第五个参数很重要，否则当服务器连续发送消息时不能及时处理，只重复处理到最后一条。
 //    connect(&_clientSocket,&CClient::sendingData,this,[&](const QString&data){
 //        qDebug()<<"sendingData"<<data;
 //        _waitDlg.exec();
@@ -77,9 +81,16 @@ MainWindow::MainWindow(QWidget *parent)
     isLogined=true;
 //    netMsg_Init msg;
 //    _clientSocket.SendData(&msg);
+    //处理皮肤
+    QSettings set("settings",QSettings::IniFormat);
+    set.setIniCodec("UTF-8");
+    QString style=set.value("style").toString();
     QList<QAction*> skinActions = ui->skinMenu->actions();
     for(auto a:skinActions){
-        if(a->isChecked()) qDebug() << "Action text: " << a->text();
+        if(a->text()==style){
+            a->setChecked(true);
+        }
+        else a->setChecked(false);
         connect(a,&QAction::triggered,this,&MainWindow::onSkinChanged);
     }
     //根据权限过滤模块
@@ -92,7 +103,7 @@ MainWindow::MainWindow(QWidget *parent)
 //    ui->btnToDo->show();
     ui->btPersonalInfo->show();
     //报告编制和实验室主管
-    if(m_user->position()&(CUser::ReportWriter|CUser::LabManager|LabSupervisor)){
+    if(m_user->position()&(CUser::ReportWriter|CUser::LabManager|CUser::LabSupervisor)){
         ui->btTaskSheet->show();
         ui->reportManagerBtn->show();
     }
@@ -167,7 +178,7 @@ void MainWindow::DoConnect()
         port= 6666;
         set.setValue("server/port",6666);
     }
-    if(_clientSocket.Connect(info.addresses().first().toString().toUtf8(),port)==SOCKET_ERROR){
+    if(_clientSocket->Connect(info.addresses().first().toString().toUtf8(),port)==SOCKET_ERROR){
         int r=QMessageBox::warning(nullptr,"","无法连接服务器","重新连接","退出");
         switch (r) {
             case 0:
@@ -192,7 +203,7 @@ void MainWindow::DoLogin()
         netmsg_Login msgLogin;
         memcpy(msgLogin.userName,id.toUtf8().data(),32);
         memcpy(msgLogin.PassWord,password.toUtf8().data(),33);
-        _clientSocket.SendData(&msgLogin);
+        _clientSocket->SendData(&msgLogin);
     });
     connect(this,&MainWindow::loginResult,&loginUI, &LoginUI::onLoginResult);
 
@@ -220,9 +231,21 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 }
 
+TabWidgetBase *MainWindow::newTab(const QString &text)
+{
+    TabWidgetBase *tab=nullptr;
+    tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
+    if(tab) {
+        tab->setClient(_clientSocket);
+        tab->setUser(m_user);
+        tab->setTabName(text);
+    }
+    return tab;
+}
+
 void MainWindow::sendData(const QJsonObject &json)
 {
-    if(!_clientSocket.SendData(json)){
+    if(!_clientSocket->SendData(json)){
         QMessageBox::information(nullptr,"error","无法发送数据！");
     }
 }
@@ -387,20 +410,12 @@ void MainWindow::onOpenTab()
         tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
         return;
     }
-    tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
+    tab=newTab(text);
     if(!tab) {
         qDebug()<<"无法创建窗体："<<text;
         return;
     }
-    tab->setUser(m_user);
-    tab->setTabName(text);
-    qDebug()<<"onOpenTab connect tab:"<<tab;
-    connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
-        QJsonObject j=sqlCmd;
-        j["tytle"]=text;//标识下处理窗口
-        qDebug()<<tab;
-        sendData(j);
-    });
+
     ui->tabWidget->addTab(tab,text);
     ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
     tab->initCMD();//用于向服务器发送初始命令，记住：要在加到tabWidget里面后才能执行，否则会出错（因为依赖于getTabWidget来指向这个窗体）
@@ -491,11 +506,11 @@ void MainWindow::on_btModInit_clicked()
             return;
         }
 //        connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
-        connect(tab,&TabWidgetBase::sendData,this,[&](const QJsonObject&sqlCmd){
-            QJsonObject j=sqlCmd;
-            j["tytle"]=tabText;//标识下处理窗口
-            sendData(j);
-        });
+//        connect(tab,&TabWidgetBase::sendData,this,[&](const QJsonObject&sqlCmd){
+//            QJsonObject j=sqlCmd;
+//            j["tytle"]=tabText;//标识下处理窗口
+//            sendData(j);
+//        });
         tab->initMod();
 //        delete tab;
         tab->hide();
@@ -505,6 +520,7 @@ void MainWindow::on_btModInit_clicked()
 
 void MainWindow::on_actionInitMod_triggered()
 {
+    if((!(m_user->position()&CUser::SystemAdin))&&m_user->name()!="admin") return;
     TabWidgetBase*tab=(TabWidgetBase*)ui->tabWidget->currentWidget();
     tab->initMod();
 }
@@ -522,14 +538,13 @@ void MainWindow::onSkinChanged()
     for(auto a:skinActions){
         if(a->isChecked()&&a!=action) a->setChecked(false);
     }
-    emit changeSkin(skinActions.indexOf(action));
-    qDebug()<<skinActions.indexOf(action);
+    emit changeSkin(action->text());
 }
 
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.5.0");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.5.5");
 }
 
 

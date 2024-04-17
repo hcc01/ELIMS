@@ -1,4 +1,5 @@
 #include "qdoubleedit.h"
+
 #include"QDoubleValidator"
 QDoubleEdit::QDoubleEdit(QWidget *parent):
     QLineEdit(parent)

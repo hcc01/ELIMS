@@ -1,6 +1,7 @@
 #ifndef RMMANAGER_GLOBAL_H
 #define RMMANAGER_GLOBAL_H
 
+
 #include <QtCore/qglobal.h>
 
 #if defined(RMMANAGER_LIBRARY)

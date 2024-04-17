@@ -32,7 +32,7 @@ ReportManagerUI::ReportManagerUI(QWidget *parent) :
         int s=status.at(index);
         QString sql;
         if(index==1){//待编制
-            sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,E.rt "
+            sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,max(E.rt) "
                           "from site_monitoring_info as C  "
                           "left join test_task_info as B on C.taskSheetID=B.id "
                           "left join ("
@@ -42,7 +42,7 @@ ReportManagerUI::ReportManagerUI(QWidget *parent) :
                           "left join report_status as D on A.reportNum=D.reportNum "
                           "where B.taskStatus>=%1 and D.status is null and B.deleted=0").arg(TaskSheetUI::TESTING);
         }
-        else sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,E.rt "
+        else sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,max(E.rt) "
                       "from site_monitoring_info as C  "
                       "left join test_task_info as B on C.taskSheetID=B.id "
                       "left join ("
@@ -54,7 +54,7 @@ ReportManagerUI::ReportManagerUI(QWidget *parent) :
         if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
             sql+=QString(" and B.creator='%1'").arg(user()->name());
         }
-        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status,E.rt order by E.rt DESC";
+        sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status,E.rt order by max(E.rt) DESC";
         ui->pageCtrl->startSql(this,sql,1,{},[this](const QSqlReturnMsg&msg){
             ui->tableView->clear();
             QList<QVariant>r=msg.result().toList();
@@ -98,7 +98,7 @@ void ReportManagerUI::initCMD()
 //          "where B.taskStatus>=%1 and (D.status is null or D.status<=%2) and B.deleted=0";
     //目前样品交接没有记录样品编号，先按以下查询显示交接时间
     //采样状态即可进入报告显示，因为可能只有监测，不存在样品流转的情况；也可能分多次采样，可以对部分项目先拆分出报告。
-    sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,E.rt "
+    sql=QString("select B.taskNum, A.reportNum, B.clientName, B.inspectedProject,GROUP_CONCAT(DISTINCT  C.sampleType SEPARATOR '/'),D.status ,max(E.rt) "
           "from site_monitoring_info as C  "
           "left join test_task_info as B on C.taskSheetID=B.id "
           "left join ("
@@ -110,7 +110,7 @@ void ReportManagerUI::initCMD()
     if(!(user()->position()&(CUser::LabManager|CUser::LabSupervisor))){
         sql+=QString(" and B.creator='%1'").arg(user()->name());
     }
-    sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status,E.rt order by E.rt DESC";
+    sql+=" group by B.taskNum, A.reportNum, B.clientName, B.inspectedProject,D.status  order by max(E.rt) DESC";
     ui->pageCtrl->startSql(this,sql,1,{},[this](const QSqlReturnMsg&msg){
         ui->tableView->clear();
         QList<QVariant>r=msg.result().toList();
@@ -614,5 +614,24 @@ void ReportManagerUI::on_searchEdit_returnPressed()
             }
 
         });
+}
+
+
+void ReportManagerUI::on_tableView_doubleClicked(const QModelIndex &index)
+{
+    if(!index.isValid()){
+        return;
+    }
+    QDialog dlg;
+    dlg.showMaximized();
+    QString taskNum=ui->tableView->value(index.row(),0).toString();
+    TaskSheetEditor* sheet=new TaskSheetEditor(this,TaskSheetEditor::ViewMode);
+    sheet->load(taskNum);
+    sheet->show();
+    sheet->setParent(&dlg);
+    QVBoxLayout *lay=new QVBoxLayout(&dlg);
+    lay->addWidget(sheet);
+    lay->setMargin(0);
+    dlg.exec();
 }
 

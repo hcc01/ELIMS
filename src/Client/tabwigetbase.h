@@ -18,6 +18,7 @@
 #include<QMessageBox>
 #include<QMutex>
 #include<QWaitCondition>
+#include"cclient.h"
 //流程处理函数
 //typedef void (*DealFuc) (const QSqlReturnMsg& );qjsoncmd.h中统一定义
 class FlowWidget:public QWidget{
@@ -47,6 +48,7 @@ class TabWidgetBase : public QWidget
 public:
     explicit TabWidgetBase(QWidget *parent = nullptr);
     enum FlowOperateFlag{ VIEWINFO,AGREE,REJECT};
+    void setClient(CClient* c){_clientSocket=c;}
     virtual ~TabWidgetBase();
     virtual void onSqlReturn(const QSqlReturnMsg& jsCmd);
     virtual void dealProcess(const QFlowInfo&, int operateFlag);//处理流程事件
@@ -86,6 +88,8 @@ private:
     int flag;
     CUser* m_user;
     WaitDlg m_dlg;
+
+    CClient* _clientSocket;
 };
 
 class SqlBaseClass
@@ -100,7 +104,6 @@ public:
     void sqlFinished();
 private:
     TabWidgetBase* m_tabWiget;
-
 };
 
 #endif // TABWIGETBASE_H

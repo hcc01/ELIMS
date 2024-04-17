@@ -234,7 +234,7 @@ SampleGroupingDlg::SampleGroupingDlg(TabWidgetBase *parent) :
 
                 sql+=QString("insert into sampling_info(monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,sampleNumber,samplingRound) "
                        "select monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,num,? "
-                       "from (select monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,CONCAT(sampleNumber,'-%1') as num "
+                       "from (select monitoringInfoID,siteOrder,samplingPeriod,sampleOrder,CONCAT(SUBSTRING_INDEX(sampleNumber,'-',1),'-%1') as num "
                                "from sampling_info where monitoringInfoID=? and samplingRound=?) AS subquery;").arg(f+1);
                 values.append(f+1);
                 values.append(siteID);
@@ -831,6 +831,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
 
         //开始对每个点位进行分析
         for(int siteID:siteIDs){
+            typeOrder=0;
             typeID=m_siteIDTypeID.value(siteID);
 //            typeNum=QString("%1").arg(QChar('A'-1+typeID));//类型编号
             if(m_siteUsedOrderMap.contains(siteID)){//点位的序号已经存在（也就是之前已经采过一些周期），使用之前的点位序号
@@ -1219,7 +1220,8 @@ void SampleGroupingDlg::on_radioGenerate_clicked()
           "left join site_monitoring_info as B on A.monitoringInfoID=B.id   "
           "left join (select monitoringInfoID , siteOrder, max(samplingPeriod) as samplingPeriod from sampling_info group by monitoringInfoID,siteOrder) as C on C.monitoringInfoID=B.id "
           "where A.taskSheetID=? and sampleGroup!=0 and (B.samplingPeriod-COALESCE(C.samplingPeriod,0))!=0 "//查找条件：任务单匹配，非现场监测项目，还有周期没有采样
-          "group by B.sampleType, B.samplingSiteName ,c,B.id ,C.siteOrder ;";
+          "group by B.sampleType, B.samplingSiteName ,c,B.id ,C.siteOrder "
+          "order by B.id;";
     ui->pageCtrl->startSql(this->tabWiget(),sql,1,{m_taskSheetID},[this](const QSqlReturnMsg&msg){
 
         QList<QVariant>r=msg.result().toList();
@@ -1305,7 +1307,7 @@ void SampleGroupingDlg::on_radioPrint_clicked()
                   "left join type_methods as D on B.taskSheetID=D.taskSheetID and B.testTypeID=D.testTypeID and C.p=D.parameterID "
                   "left join test_methods as E on E.id=D.testMethodID "
                   "where B.taskSheetID=?  and A.receiveTime is null "
-                  "order by B.id;");
+                  "order by A.sampleNumber, B.id;");
     ui->pageCtrl->startSql(this->tabWiget(),sql,0,{m_taskSheetID},[this](const QSqlReturnMsg&msg){
         ui->tableView->clear();
         ui->tableView->removeBackgroundColor();

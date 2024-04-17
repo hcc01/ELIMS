@@ -31,6 +31,8 @@ private slots:
 
     void on_searchEdit_returnPressed();
 
+    void on_tableView_doubleClicked(const QModelIndex &index);
+
 private:
     Ui::ReportManagerUI *ui;
     bool manual;

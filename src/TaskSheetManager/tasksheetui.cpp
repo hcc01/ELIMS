@@ -1,10 +1,13 @@
 #include "tasksheetui.h"
+#include "qdialogbuttonbox.h"
 #include "ui_tasksheetui.h"
 #include"tasksheeteditor.h"
 #include<QMessageBox>
 #include<qexcel.h>
 #include"contractreviewdlg.h"
 #include<QInputDialog>
+#include"exceloperator.h"
+#include<QFileDialog>
 TaskSheetUI::TaskSheetUI(QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::TaskSheetUI),
@@ -28,6 +31,20 @@ TaskSheetUI::TaskSheetUI(QWidget *parent) :
 
 //        connect(sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
     });
+    ui->tableView->addContextAction("打印标签",[this](){
+        QString taskNum;
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+        if(ui->tableView->value(row,7).toString()!="送样检测"){
+            return;
+        }
+        int id=ui->tableView->cellFlag(row,0).toInt();
+        showDeleverySample(id);
+
+
+//        connect(sheet,&TaskSheetEditor::submitReview,this,&TaskSheetUI::submitReview);
+    });
+
 //    ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     //合同评审的处理信号
     connect(&m_contractReviewDlg,&ContractReviewDlg::reviewResult,[this](const QString&record,const QString&comments,bool passed){
@@ -220,7 +237,8 @@ void TaskSheetUI::initMod()
           "sampleName varchar(255), "//样品名称
           "sampleDesc varchar(255), "//样品状态
           "sampleCount int not null default 1, "//样品数量
-
+          "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
+          "delReason varchar(255),"//删除原因
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
            "FOREIGN KEY (testTypeID) REFERENCES test_type (id) "
 //           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
@@ -362,7 +380,8 @@ void TaskSheetUI::initMod()
           "deleiver varchar(16) ,"
           "receiver varchar(16), "
           "receiveTime DateTime, "
-          "taskNum varchar(32),"//任务单号
+          "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
+          "delReason varchar(255),"//删除原因
           "UNIQUE (monitoringInfoID, samplingRound,samplingPeriod,sampleOrder),  "
           "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id) "
           ");";
@@ -520,6 +539,7 @@ void TaskSheetUI::initCMD()//初始化和刷新
                 ui->tableView->append(row);
                 ui->tableView->setCellFlag(i-1,6,status);
                 m_taskIDs[row.at(0).toString()]=row.at(8).toInt();
+                ui->tableView->setCellFlag(i-1,0,row.last().toInt());
             }
             qDebug()<<msg.jsCmd();
     };
@@ -674,6 +694,195 @@ void TaskSheetUI::editTaskSheet(const QString &taskSheetNum)
     sheet->show();
 }
 
+void TaskSheetUI::showDeleverySample(int taskSheetID)
+{
+    QDialog dlg;
+    dlg.setWindowTitle("请选择要交接的样品：");
+    dlg.resize(800,600);
+    QVBoxLayout*lay=new QVBoxLayout(&dlg);
+    MyTableView* view=new MyTableView(&dlg);
+    view->setHeader({"样品名称","样品描述","样品数量","样品编号","样品类型","检测项目"});
+    view->setEdiableColumns({0,1,2});
+    lay->addWidget(view);
+    QDialogButtonBox* btn=new QDialogButtonBox(&dlg);
+    lay->addWidget(btn);
+    dlg.setLayout(lay);
+//    sql="select A.sampleName,A.sampleDesc,A.sampleCount,A.testTypeID,A.id ,A.sampleType ,A.sampleNumber from site_monitoring_info as A "
+//          "left join sampling_info as B on A.id=B.monitoringInfoID where taskSheetID=? and B.sampleNumber is not null";//过滤已经交接的
+    QString sql="select A.sampleName,A.sampleDesc,A.sampleCount,A.testTypeID, A.id, A.sampleType, GROUP_CONCAT( B.parameterName SEPARATOR '、'), "
+          "C.sampleNumber from site_monitoring_info as A "
+          "right join task_parameters as B on B.monitoringInfoID =A.id "
+          "left join sampling_info as C on A.id=C.monitoringInfoID "
+          "where A.taskSheetID=? and C.sampleNumber is not null "
+          "group by A.sampleName,A.sampleDesc,A.sampleCount,A.testTypeID,A.id, A.sampleType,C.sampleNumber;";
+    bool error;
+    doSqlQuery(sql,[this, &error, view](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            error   =true;
+            QMessageBox::information(nullptr,"查询任务信息时出错：",msg.errorMsg());
+            sqlFinished();
+            return;
+        }
+        view->clear()   ;
+        QList<QVariant>r=msg.result().toList();
+
+        int testType;
+        int siteID;
+        for(int i=1;i<r.count();i++){
+            QList<QVariant>row=r.at(i).toList();
+            view->append({row.first().toString(),row.at(1).toString(),row.at(2).toInt(),row.last().toString(),row.at(5).toString(),row.at(6).toString()});
+            testType=row.at(3).toInt();
+            siteID=row.at(4).toInt();
+            view->setCellFlag(i-1,0,testType);
+            view->setCellFlag(i-1,1,siteID);
+        }
+        sqlFinished();
+    },0,{taskSheetID});
+    waitForSql();
+
+    if(error) return;
+    view->addContextAction("打印标签",[  &view](){
+        auto indexes=view->selectedIndexes();
+        if(!indexes.count()) return;
+////        QString sql;
+////        QJsonArray values;
+////        QString sampleNum;
+////        SampleGroupingDlg::testTypeNum("",0,true);
+////        QString typeNum;
+//        for(auto index:indexes){
+//            if(index.column()!=0) continue;
+
+        //生成标签
+        ExcelOperator excel;
+        if(!excel.openExcel(".\\送样标签.xlsx"))
+        {
+            QMessageBox::information(nullptr,"无法打开样品标签文件:",excel.LastError());
+            return;
+        }
+        if(! excel.document()->selectSheet("采样标签")){
+            QMessageBox::information(nullptr,"表格错误:","缺少采样标签表");
+                                     return;
+        }
+         if(! excel.document()->selectSheet("标签数据")){
+            QMessageBox::information(nullptr,"表格错误:","缺少标签数据表");
+            return;
+        }
+
+        excel.document()->selectSheet("采样标签");
+        CellRange range=excel.find("[开始]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位标签开始位置");
+            return;
+        }
+        excel.setValue(range,"");
+        int startRow=range.firstRow();
+        int startColumn=range.firstColumn();
+        qDebug()<<"startRow"<<startRow;
+        qDebug()<<"startColumn"<<startColumn;
+        range=excel.find("[结束]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位标签结束位置");
+            return;
+        }
+         excel.setValue(range,"");
+
+        int endRow=range.firstRow();
+         int endColumn=range.firstColumn();
+        int leftStart=startColumn;
+        int labelWidth=endColumn-startColumn+1;
+        int labelHeight=endRow-startRow+1;
+        range=excel.find("[样品类型]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位检测类型位置:");
+            return;
+        }
+        int typeRow=range.firstRow()-startRow;
+        int typeColumn=range.firstColumn()-startColumn;
+
+        range=excel.find("[点位名称]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位点位名称位置");
+            return;
+        }
+        int siteRow=range.firstRow()-startRow;
+        int siteColumn=range.firstColumn()-startColumn;
+
+        range=excel.find("[采样日期]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位采样日期位置");
+            return;
+        }
+        int dateRow=range.firstRow()-startRow;
+        int dateColumn=range.firstColumn()-startColumn;
+
+        range=excel.find("[样品编号]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"表格错误:","无法定位样品编号位置");
+            return;
+        }
+        int numRow=range.firstRow()-startRow;
+        int numColumn=range.firstColumn()-startColumn;
+
+        range=excel.find("[检测项目]");
+        if(!range.isValid()){
+            QMessageBox::information(nullptr,"无法定位检测项目位置:",EXCEL.LastError());
+            return;
+        }
+        int itemRow=range.firstRow()-startRow;
+        int itemColumn=range.firstColumn()-startColumn;
+
+        //标签占用的行数
+        int labelsPerRow=4;
+        int nowLabelPosInRow=1;
+        CellRange usedRange=excel.usedRange();
+        for(auto index:view->selectedIndexes()){
+            if(index.column()!=0) continue;
+            int row=index.row();
+//            if(toLabel){
+//                excel.document()->selectSheet("采样标签");
+//                excel.document()->insertImage(startRow+codeRow-1,startColumn+codeColumn-1,QZXing::encodeData(sampleNum,QZXing::EncoderFormat_QR_CODE,cellSize));//二维码
+            excel.setValue(view->value(row,4),startRow+typeRow,startColumn+typeColumn);//样品类型
+            excel.setValue(QDate::currentDate().toString("yyyy-MM-dd"),startRow+dateRow,startColumn+dateColumn);//采样日期
+            excel.setValue(view->value(row,0).toString(),startRow+siteRow,startColumn+siteColumn);//点位名称
+            excel.setValue(view->value(row,5).toString(),startRow+itemRow,startColumn+itemColumn);//检测项目
+            excel.setValue(view->value(row,3).toString(),startRow+numRow,startColumn+numColumn);//样品编号
+                nowLabelPosInRow++;
+                qDebug()<<"nowLabelPosInRow"<<nowLabelPosInRow;
+                bool newLine=false;
+                if(nowLabelPosInRow>labelsPerRow){//换行
+                    qDebug()<<"换行";
+                    nowLabelPosInRow=1;
+                    startColumn=leftStart;
+                    endColumn=leftStart+labelWidth-1;
+                    startRow+=labelHeight;
+                    endRow+=labelHeight;
+                    newLine=true;
+                }
+                else{
+                    startColumn+=labelWidth;
+                    endColumn+=labelWidth;
+                }
+                //
+                if(newLine){
+                    CellRange nextRange(startRow,startColumn,usedRange.lastRow(),usedRange.lastColumn());
+                    excel.copyAll(startRow,startColumn,usedRange.lastRow(),usedRange.lastColumn(),startRow+labelHeight,startColumn);
+                }
+//            }
+
+
+        }
+//        excel.document()->selectSheet("采样标签");
+        excel.setValue(CellRange(startRow+labelHeight,startColumn,usedRange.lastRow(),usedRange.lastColumn()),"");
+        QString filename=QFileDialog::getSaveFileName(nullptr,"送样标签保存为","","EXCEL文件(*.xlsx)");
+        if(filename.isEmpty()) return;
+        excel.saveAs(filename);
+        excel.close();
+
+    });
+
+    dlg.exec();
+}
+
 
 void TaskSheetUI::on_refleshBtn_clicked()
 {
@@ -713,7 +922,7 @@ bool TaskSheetUI::on_tasksheetEditBtn_clicked()//编辑任务单
                 return;
             }
             sqlFinished();
-        });
+        },0,{MODIFY,taskNum});
         waitForSql();
         if(error) return false;
     }

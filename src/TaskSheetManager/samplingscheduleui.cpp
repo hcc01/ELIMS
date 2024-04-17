@@ -89,7 +89,7 @@ void SamplingScheduleUI::initCMD()
 
 //    doSqlQuery(sql,f,1);
 //    ui->pageCtrl->setSql(sql,1);
-    sql="select name from users where position&?;";
+    sql="select name from users where position&? and state=1;";
     doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"更新排单任务时出错：",msg.errorMsg());

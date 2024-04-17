@@ -29,7 +29,7 @@ protected:
 signals:
     void Connected();
     void loginResult(int result);
-    void changeSkin(int);
+    void changeSkin(const QString&);
     void notice(const QString&);//任务栏通知消息
 //private:
 public:
@@ -65,8 +65,9 @@ private slots:
     void on_updateParameterAct_triggered();
 
 private:
-    Ui::MainWindow *ui;    
-    CClient _clientSocket;
+
+    Ui::MainWindow *ui;
+    CClient* _clientSocket;
     QMap<QString,int*> _tabWidgetMap;
     bool isLogined;
     QDialog _waitDlg;

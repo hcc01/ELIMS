@@ -1,6 +1,7 @@
 #ifndef RMADDUI_H
 #define RMADDUI_H
 
+
 #include <QDialog>
 
 namespace Ui {

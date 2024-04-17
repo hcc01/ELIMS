@@ -22,7 +22,9 @@ SOURCES += \
 ../../depends/EasyTcpServer.cpp \
 ../../depends/server.cpp \
 ../../depends/user.cpp \
+    businessmanagerui.cpp \
     cclient.cpp \
+    clienteditdlg.cpp \
     ctablemodel.cpp \
     cuser.cpp \
     dbmater.cpp \
@@ -67,7 +69,9 @@ HEADERS += \
 ../../depends/MessageHeader.h \
 ../../depends/user.h \
     QExcel.h \
+    businessmanagerui.h \
     cclient.h \
+    clienteditdlg.h \
     ctablemodel.h \
     cuser.h \
     dbmater.h \
@@ -94,6 +98,8 @@ HEADERS += \
     unitsc.h
 
 FORMS += \
+    businessmanagerui.ui \
+    clienteditdlg.ui \
     implementingstandardeditor.ui \
     itemsselectdlg.ui \
     loginui.ui \

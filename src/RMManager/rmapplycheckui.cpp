@@ -1,6 +1,7 @@
 #include "rmapplycheckui.h"
 #include "ui_rmapplycheckui.h"
 
+
 RMApplyCheckUI::RMApplyCheckUI(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::RMApplyCheckUI)

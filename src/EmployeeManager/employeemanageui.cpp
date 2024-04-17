@@ -2,18 +2,30 @@
 #include "ui_employeemanageui.h"
 #include"QDebug"
 #include"employeeeditor.h"
+#include"../Client/cuser.h"
+
 EmployeeManageUI::EmployeeManageUI( QWidget *parent) :
     TabWidgetBase(parent),
     ui(new Ui::EmployeeManageUI)
 {
     ui->setupUi(this);
-    ui->tableView->setHeader({"姓名","电话","学历","职称","岗位"});
+    ui->tableView->setHeader({"姓名","电话","学历","职称","岗位","状态"});
     ui->tableView->addContextAction("添加",[this](){
-        employeeEditor ed(m_positions,this);
+        employeeEditor ed(this);
+        connect(&ed,&QDialog::accepted,[this](){
+            initCMD();
+        });
         ed.exec();
     });
     ui->tableView->addContextAction("修改",[this](){
-        employeeEditor ed(m_positions,this);
+        int row=ui->tableView->selectedRow();
+        if(row<0) return;
+        employeeEditor ed(this,false);
+        ed.load(ui->tableView->value(row,0).toString(),ui->tableView->value(row,1).toString(),ui->tableView->value(row,2).toString(),
+                ui->tableView->value(row,3).toString(),ui->tableView->value(row,4).toString(),ui->tableView->cellFlag(row,0).toInt());
+        connect(&ed,&QDialog::accepted,[this](){
+            initCMD();
+        });
         ed.exec();
     });
 }
@@ -27,8 +39,9 @@ EmployeeManageUI::~EmployeeManageUI()
 void EmployeeManageUI::initCMD()
 {
     QString sql;
+    auto m_positions=CUser::allPositions();
     sql="SELECT name, phone, EducationDegree, Title, position, state from users;";
-    ui->pageCtrl->startSql(this,sql,1,{},[this](const QSqlReturnMsg&msg){
+    ui->pageCtrl->startSql(this,sql,1,{},[this, m_positions](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(this,"初始化查询失败",msg.result().toString());
             return;
@@ -49,7 +62,8 @@ void EmployeeManageUI::initCMD()
                     position+=m_positions.value(x);
                 }
             }
-            ui->tableView->append({row.at(0),row.at(1),row.at(2),row.at(3),position});
+            ui->tableView->append({row.at(0),row.at(1),row.at(2),row.at(3),position,row.last().toBool()?"在职":"离职"});
+            ui->tableView->setCellFlag(i-1,0,p);
         }
     });
 }

@@ -3,6 +3,7 @@
 #include "qmessagebox.h"
 #include<QSqlDatabase>
 #include<QDebug>
+
 int DBMater::getParameterID(int testTypeID, const QString &parameterName)
 {
     QSqlQuery query(m_db);
@@ -39,6 +40,15 @@ QString DBMater::getTypeName(int testTypeID)
     return query.value(0).toString();
 }
 
+void DBMater::doLog(const QString &log)
+{
+    QString logTime=QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    QSqlQuery query(m_logDb);
+    if(!query.exec(QString("insert into logData values(%1,%2);").arg(logTime,log))){
+        qDebug()<<query.lastError().text();
+    }
+}
+
 DBMater::DBMater(QObject *parent)
     : QObject{parent}
 {
@@ -48,5 +58,14 @@ DBMater::DBMater(QObject *parent)
         QMessageBox::information(nullptr,"无法打开数据库",m_db.lastError().text());
         return;
     }
+    m_logDb=QSqlDatabase::addDatabase("QSQLITE");
+    QString logDb=QString("%1.log").arg(QDate::currentDate().toString("yyyyMMdd"));
+    m_logDb.setDatabaseName(logDb);
+    m_logDb.open();
+    QSqlQuery q(m_logDb);
+    if(!q.exec(QString("create table if not exists logData( logTime text, msg text)"))){
+        qDebug()<<"无法创建日志表格."<<q.lastError().text();
+    }
     qDebug()<<"database opened.";
+
 }

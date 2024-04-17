@@ -19,6 +19,9 @@ public:
     void doSamplingReceive();
     void initDeliveryTask();
     void doDeliveryReceive();
+    void showSampleToReceive();
+    void deleteSample();
+
 private slots:
     void on_sampleReceiveBtn_clicked();
 
@@ -33,6 +36,8 @@ private slots:
     void on_nextBtn_clicked();
 
     void on_printLabelBtn_clicked();
+
+    void on_taskNumEdit_returnPressed();
 
 private:
     Ui::SampleCirculationUI *ui;

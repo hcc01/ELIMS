@@ -40,6 +40,7 @@ public:
     TaskSheetEditor* sheetEditorDlg(int openMode=TaskSheetEditor::NewMode);
     void viewTaskSheet(const QString &taskSheetNum);
     void editTaskSheet(const QString &taskSheetNum);
+    void showDeleverySample(int taskSheetID);
 private:
 
 private slots:

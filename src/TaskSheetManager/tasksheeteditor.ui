@@ -422,20 +422,10 @@
        <string>检测信息</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_8">
-       <item row="2" column="0" colspan="4">
-        <widget class="MyTableView" name="testInfoTableView"/>
-       </item>
-       <item row="3" column="2">
-        <widget class="QPushButton" name="submitBtn">
+       <item row="3" column="4">
+        <widget class="QPushButton" name="exportBtn">
          <property name="text">
-          <string>提交审核</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QPushButton" name="methodSelectBtn">
-         <property name="text">
-          <string>进入方法选择</string>
+          <string>导出EXCEL</string>
          </property>
         </widget>
        </item>
@@ -446,10 +436,27 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="3">
-        <widget class="QPushButton" name="exportBtn">
+       <item row="2" column="0" colspan="5">
+        <widget class="MyTableView" name="testInfoTableView"/>
+       </item>
+       <item row="3" column="2">
+        <widget class="QPushButton" name="methodSelectBtn">
          <property name="text">
-          <string>导出EXCEL</string>
+          <string>进入方法选择</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="3">
+        <widget class="QPushButton" name="submitBtn">
+         <property name="text">
+          <string>提交审核</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QPushButton" name="saveMethodBtn">
+         <property name="text">
+          <string>保存方法</string>
          </property>
         </widget>
        </item>

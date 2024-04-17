@@ -12,6 +12,7 @@
 #include<QTimer>
 #include<QShortcut>
 #include<QCloseEvent>
+#include"../Client/dbmater.h"
 TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     QMainWindow(tabWiget),
     SqlBaseClass(tabWiget),
@@ -31,6 +32,11 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     ui->setupUi(this);
     ui->widget->hide();
     setWindowTitle("任务单");
+    ui->saveMethodBtn->hide();
+    connect(ui->saveMethodBtn,&QPushButton::clicked,[this](){
+        m_MethodDlg->saveMethod(m_taskSheetID);
+        ui->saveMethodBtn->hide();
+    });
 
     statusBar = new QStatusBar(this);
     setStatusBar(statusBar);
@@ -38,6 +44,9 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     m_MethodDlg=new MethodSelectDlg(this->tabWiget());
     connect(m_MethodDlg,&MethodSelectDlg::accepted,[this](){
         m_bMethodModified=true;
+        if(user()->position()&(CUser::LabManager|CUser::TechnicalManager)){
+            ui->saveMethodBtn->show();
+        }
     });
     if(m_mode==ReviewMode){
         ui->submitBtn->hide();
@@ -228,10 +237,10 @@ void TaskSheetEditor::init()
 void TaskSheetEditor::doSave()
 {
 //保存任务单，需要保存采样检测任务表test_task_info、点位监测信息表site_monitoring_info、检测方法评审表task_methods、任务单状态表task_status
-    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//保存仅限于创建和修改状态(后续有其它需求再处理）
-        QMessageBox::information(nullptr,"error","当前状态无法修改。");
-        return;
-    }
+//    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//保存仅限于创建和修改状态(后续有其它需求再处理）
+//        QMessageBox::information(nullptr,"error","当前状态无法修改。");
+//        return;
+//    }
     QString sql;
     QJsonArray values;
 //    if(!this->tabWiget()->connectDB(CMD_START_Transaction)){//使用事务操作（移动到保存点击时开启）
@@ -336,7 +345,7 @@ void TaskSheetEditor::doSave()
                            "VALUES ";
                     // 开始保存点位监测项目
                     for(int p=1;p<=info->samplingPeriod;p++){
-                        for(int f=1;f<info->samplingFrequency;f++){
+                        for(int f=1;f<=info->samplingFrequency;f++){
                             for (int i = 0; i < info->monitoringParameters.count(); i++) {
                                 sql += "(@site_id,?, ?, ?,?,?,?)";
                                 if(i==info->monitoringParameters.count()-1&&p==info->samplingPeriod&&f==info->samplingFrequency) {
@@ -552,7 +561,7 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
 
     sql="SELECT A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id, "
           "B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc, "
-          "GROUP_CONCAT(DISTINCT D.parameterID SEPARATOR ','), GROUP_CONCAT(DISTINCT D.parameterName SEPARATOR '/' )  "
+          "GROUP_CONCAT(DISTINCT D.parameterID order by D.id SEPARATOR ','), GROUP_CONCAT(DISTINCT D.parameterName order by D.id SEPARATOR '/' )  "
           "from task_parameters as D "
           "left join site_monitoring_info as A on  D.monitoringInfoID=A.id "
           "left join implementing_standards as B on A.limitValueID = B.id "
@@ -560,7 +569,8 @@ void TaskSheetEditor::load(const QString &taskNum, bool newMode)
 //          "right join task_parameters as D on D.monitoringInfoID=A.id "
           "where A.taskSheetID=? "
           "group by A.testTypeID, A.sampleType, A.samplingSiteName, A.samplingFrequency, A.samplingPeriod, A.limitValueID, A.remark, A.id,"
-          " B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc;";
+          " B.standardName,B.standardNum, B.tableName, B.classNum, C.testFieldID, A.sampleName,A.sampleCount,A.sampleDesc "
+          "order by A.id;";
 
     doSql(sql,[this](const QSqlReturnMsg&msg){
         qDebug()<<"处理检测信息";
@@ -1047,10 +1057,10 @@ void TaskSheetEditor::on_saveBtn_clicked()
 //        QMessageBox::information(this,"error","数据正在处理中，请稍候。");
 //        return;
 //    }
-    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//限制在创建阶段才能保存
-        QMessageBox::information(this,"error","任务单已提交，无法保存。");
-        return;
-    }
+//    if(m_status!=TaskSheetUI::CREATE&&m_status!=TaskSheetUI::MODIFY&&m_mode!=NewMode){//限制在创建阶段才能保存
+//        QMessageBox::information(this,"error","任务单已提交，无法保存。");
+//        return;
+//    }
 
     if(!m_testInfo.count()){
         QMessageBox::information(this,"error","请添加检测信息。");
@@ -1098,6 +1108,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
         },0,{date});
         waitForSql("正在设置任务单号");
         tabWiget()->releaseDB(CMD_COMMIT_Transaction);//提交事务
+        DB.doLog("创建任务单号，事务提交完成。");
     }
     for(auto info:m_testInfo){
         qDebug()<<"info:"<<info<<info->samplingSites;

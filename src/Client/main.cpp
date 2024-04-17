@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-
+#include<qsettings.h>
 #include <QApplication>
 #include<QIcon>
 #include<QFile>
@@ -58,26 +58,45 @@ int main(int argc, char *argv[])
         msgBox.exec();
         return 1;
     }
-     a.setWindowIcon(QIcon("./logo.ico"));
-    QFile qssFile("./style.qss");
-    qssFile.open(QFile::ReadOnly);
-    QString qssStyle;
-    if (qssFile.isOpen()) {
-        qssStyle = QLatin1String(qssFile.readAll());
-        a.setStyleSheet(qssStyle);
+     a.setWindowIcon(QIcon("./logo.png"));
+    QString style;
+    QSettings set("settings",QSettings::IniFormat);
+    set.setIniCodec("UTF-8");
+    if(set.value("style").isValid()){
+        style=set.value("style").toString();
     }
+    else{
+        set.setValue("style","绿意");
+        style="绿意";
+    }
+    if(style!="经典"){
+        QFile qssFile(QString("./%1.qss").arg(style));
+        qssFile.open(QFile::ReadOnly);
+        QString qssStyle;
+        if (qssFile.isOpen()) {
+            qssStyle = QLatin1String(qssFile.readAll());
+            a.setStyleSheet(qssStyle);
+        }
+    }
+
     MainWindow w;
     w.showMaximized();
 //    w.show();
-    QObject::connect(&w, &MainWindow::changeSkin, [&,qssStyle](int skin) {
-        switch (skin) {
-        case 0:
-            a.setStyleSheet(qssStyle);
-            break;
-        case 1:
+    QObject::connect(&w, &MainWindow::changeSkin, [&](const QString& style) {
+        QSettings set("settings",QSettings::IniFormat);
+        set.setIniCodec("UTF-8");
+        set.setValue("style",style);
+        if(style=="经典"){
             a.setStyleSheet("");
-        default:
-            break;
+        }
+        else{
+            QFile qssFile(QString("./%1.qss").arg(style));
+            qssFile.open(QFile::ReadOnly);
+            QString qssStyle;
+            if (qssFile.isOpen()) {
+                qssStyle = QLatin1String(qssFile.readAll());
+                a.setStyleSheet(qssStyle);
+            }
         }
     });
 

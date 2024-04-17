@@ -3,6 +3,7 @@
 
 #include <QtCore/qglobal.h>
 
+
 #if defined(EMPLOYEEMANAGER_LIBRARY)
 #  define EMPLOYEEMANAGER_EXPORT Q_DECL_EXPORT
 #else

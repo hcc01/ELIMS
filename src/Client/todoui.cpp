@@ -72,6 +72,7 @@ void ToDoUI::loadUser(CUser *user, MainWindow *main)
         user->setPhone(r.at(1).toList().at(0).toString());
         user->setID(r.at(1).toList().at(1).toInt());
     },0,{user->name()});
+
 }
 
 void ToDoUI::updateTypes()

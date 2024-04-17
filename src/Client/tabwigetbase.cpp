@@ -1,4 +1,5 @@
 #include "tabwigetbase.h"
+#include "dbmater.h"
 #include "mytableview.h"
 #include "qapplication.h"
 #include "qlayout.h"
@@ -6,7 +7,7 @@
 #include<QDialog>
 #include<QTimer>
 #include<QDesktopWidget>
-TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
+TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0),_clientSocket(nullptr)
 {
 
 }
@@ -163,7 +164,7 @@ void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page, const QJ
         i++;
     }
     qDebug()<<QString("发送sql请求：sql=%1,处理函数ID：%2,窗体：%3").arg(sqlinfo).arg(flag).arg(this->tabName());
-
+    DB.doLog(QString("发送sql请求信号：sql=%1,处理函数ID：%2,窗体：%3").arg(sqlinfo).arg(flag).arg(this->tabName()));
     m_fucMap.insert(flag,f);//标识下处理结果返回的函数
     flag++;
 
@@ -378,6 +379,13 @@ void TabWidgetBase::releaseDB(CMD TransactionType)
 {
     QString sql=QString::number(TransactionType);
     doSqlQuery(sql);
+}
+
+void TabWidgetBase::sendData(const QJsonObject &sqlCmd)
+{
+                QJsonObject j=sqlCmd;
+                j["tytle"]=m_tabName;//标识下处理窗口
+                _clientSocket->SendData(j);
 }
 
 

@@ -3,6 +3,7 @@
 
 #include <QLineEdit>
 
+
 class QDoubleEdit:public QLineEdit
 {
 public:

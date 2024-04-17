@@ -14,6 +14,7 @@ class ToDoUI : public TabWidgetBase
 public:
     explicit ToDoUI(QWidget *parent = nullptr);
     ~ToDoUI();
+
     void initCMD()override;
     void removeTodo(int row);
     void agreeFlow();

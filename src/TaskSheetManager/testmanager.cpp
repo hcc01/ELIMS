@@ -1,4 +1,5 @@
 #include "testmanager.h"
+#include "tasksheetui.h"
 #include "ui_testmanager.h"
 
 TestManager::TestManager(QWidget *parent) :
@@ -49,7 +50,8 @@ void TestManager::initCMD()
           "where A.testor is null  and B.receiveTime is not null and D.subpackage=0  "
           "group by F.inspectedProject ,B.sampleNumber,C.sampleType,M,B.receiveTime "
           "order by M , B.receiveTime) as X "
-          "group by inspectedProject,  num,sampleType , paras, M, T;";
+          "group by inspectedProject,  num,sampleType , paras, M, T "
+          "order by  inspectedProject,T;";
     DealFuc f=[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询分析任务时出错：",msg.errorMsg());
@@ -125,7 +127,7 @@ void TestManager::on_onSamplingBtn_clicked()
           "left join type_methods as D on D.taskSheetID=A.taskSheetID and D.testTypeID=A.testTypeID and D.parameterID=A.parameterID "
           "left join test_methods as E on D.testMethodID=E.id "
           "left join test_task_info as F on A.taskSheetID=F.id "
-          "where B.sampleNumber is not null  and B.receiveTime is null and D.subpackage=0  "
+          "where B.sampleNumber is not null  and B.receiveTime is null and D.subpackage=0 and F.taskStatus=? "
           "group by F.inspectedProject ,B.sampleNumber,C.sampleType,M,B.receiveTime "
           ") as X "
           "group by inspectedProject,  num,sampleType , paras, M, T "
@@ -143,7 +145,7 @@ void TestManager::on_onSamplingBtn_clicked()
             ui->tableView->setCellFlag(i-1,0,r.at(i).toList().last());//记录下ID
         }
     };
-    ui->pageCtrl->startSql(this,sql,1,{},f,50);
+    ui->pageCtrl->startSql(this,sql,1,{TaskSheetUI::SAMPLING},f,50);
 }
 
 
@@ -217,6 +219,7 @@ void TestManager::on_startTestBtn_clicked()
         },0,values);
         waitForSql();
         releaseDB(CMD_COMMIT_Transaction);
+        initCMD();
 }
 
 
@@ -247,5 +250,6 @@ void TestManager::on_submitBtn_clicked()
         },0,values);
         waitForSql();
         releaseDB(CMD_COMMIT_Transaction);
+        on_myTask_clicked();
 }
 
