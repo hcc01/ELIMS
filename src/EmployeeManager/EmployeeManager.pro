@@ -1,4 +1,4 @@
-QT += widgets
+QT += widgets sql
 
 TEMPLATE = lib
 DEFINES += EMPLOYEEMANAGER_LIBRARY
@@ -47,11 +47,13 @@ FORMS += \
         DLLDESTDIR = "../../bin"
         TARGET = EmployeeManager
     }
-INCLUDEPATH += "../client"
+
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleuid
 else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 
-INCLUDEPATH += $$PWD/../../
-DEPENDPATH += $$PWD/../../
+INCLUDEPATH += $$PWD/../sqlPageControleUI
+DEPENDPATH += $$PWD/../sqlPageControleUI
+
+INCLUDEPATH += $$PWD/../Client

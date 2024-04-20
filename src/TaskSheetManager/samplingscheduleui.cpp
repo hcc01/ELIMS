@@ -36,6 +36,45 @@ SamplingScheduleUI::SamplingScheduleUI(QWidget *parent) :
         dlg.init(ui->taskScheduledView->cellFlag(row,0).toInt(),(ui->taskScheduledView->value(row,4).toString()+"、"+ui->taskScheduledView->value(row,5).toString()).split("、"));
         dlg.exec();
     });
+    ui->taskScheduledView->addContextAction("完成采样",[this](){
+        int row=ui->taskScheduledView->selectedRow();
+        if(row<0) return ;
+        if(!ui->taskScheduledView->value(row,4).toString().contains(user()->name())&&!ui->taskScheduledView->value(row,5).toString().contains(user()->name())){
+            QMessageBox::information(nullptr,"","必须由相关采样人员进行操作。");
+            return;
+        }
+        int r=QMessageBox::question(nullptr,"",QString("确认已经完成“%1”项目的采样？").arg(ui->taskScheduledView->value(row,1).toString()));
+        if(r!=QMessageBox::Yes) return;
+        int taskSheetID=ui->taskScheduledView->cellFlag(row,0).toInt();
+        QString sql;
+        sql="select A.id from task_parameters as A left join sampling_info as B on A.monitoringinfoid=B.monitoringinfoid where A.taskSheetID=? and A.sampleGroup>0 and(B.samplenumber is null or B.deleted=0);";//B.deleted=0用于样品被删除情况
+        bool hasSample=true;
+        doSqlQuery(sql,[this, &hasSample](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"查询样品信息时出错",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            hasSample=msg.result().toList().count()>1;
+            sqlFinished();
+        },0,{taskSheetID});
+        waitForSql();
+        if(hasSample){
+            QMessageBox::information(nullptr,"","检测到有采集需要样品，请在样品流转界面操作。");
+            return;
+        }
+        sql="update test_task_info set taskStatus=? where id=?;";
+        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                QMessageBox::information(nullptr,"更新任务单状态时出错",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            sqlFinished();
+        },0,{TaskSheetUI::REPORT_COMPILATION,taskSheetID});
+        waitForSql();
+        updateScheduledView();
+    });
 
 }
 

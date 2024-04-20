@@ -11,9 +11,39 @@ TestManager::TestManager(QWidget *parent) :
     ui->tableView->addContextAction("领样测试",[this](){
         on_startTestBtn_clicked();
     });
+    ui->tableView->addContextAction("撤销领样",[this](){
+        if(!ui->myTask->isChecked()) return;
+        auto indexs=ui->tableView->selectedIndexes();
+        if(!indexs.count()) return;
+        QString sql;
+        QJsonArray values;
+        for(auto index:indexs){
+            if(index.column()!=0) continue;
+            QStringList ids=ui->tableView->cellFlag(index.row(),0).toString().split(",");
+            for(auto id:ids){
+                sql+="update task_parameters set testor=null , startTime=null where id=? and testor=?;";
+                values.append(id.toInt());
+                values.append(user()->name());
+            }
+        }
+        connectDB(CMD_START_Transaction);
+        doSqlQuery(sql,[this](const QSqlReturnMsg&msg){
+            if(msg.error()){
+                releaseDB(CMD_ROLLBACK_Transaction);
+                QMessageBox::information(nullptr,"更新数据库时出错:",msg.errorMsg());
+                sqlFinished();
+                return;
+            }
+            sqlFinished();
+        },0,values);
+        waitForSql();
+        releaseDB(CMD_COMMIT_Transaction);
+        on_myTask_clicked();
+    });
     ui->tableView->addContextAction("提交数据",[this](){
         on_submitBtn_clicked();
     });
+    ui->orderBox->setCurrentIndex(1);
 }
 
 TestManager::~TestManager()
@@ -25,6 +55,7 @@ void TestManager::initCMD()
 {
     QString sql;
     ui->tableView->setHeader({"项目名称","样品编号","样品类型","检测项目","检测方法","流转时间","样品数量"});
+    int order=ui->orderBox->currentIndex();
     //显示已经流转待分配任务的样品
     sql="select F.inspectedProject ,B.sampleNumber,C.sampleType ,GROUP_CONCAT(A.parameterName order by A.id SEPARATOR '、'), CONCAT(E.methodName,' ', E.methodNumber) as M,"
           " DATE_FORMAT(B.receiveTime, '%m-%d %H:%i') as T ,GROUP_CONCAT(A.id SEPARATOR ',')"
@@ -38,7 +69,7 @@ void TestManager::initCMD()
           "group by F.inspectedProject ,B.sampleNumber,C.sampleType,M,T "
           "order by M , T;";
 
-    sql="select inspectedProject, SUBSTRING(sampleNumber, 1, 8) as num,sampleType , paras, M,DATE_FORMAT(receiveTime, '%m-%d') as T ,count(*),GROUP_CONCAT(ids SEPARATOR ',') "
+    sql=QString("select inspectedProject, SUBSTRING(sampleNumber, 1, 8) as num,sampleType , paras, M,DATE_FORMAT(receiveTime, '%m-%d') as T ,count(*),GROUP_CONCAT(ids SEPARATOR ',') "
           "from (select F.inspectedProject ,B.sampleNumber,C.sampleType ,GROUP_CONCAT(A.parameterName order by A.id SEPARATOR '、') as paras, GROUP_CONCAT(A.id SEPARATOR ',') as ids,CONCAT(E.methodName,' ', E.methodNumber) as M,"
           " B.receiveTime "
           "from task_parameters as A "
@@ -51,7 +82,7 @@ void TestManager::initCMD()
           "group by F.inspectedProject ,B.sampleNumber,C.sampleType,M,B.receiveTime "
           "order by M , B.receiveTime) as X "
           "group by inspectedProject,  num,sampleType , paras, M, T "
-          "order by  inspectedProject,T;";
+                  "order by  %1,T;").arg(order==0?"inspectedProject":"M");
     DealFuc f=[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询分析任务时出错：",msg.errorMsg());
@@ -66,6 +97,7 @@ void TestManager::initCMD()
         }
     };
     ui->pageCtrl->startSql(this,sql,1,{user()->name()},f,50);
+    manule=true;
 }
 
 void TestManager::on_myTask_clicked()
@@ -251,5 +283,12 @@ void TestManager::on_submitBtn_clicked()
         waitForSql();
         releaseDB(CMD_COMMIT_Transaction);
         on_myTask_clicked();
+}
+
+
+void TestManager::on_orderBox_currentIndexChanged(int index)
+{
+        if(!manule) return;
+        initCMD();
 }
 

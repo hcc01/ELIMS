@@ -189,12 +189,30 @@ FlowWidget* ReportManagerUI::flowWidget(const QFlowInfo &flowInfo)
 {
     FlowWidget *w = new FlowWidget;
     QVBoxLayout* lay=new QVBoxLayout(w);
+
     w->setLayout(lay);
 
     QString flowName=flowInfo.flowName();
     QString reportNum=flowInfo.flowAbs();
     QWidget* r=flowRecordView(reportNum,"report_flows","reportNum");
-    lay->addWidget(r);
+    QString client,project;
+    QString sql="select clientName, inspectedEentityName from test_task_info where id=(select DISTINCT taskSheetID from task_parameters where reportNum=?);";
+    doSqlQuery(sql,[this, &client, &project](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            QMessageBox::information(nullptr,"更新状态表时出错：",msg.errorMsg());
+            sqlFinished();
+            return;
+        }
+        auto row=msg.result().toList().at(1).toList();
+        client=row.first().toString();
+        project=row.last().toString();
+        sqlFinished();
+    },0,{reportNum});
+    waitForSql();
+    QLabel*lab=new QLabel(QString("报告编号：%3\n委托单位：%1\n项目名称：%2").arg(client).arg(project).arg(reportNum),w);
+//    lay->addStretch(1);
+    lay->addWidget(lab,0);
+    lay->addWidget(r,1);
     if(flowName=="报告初审"){
         connect(w,&FlowWidget::pushProcess,[this, reportNum](const QFlowInfo&flowInfo,bool passed){
             QString sql;
@@ -575,6 +593,7 @@ void ReportManagerUI::on_splitBtn_clicked()
             for(int i=1;i<r.count();i++){
                 auto row=r.at(i).toList();
             }
+            sqlFinished();
         },0,{reportNum});
         waitForSql();
     }

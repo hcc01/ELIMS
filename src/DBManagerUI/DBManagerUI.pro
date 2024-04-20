@@ -1,4 +1,4 @@
-QT += widgets axcontainer
+QT += widgets axcontainer sql
 
 TEMPLATE = lib
 DEFINES += DBMANAGERUI_LIBRARY
@@ -48,6 +48,10 @@ FORMS += \
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleuid
 else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
+
+
+INCLUDEPATH += $$PWD/../sqlPageControleUI
+DEPENDPATH += $$PWD/../sqlPageControleUI
 
 INCLUDEPATH += $$PWD/../../include
 DEPENDPATH += $$PWD/../../include

@@ -29,8 +29,11 @@ private slots:
 
     void on_submitBtn_clicked();
 
+    void on_orderBox_currentIndexChanged(int index);
+
 private:
     Ui::TestManager *ui;
+    bool manule=false;
 };
 
 #endif // TESTMANAGER_H

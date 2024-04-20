@@ -71,7 +71,8 @@ SampleGroupingDlg::SampleGroupingDlg(TabWidgetBase *parent) :
         qDebug()<<groups;
         m_groups[testTypeID]=groups;//合并完成，保存数据
         m_groupChanged=true;
-        on_typeView_currentRowChanged(ui->typeView->currentRow());
+        int row=ui->typeView->currentRow();
+        on_typeView_currentRowChanged(row);
     });
     ui->groupView->addContextAction("拆分分组",[this](){
         int row=ui->groupView->selectedRow();
@@ -838,7 +839,8 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                 typeOrder=m_siteUsedOrderMap.value(siteID);//如果这个点位编码这前的点位未采，那些编号不会被使用，先这样吧。
             }
             //延续之前的点位编号
-            else if(m_typeOrder.contains(typeID)){//类型已经编号号，继续往下编
+            else if(m_typeOrder.contains(typeID)){//类型已经编号过，继续往下编
+
                 typeOrder=m_typeOrder.value(typeID)+1;
                 m_typeOrder.remove(typeID);//后续使用自增
             }
@@ -898,7 +900,7 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
 //                        showedNum=QString("%1%2%3%4%5").arg(clientNum).arg(dateNum).arg(typeNum).arg(SeriesNum).arg(roundNum);
 
 
-                        sql+="insert into sampling_info(monitoringInfoID, samplingRound, samplingPeriod, sampleNumber, samplers,siteOrder,sampleOrder) "
+                        sql+="insert into sampling_info(monitoringInfoID, samplingRound, samplingPeriod, sampleNumber, samplers,sampleOrder,taskSheetID) "
                               "values(?,?,?,?,?,?,?) ;";
                         values.append(siteID);
 //                        values.append(m_allSides.value(siteID).first);
@@ -906,9 +908,11 @@ void SampleGroupingDlg::on_printOkbtn_clicked()
                         values.append(nowPeriod);
                         values.append(sampleNum);
                         values.append(ui->samplerEdit->text());
-                        values.append(typeNum.mid(1).toInt());
                         values.append(samplerOrder);
-
+                        values.append(m_taskSheetID);
+                        sql+="update site_monitoring_info set siteOrder=? where id=?;";
+                        values.append(typeNum.mid(1).toInt());
+                        values.append(siteID);
                     }
 
                 }
@@ -1215,12 +1219,13 @@ void SampleGroupingDlg::on_radioGenerate_clicked()
     QString sql;
     ui->sortGroup->hide();
     ui->printGroup->show();
-    sql="select B.sampleType, B.samplingSiteName,GROUP_CONCAT(DISTINCT A.parameterName SEPARATOR '、'), CONCAT(B.samplingFrequency,'次*', B.samplingPeriod,'天(剩',B.samplingPeriod-COALESCE(C.samplingPeriod,0),'天)') as c ,B.id ,C.siteOrder,B.testTypeID "
+    m_allSides.clear();
+    sql="select B.sampleType, B.samplingSiteName,GROUP_CONCAT(DISTINCT A.parameterName SEPARATOR '、'), CONCAT(B.samplingFrequency,'次*', B.samplingPeriod,'天(剩',B.samplingPeriod-COALESCE(C.samplingPeriod,0),'天)') as c ,B.id ,B.siteOrder,B.testTypeID "
           "from task_parameters as A "
           "left join site_monitoring_info as B on A.monitoringInfoID=B.id   "
           "left join (select monitoringInfoID , siteOrder, max(samplingPeriod) as samplingPeriod from sampling_info group by monitoringInfoID,siteOrder) as C on C.monitoringInfoID=B.id "
           "where A.taskSheetID=? and sampleGroup!=0 and (B.samplingPeriod-COALESCE(C.samplingPeriod,0))!=0 "//查找条件：任务单匹配，非现场监测项目，还有周期没有采样
-          "group by B.sampleType, B.samplingSiteName ,c,B.id ,C.siteOrder "
+          "group by B.sampleType, B.samplingSiteName ,c,B.id ,B.siteOrder "
           "order by B.id;";
     ui->pageCtrl->startSql(this->tabWiget(),sql,1,{m_taskSheetID},[this](const QSqlReturnMsg&msg){
 
@@ -1257,11 +1262,10 @@ void SampleGroupingDlg::on_radioGenerate_clicked()
         }
     });
     //要查询和记录每个类型已经使用的点位编码
-    sql="select max(A.siteOrder) , B.testTypeID "
-          "from sampling_info as A "
-          "left join site_monitoring_info as B on A.monitoringInfoID=B.id "
+    sql="select max(siteOrder) , testTypeID "
+          "from site_monitoring_info  "
           "where taskSheetID=? "
-          "group by B.testTypeID;";
+          "group by testTypeID;";
     doSql(sql,[this](const QSqlReturnMsg&msg){
         if(msg.error()){
             QMessageBox::information(nullptr,"查询当前点位序号时出错：",msg.errorMsg());
@@ -1335,6 +1339,11 @@ void SampleGroupingDlg::on_radioPrint_clicked()
 
 void SampleGroupingDlg::on_typeView_currentRowChanged(int currentRow)
 {
+    if(currentRow<0){
+        qDebug()<<"样品分组时出错：类型未选择。";
+//        DB.doLog("样品分组时出错：类型未选择。");
+        return;
+    }
     qDebug()<<"on_typeView_currentRowChanged"<<currentRow;
     QMap<int,QList<int>>group=m_groups.value(m_groups.keys().at(currentRow));
     QSqlQuery query(DB.database());
@@ -1347,5 +1356,28 @@ void SampleGroupingDlg::on_typeView_currentRowChanged(int currentRow)
 
         ui->groupView->append({order,items.join("、")});
     }
+}
+
+
+void SampleGroupingDlg::on_checkBox_clicked()
+{
+    if(ui->radioPrint->isChecked()){
+        ui->tableView->selectAll();
+        return;
+    }
+    if(!ui->checkBox->isChecked()){
+        return;
+    }
+    QMessageBox msgBox;
+
+    // 设置对话框的标题和文本
+    msgBox.setWindowTitle("提醒：");
+    msgBox.setText("生成全部点位的标签需要浏览完所有点位信息页面。");
+
+    // 设置自定义按钮文本
+    msgBox.setStandardButtons(QMessageBox::Ok );
+    msgBox.setButtonText(QMessageBox::Ok, "我已知晓");
+    msgBox.exec();
+
 }
 

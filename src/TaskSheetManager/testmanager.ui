@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>500</width>
     <height>300</height>
    </rect>
   </property>
@@ -48,25 +48,25 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="filterBox">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>排序方式</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="orderBox">
        <item>
         <property name="text">
-         <string>待处理</string>
+         <string>项目名称</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>未完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>已完成</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>全部</string>
+         <string>检测方法</string>
         </property>
        </item>
       </widget>

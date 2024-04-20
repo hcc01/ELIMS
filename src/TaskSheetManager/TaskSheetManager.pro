@@ -11,7 +11,6 @@ CONFIG += c++17
 
 SOURCES += \
     ../Client/ctablemodel.cpp \
-    ../Client/dbmater.cpp \
     ../Client/itemsselectdlg.cpp \
     ../Client/mycombobox.cpp \
     ../Client/mymodel.cpp \
@@ -37,7 +36,6 @@ SOURCES += \
 
 HEADERS += \
     ../Client/ctablemodel.h \
-    ../Client/dbmater.h \
     ../Client/global.h \
     ../Client/itemsselectdlg.h \
     ../Client/mycombobox.h \

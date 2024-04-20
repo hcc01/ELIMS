@@ -47,8 +47,11 @@ private slots:
 
     void on_typeView_currentRowChanged(int currentRow);
 
+    void on_checkBox_clicked();
+
 private:
     Ui::SampleGroupingDlg *ui;
+
     QString m_taskNum;
     int m_taskSheetID;
     QString m_clientID;//保存样品编号的企业代码

@@ -16,12 +16,11 @@ public:
     explicit SampleCirculationUI(QWidget *parent = nullptr);
     ~SampleCirculationUI();
     virtual void initCMD()override;
-    void doSamplingReceive();
+    bool doSamplingReceive(const QString&sampleNum, QString errorMsg, bool manual=false);
     void initDeliveryTask();
     void doDeliveryReceive();
     void showSampleToReceive();
     void deleteSample();
-
 private slots:
     void on_sampleReceiveBtn_clicked();
 

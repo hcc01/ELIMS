@@ -26,6 +26,7 @@ public:
     void DoLogin();
 protected:
     void closeEvent(QCloseEvent *event) override ;
+    TabWidgetBase *newTab(const QString&text);
 signals:
     void Connected();
     void loginResult(int result);

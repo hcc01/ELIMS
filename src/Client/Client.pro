@@ -27,7 +27,6 @@ SOURCES += \
     clienteditdlg.cpp \
     ctablemodel.cpp \
     cuser.cpp \
-    dbmater.cpp \
     implementingstandardeditor.cpp \
     itemsselectdlg.cpp \
     loginui.cpp \
@@ -74,7 +73,6 @@ HEADERS += \
     clienteditdlg.h \
     ctablemodel.h \
     cuser.h \
-    dbmater.h \
     global.h \
     implementingstandardeditor.h \
     itemsselectdlg.h \
@@ -170,9 +168,11 @@ DEPENDPATH += $$PWD/../labcapabilitiesmanager
 
 RC_ICONS=logo.ico
 
+
+
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleuid
 else:unix: LIBS += -L$$PWD/../../lib/ -lsqlpagecontroleui
 
-INCLUDEPATH += $$PWD/../../
-DEPENDPATH += $$PWD/../../
+INCLUDEPATH += $$PWD/../sqlPageControleUI
+DEPENDPATH += $$PWD/../sqlPageControleUI

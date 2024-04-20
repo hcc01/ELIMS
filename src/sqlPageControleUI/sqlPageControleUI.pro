@@ -1,4 +1,4 @@
-QT += widgets
+QT += widgets sql
 
 TEMPLATE = lib
 DEFINES += SQLPAGECONTROLEUI_LIBRARY
@@ -13,6 +13,7 @@ SOURCES += \
     ../Client/mymodel.cpp \
     ../Client/mytableview.cpp \
     ../Client/tabwigetbase.cpp \
+    dbmater.cpp \
     sqlpagecontroleui.cpp\
     ../Client/qjsoncmd.cpp
 
@@ -20,6 +21,7 @@ HEADERS += \
     ../Client/mymodel.h \
     ../Client/mytableview.h \
     ../Client/tabwigetbase.h \
+    dbmater.h \
     sqlPageControleUI_global.h \
     ../Client/qjsoncmd.cpp \
     sqlpagecontroleui.h

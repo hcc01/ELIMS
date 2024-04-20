@@ -12,7 +12,7 @@
 #include<QTimer>
 #include<QShortcut>
 #include<QCloseEvent>
-#include"../Client/dbmater.h"
+#include"dbmater.h"
 TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
     QMainWindow(tabWiget),
     SqlBaseClass(tabWiget),
@@ -23,6 +23,7 @@ TaskSheetEditor::TaskSheetEditor(TabWidgetBase *tabWiget, int openMode) :
 //    m_bSaved(false),
     m_bTasksheetModified(false),
     m_bTestInfoModified(false),
+    m_bMethodModified(false),
     m_status(0),
     m_taskSheetID(0),
     m_mode(openMode),
@@ -267,7 +268,7 @@ void TaskSheetEditor::doSave()
                 ok=true;
                 sqlFinished();
             },0,{ui->salesRepresentativeBox->currentText()});
-            waitForSql();
+            waitForSql("正在查询业务人员……");
             if(!ok) {
 //                tabWiget()->releaseDB(CMD_ROLLBACK_Transaction);
                 return;
@@ -300,6 +301,7 @@ void TaskSheetEditor::doSave()
                 return;
             }
 //            tabWiget()->releaseDB(CMD_COMMIT_Transaction);
+            m_bTasksheetModified=false;
         }
         if(m_bTestInfoModified){
             //保存检测信息
@@ -482,6 +484,7 @@ void TaskSheetEditor::doSave()
             saveMethod();
         }
         tabWiget()->releaseDB(CMD_COMMIT_Transaction);
+        m_bTasksheetModified=false;
         m_bTestInfoModified=false;
         //保存完成后，改为修改模式，以便用户继续修改。
         m_mode=EditMode;
@@ -1113,6 +1116,7 @@ void TaskSheetEditor::on_saveBtn_clicked()
     for(auto info:m_testInfo){
         qDebug()<<"info:"<<info<<info->samplingSites;
     }
+    DB.doLog("开始保存任务单……");
     doSave();
 
 }

@@ -1,5 +1,5 @@
 #include "tabwigetbase.h"
-#include "dbmater.h"
+#include <dbmater.h>
 #include "mytableview.h"
 #include "qapplication.h"
 #include "qlayout.h"
@@ -7,7 +7,8 @@
 #include<QDialog>
 #include<QTimer>
 #include<QDesktopWidget>
-TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0),_clientSocket(nullptr)
+
+TabWidgetBase::TabWidgetBase(QWidget *parent) : QWidget(parent),flag(0)
 {
 
 }
@@ -147,7 +148,7 @@ void TabWidgetBase::initMod()
 void TabWidgetBase::doSqlQuery(const QString &sql, DealFuc f, int page, const QJsonArray&bindValues, int itemsPerPage)
 {
 //    static int flag=0;
-        qDebug()<<"tab:"<<this;
+        qDebug()<<"doSqlQuery tab:"<<this;
     QSqlCmd cmd(sql,flag,page);
     if(bindValues.count()){
         cmd.bindValue(bindValues);
@@ -380,14 +381,6 @@ void TabWidgetBase::releaseDB(CMD TransactionType)
     QString sql=QString::number(TransactionType);
     doSqlQuery(sql);
 }
-
-void TabWidgetBase::sendData(const QJsonObject &sqlCmd)
-{
-                QJsonObject j=sqlCmd;
-                j["tytle"]=m_tabName;//标识下处理窗口
-                _clientSocket->SendData(j);
-}
-
 
 SqlBaseClass::SqlBaseClass(TabWidgetBase *tab):
     m_tabWiget(tab)

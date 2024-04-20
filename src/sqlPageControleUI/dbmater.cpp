@@ -47,21 +47,25 @@ void DBMater::doLog(const QString &log)
     if(!query.exec(QString("insert into logData values(%1,%2);").arg(logTime,log))){
         qDebug()<<query.lastError().text();
     }
+    qDebug()<<"DBMater::doLog"<<log;
 }
 
 DBMater::DBMater(QObject *parent)
     : QObject{parent}
 {
-    m_db=QSqlDatabase::addDatabase("QSQLITE");
+    m_db=QSqlDatabase::addDatabase("QSQLITE","systermDb");
     m_db.setDatabaseName("BaseData");
     if(!m_db.open()){
-        QMessageBox::information(nullptr,"无法打开数据库",m_db.lastError().text());
+        QMessageBox::information(nullptr,"无法打开数据库systermDb",m_db.lastError().text());
         return;
     }
-    m_logDb=QSqlDatabase::addDatabase("QSQLITE");
+    m_logDb=QSqlDatabase::addDatabase("QSQLITE","logDb");
     QString logDb=QString("%1.log").arg(QDate::currentDate().toString("yyyyMMdd"));
     m_logDb.setDatabaseName(logDb);
-    m_logDb.open();
+    if(!m_logDb.open()){
+        QMessageBox::information(nullptr,"无法打开数据库logDb",m_db.lastError().text());
+                                                            return;
+    }
     QSqlQuery q(m_logDb);
     if(!q.exec(QString("create table if not exists logData( logTime text, msg text)"))){
         qDebug()<<"无法创建日志表格."<<q.lastError().text();

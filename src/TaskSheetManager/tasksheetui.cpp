@@ -239,6 +239,7 @@ void TaskSheetUI::initMod()
           "sampleCount int not null default 1, "//样品数量
           "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
           "delReason varchar(255),"//删除原因
+          "siteOrder int NOT NULL DEFAULT 0,"
           "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id), "
            "FOREIGN KEY (testTypeID) REFERENCES test_type (id) "
 //           "FOREIGN KEY (limitValueID) REFERENCES standard_limits (id) "//放弃使用外键，自行控制。因为当执行标准为空时，无法传输空值
@@ -369,6 +370,7 @@ void TaskSheetUI::initMod()
     sql="CREATE TABLE IF NOT EXISTS sampling_info("
           "id int AUTO_INCREMENT primary key, "//
           "monitoringInfoID int not null,"//监测信息ID
+          "taskSheetID int, "
 //          "samplingSiteName varchar(64),"
           "samplingRound  int default 1, "
           "samplingPeriod  int default 1, "
@@ -376,14 +378,16 @@ void TaskSheetUI::initMod()
           "sampleNumber varchar(32) unique ,"
           "samplingParameters json,"
           "samplers varchar(12),"
-          "siteOrder int, "
+//          "siteOrder int, "
           "deleiver varchar(16) ,"
           "receiver varchar(16), "
           "receiveTime DateTime, "
+          "receiveBase TINYINT, "
           "deleted TINYINT NOT NULL DEFAULT 0,"//是否删除
           "delReason varchar(255),"//删除原因
           "UNIQUE (monitoringInfoID, samplingRound,samplingPeriod,sampleOrder),  "
-          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id) "
+          "FOREIGN KEY (monitoringInfoID) REFERENCES site_monitoring_info (id), "
+          "FOREIGN KEY (taskSheetID) REFERENCES test_task_info (id) "
           ");";
     doSqlQuery(sql,[&](const QSqlReturnMsg&msg){
         if(msg.error()){

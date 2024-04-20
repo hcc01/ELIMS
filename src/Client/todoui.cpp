@@ -380,7 +380,10 @@ void ToDoUI::on_tableView_doubleClicked(const QModelIndex &index)
         return;
     }
     FlowWidget* w=tab->flowWidget(flowInfo);
-    if(w) vlay->addWidget(w);
+//    vlay->addStretch(1);
+    if(w) {
+        vlay->addWidget(w,1);
+    }
     QLabel* lab=new QLabel("审批意见：",&dlg);
     vlay->addWidget(lab);
     QTextEdit* edit=new QTextEdit(&dlg);

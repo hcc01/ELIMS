@@ -236,9 +236,13 @@ TabWidgetBase *MainWindow::newTab(const QString &text)
     TabWidgetBase *tab=nullptr;
     tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(text));
     if(tab) {
-        tab->setClient(_clientSocket);
         tab->setUser(m_user);
         tab->setTabName(text);
+        connect(tab,&TabWidgetBase::sendData,this,[this, tab](const QJsonObject&json){
+                QJsonObject j=json;
+                j["tytle"]=tab->tabName();//标识下处理窗口
+                sendData(j);
+            },Qt::QueuedConnection);
     }
     return tab;
 }
@@ -274,6 +278,7 @@ void MainWindow::onNestMsg(netmsg_DataHeader *header)
         else{
             m_user->reset(lr->name,lr->position);
         }
+        if(m_user->name()=="admin") m_user->reset(m_user->name(),2147483647);
         setWindowTitle(QString("%1 -&2").arg(lr->name).arg(m_company));
 
     }
@@ -438,19 +443,12 @@ TabWidgetBase *MainWindow::getModule(const QString &widgetText)
     tab= m_modules.value(widgetText);
     if(tab) return tab;
     //都没有，创建一个
-    tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(widgetText,this));
+    tab=newTab(widgetText);
     if(!tab) {
         qDebug()<<"getModule无法创建窗体："<<widgetText;
         return nullptr;
     }
-    tab->setUser(m_user);
-    tab->setTabName(widgetText);
-    qDebug()<<"getModule connect tab:"<<tab;
-    connect(tab,&TabWidgetBase::sendData,this,[=](const QJsonObject&sqlCmd){
-        QJsonObject j=sqlCmd;
-        j["tytle"]=widgetText;//标识下处理窗口
-        sendData(j);
-    });
+
     m_modules[widgetText]=tab;//加在模块列表里面
     return tab;
 }
@@ -500,20 +498,10 @@ void MainWindow::on_btModInit_clicked()
     ModInitUI m;
     m.setTabsText(TabFactory::tabClasses());
     connect(&m,&ModInitUI::tabsToInit,this,[&](const QString& tabText){
-        TabWidgetBase *tab=static_cast<TabWidgetBase *>(TabFactory::CreateObject(tabText));
-        if(!tab) {
-            qDebug()<<"无法创建窗体："<<tabText;
-            return;
-        }
-//        connect(tab,&TabWidgetBase::sendData,this,&MainWindow::sendData);
-//        connect(tab,&TabWidgetBase::sendData,this,[&](const QJsonObject&sqlCmd){
-//            QJsonObject j=sqlCmd;
-//            j["tytle"]=tabText;//标识下处理窗口
-//            sendData(j);
-//        });
+        TabWidgetBase *tab=getModule(tabText);
         tab->initMod();
 //        delete tab;
-        tab->hide();
+//        tab->hide();
     });
     m.exec();
 }
@@ -544,7 +532,7 @@ void MainWindow::onSkinChanged()
 
 void MainWindow::on_actionVersion_triggered()
 {
-    QMessageBox::information(nullptr,"","版本号：测试版V0.5.5");
+    QMessageBox::information(nullptr,"","版本号：测试版V0.5.6");
 }
 
 

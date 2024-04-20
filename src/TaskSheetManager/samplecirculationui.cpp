@@ -15,7 +15,22 @@ SampleCirculationUI::SampleCirculationUI(QWidget *parent) :
     ui->tableView->setHeader({"任务单号","委托单位","受检单位","项目名称"});
     ui->groupBox_2->hide();
     ui->groupBox_3->hide();
-    ui->samplingView->setHeader({"任务单号","样品编号","测试项目","交接状态"});
+    ui->samplingView->setHeader({"点位名称","样品编号","测试项目","交接状态"});
+    ui->samplingView->addContextAction("手动交接",[this](){
+        auto indexs=ui->samplingView->selectedIndexes();
+        if(!indexs.count()) return;
+        if(ui->submitterBox->currentText().isEmpty()){
+            QMessageBox::information(nullptr,"error","交样人不能为空。");
+            return;
+        }
+        for(auto index:indexs){
+            if(index.column()!=0) continue;
+            int row=index.row();
+            if(ui->samplingView->value(row,3)!="") continue;
+            if(!doSamplingReceive(ui->samplingView->value(row,1).toString(),QString(),true)) return;
+            ui->samplingView->setData(row,3,"手动交接");
+        }
+    });
     ui->deliveryView->setHeader({"任务单号","项目名称"});
     ui->deliveryView->addContextAction("接样",[this](){
         doDeliveryReceive();
@@ -77,104 +92,33 @@ void SampleCirculationUI::initCMD()
     on_samplingBtn_clicked();
 }
 
-void SampleCirculationUI::doSamplingReceive()
+bool SampleCirculationUI::doSamplingReceive(const QString &sampleNum, QString errorMsg,bool manual)
 {
-    QDialog dlg;
-    QLineEdit* edit=new QLineEdit(&dlg);
-    QVBoxLayout *lay=new QVBoxLayout(&dlg);
-    lay->addWidget(edit);
-    dlg.setLayout(lay);
-    connect(edit,&QLineEdit::returnPressed,[this, edit](){
-        edit->selectAll();
-        QString sql;
+    //保存交接记录
+    QString sql;
+    bool error=false;
+    sql="update sampling_info set deleiver=?, receiver=?, receiveTime=now(),receiveBase=? where sampleNumber=? ;";
+    doSqlQuery(sql,[this, &error, &errorMsg](const QSqlReturnMsg&msg){
+        if(msg.error()){
+            //                QMessageBox::information(nullptr,"保存交接记录时出错：",msg.errorMsg());
+            errorMsg="更新流转表时出错："+msg.errorMsg();
 
-        bool error=false;
-        QString taskNum;
-        int taskSheetID;
-        QString sampleNum=edit->text();
-        if(sampleNum.isEmpty()) return;
-        //显示相关任务单的样品交接情况
-        int taskSatus=0;
-        if(!m_taskSheetID){
-            sql="select B.taskSheetID, C.taskNum,C.taskStatus from sampling_info as A "
-                  "left join site_monitoring_info as B on A.monitoringInfoID =B.id "
-                  "left join test_task_info as C on B.taskSheetID=C.id "
-                  "where sampleNumber=? ;";
-            doSqlQuery(sql,[this, &error, &taskNum, edit, &taskSheetID, &taskSatus](const QSqlReturnMsg&msg){
-                if(msg.error()){
-                    //                QMessageBox::information(nullptr,"查询样品时出错：",msg.errorMsg());
-                    edit->setText("查询流转表时出错："+msg.errorMsg());edit->selectAll();
-                    error=true;
-                    sqlFinished();
-                    return;
-                }
-                QList<QVariant>r=msg.result().toList();
-                if(r.count()!=2){
-                    //                QMessageBox::information(nullptr,"查询样品时出错：","未找到此编号");
-                    edit->setText("未找到此编号");edit->selectAll();
-                        error=true;
-                    sqlFinished();
-                    return;
-                }
-                QList<QVariant>row=r.at(1).toList();
-                taskNum=row.at(1).toString();
-                taskSheetID=row.first().toInt();
-                taskSatus=row.last().toInt();
-                sqlFinished();
-            },0,{sampleNum});
-            waitForSql("正在查询样品");
-            if(error) return;
-            if(taskSatus!=TaskSheetUI::SAMPLING){
-                QMessageBox::information(nullptr,"error","此单尚未进行采样或已经完成流转");
-                return;
-            }
-            m_taskSheetID=taskSheetID;
-            ui->taskNumEdit->setText(taskNum);
-            showSampleToReceive();
-            //
-
-        }
-        qDebug()<<"m_taskSheetID"<<m_taskSheetID;
-        if(error) return;
-        int row=ui->samplingView->findInColumn(sampleNum,1);
-        if(row<0){
-            QMessageBox::information(nullptr,"error","显示出错，没有相关样品。");
-            return;
-        }
-        if(ui->samplingView->value(row,3)=="已交接"){
-            edit->setText("该样品已经交接过了！");edit->selectAll();
-            return;
-        }
-
-        //保存交接记录
-        sql="update sampling_info set deleiver=?, receiver=?, receiveTime=now() where sampleNumber=? ;";
-        doSqlQuery(sql,[this, &error, edit](const QSqlReturnMsg&msg){
-            if(msg.error()){
-//                QMessageBox::information(nullptr,"保存交接记录时出错：",msg.errorMsg());
-
-                edit->setText("更新流转表时出错："+msg.errorMsg());edit->selectAll();
-                error=true;
-                sqlFinished();
-                return;
-            }
-            if(!msg.numRowsAffected()){
-//                QMessageBox::information(nullptr,"保存交接记录时出错：","没样此样品编号或样品已经被交接");
-                edit->setText("更新流转表时出错：无效的操作。");edit->selectAll();
-                error=true;
-                sqlFinished();
-                return;
-            }
+            error=true;
             sqlFinished();
-        },0,{ui->submitterBox->currentText(),user()->name(),sampleNum});
-        waitForSql("正在保存交接记录");
-        if(error) return;
-
-
-
-        ui->samplingView->setData(row,3,"交接完成");
-    });
-
-    dlg.exec();
+            return;
+        }
+        if(!msg.numRowsAffected()){
+            //                QMessageBox::information(nullptr,"保存交接记录时出错：","没样此样品编号或样品已经被交接");
+            errorMsg="更新流转表时出错：无效的操作。";
+            error=true;
+            sqlFinished();
+            return;
+        }
+        sqlFinished();
+    },0,{ui->submitterBox->currentText(),user()->name(),manual,sampleNum});
+    waitForSql("正在保存交接记录");
+    if(error) return false;
+    return true;
 }
 
 void SampleCirculationUI::initDeliveryTask()
@@ -297,7 +241,7 @@ void SampleCirculationUI::doDeliveryReceive()
           "right join task_parameters as B on B.monitoringInfoID =A.id "
           "left join sampling_info as C on A.id=C.monitoringInfoID "
           "where A.taskSheetID=? and C.sampleNumber is null "
-          "group by A.sampleName,A.sampleDesc,A.sampleCount,A.testTypeID,A.id, A.sampleType;";
+          "group by A.sampleName,A.sampleDesc,A.sampleCount,A.testTypeID,A.id, A.sampleType order by A.id;";
     doSqlQuery(sql,[this, &error, view](const QSqlReturnMsg&msg){
         if(msg.error()){
             error   =true;
@@ -568,7 +512,7 @@ void SampleCirculationUI::showSampleToReceive()
     }
 
         sql="select B.samplingSiteName, A.sampleNumber, GROUP_CONCAT( DISTINCT C.parameterName SEPARATOR ','), "
-          "CASE WHEN A.receiver is null THEN ''  ELSE '已交接'  END AS r "
+          "CASE WHEN A.receiveBase is null THEN ''  WHEN A.receiveBase=0 then '手动交接' ELSE '扫码交接'  END AS r "
               "from sampling_info as A "
               "left join site_monitoring_info as B on B.id=A.monitoringInfoID "
               "left join task_parameters as C on C.monitoringInfoID=B.id and C.sampleGroup=A.sampleOrder "
@@ -700,7 +644,83 @@ void SampleCirculationUI::on_samplingReceiveBtn_clicked()
         QMessageBox::information(nullptr,"","请选择交样人。");
         return;
     }
-    doSamplingReceive();
+    QDialog dlg;
+    QLineEdit* edit=new QLineEdit(&dlg);
+    QVBoxLayout *lay=new QVBoxLayout(&dlg);
+    lay->addWidget(edit);
+    dlg.setLayout(lay);
+    connect(edit,&QLineEdit::returnPressed,[this, edit](){
+        edit->selectAll();
+        QString sql;
+
+        bool error=false;
+        QString taskNum;
+        int taskSheetID;
+        QString sampleNum=edit->text();
+        if(sampleNum.isEmpty()) return;
+        //显示相关任务单的样品交接情况
+        int taskSatus=0;
+        if(!m_taskSheetID){
+            sql="select B.taskSheetID, C.taskNum,C.taskStatus from sampling_info as A "
+                  "left join site_monitoring_info as B on A.monitoringInfoID =B.id "
+                  "left join test_task_info as C on B.taskSheetID=C.id "
+                  "where sampleNumber=? ;";
+            doSqlQuery(sql,[this, &error, &taskNum, edit, &taskSheetID, &taskSatus](const QSqlReturnMsg&msg){
+                if(msg.error()){
+                    //                QMessageBox::information(nullptr,"查询样品时出错：",msg.errorMsg());
+                    edit->setText("查询流转表时出错："+msg.errorMsg());edit->selectAll();
+                    error=true;
+                    sqlFinished();
+                    return;
+                }
+                QList<QVariant>r=msg.result().toList();
+                if(r.count()!=2){
+                    //                QMessageBox::information(nullptr,"查询样品时出错：","未找到此编号");
+                    edit->setText("未找到此编号");edit->selectAll();
+                        error=true;
+                    sqlFinished();
+                    return;
+                }
+                QList<QVariant>row=r.at(1).toList();
+                taskNum=row.at(1).toString();
+                taskSheetID=row.first().toInt();
+                taskSatus=row.last().toInt();
+                sqlFinished();
+            },0,{sampleNum});
+            waitForSql("正在查询样品");
+            if(error) return;
+            if(taskSatus!=TaskSheetUI::SAMPLING){
+                QMessageBox::information(nullptr,"error","此单尚未进行采样或已经完成流转");
+                return;
+            }
+            m_taskSheetID=taskSheetID;
+            ui->taskNumEdit->setText(taskNum);
+            showSampleToReceive();
+            //
+
+        }
+        qDebug()<<"m_taskSheetID"<<m_taskSheetID;
+        if(error) return;
+        int row=ui->samplingView->findInColumn(sampleNum,1);
+        if(row<0){
+            QMessageBox::information(nullptr,"error","显示出错，没有相关样品。");
+            return;
+        }
+        if(ui->samplingView->value(row,3)=="已交接"){
+            edit->setText("该样品已经交接过了！");edit->selectAll();
+            return;
+        }
+        QString errorMsg;
+        if(!doSamplingReceive(sampleNum,errorMsg)){
+            edit->setText("更新流转表时出错：无效的操作。");edit->selectAll();
+            return;
+        }
+
+
+        ui->samplingView->setData(row,3,"交接完成");
+    });
+
+    dlg.exec();
 
 }
 

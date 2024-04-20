@@ -1,11 +1,11 @@
 #ifndef DBMATER_H
 #define DBMATER_H
-
+#include "sqlPageControleUI_global.h"
 #define DB DBMater::Instance()
 #include <QObject>
 #include "QtSql/qsqlerror.h"
 #include "QtSql/qsqlquery.h"
-class DBMater : public QObject
+class SQLPAGECONTROLEUI_EXPORT DBMater : public QObject
 {
     Q_OBJECT
 public:
